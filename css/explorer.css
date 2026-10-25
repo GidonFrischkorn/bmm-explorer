@@ -51,6 +51,9 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-dash .task-letter { font-size: 26px; font-weight: 600; }
 .ex-dash .task-bin { font-size: 21px; font-weight: 700; }
 #m3-reset { margin-top: 0.4rem; }
+/* Out-of-range input: the box is outlined and the outputs fade, so old results are not read as new. */
+.ex-invalid { outline: 2px solid var(--ex-orange); outline-offset: 1px; }
+.ex-dash.ex-stale > section, .ex-stale:not(.ex-dash) { opacity: 0.35; }
 @media (max-width: 1000px) {
   .ex-dash { grid-template-columns: 1fr 1fr; grid-template-areas: "task task" "controls controls" "bars across"; }
   .ex-p-controls { flex-direction: row; } .ex-p-controls > .ex-panel { flex: 1; }

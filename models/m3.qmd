@@ -60,9 +60,9 @@ toc: false
     <div class="ex-panel-title">P(correct) across response-set size</div>
     <svg id="m3-across" role="img" aria-label="Predicted probability correct against response-set size for three ways of adding candidates"></svg>
     <div class="ex-legend">
-      From the current counts, add <span class="grey">lures</span>, <span class="orange">other list
-      items</span> or <span class="purple">both</span>. Solid: current a, c; dashed: prior means;
-      circle: current N.
+      Vary <span class="grey">lures</span>, <span class="orange">other list items</span> or
+      <span class="purple">both</span> from the current counts (circle, current N). Solid: current
+      a, c; dashed: prior means.
     </div>
   </section>
 </div>
@@ -115,16 +115,16 @@ so `n_other` is at most set size − 1. N is the number of candidates, 1 + `n_ot
 
 ## Explore
 
-Each bar is the probability that the response on one trial falls in that category; the three add up
-to 1. Raising `a` moves responses from the lures to the list, raising `c` from the other list items
-to the correct one. Set size alone does not move the bars (see below). Reset restores the start.
+Each bar is the probability of a response in that category; the three sum to 1. Raising `a` moves
+responses from lures to the list, raising `c` from other list items to the correct one.
+Set size alone does not move the bars (see below). Reset returns `a` and `c` to the current rule's
+prior means and the task settings to their starting values.
 
-The slider ranges come from bmm's default priors. The simple rule estimates log `a` with prior
+Slider ranges come from bmm's default priors. The simple rule estimates log `a` with
 normal(0, 1) and log `c` with normal(3, 1); softmax estimates `a` and `c` directly, both normal(3, 1).
 Each slider spans the prior mean ± 3 SD: under the simple rule `a` runs from 0.05 to 20 and `c` from
-1 to 403, under softmax both run from 0 to 6. The sliders start at the prior means, shown dashed.
-Switching the rule restarts them there, because the same number means different things under the
-two rules.
+1 to 403, under softmax both run from 0 to 6. They start at the prior means (dashed).
+Switching the rule restarts them there; the same number means something else under each rule.
 
 ## Across task settings
 

@@ -42,16 +42,30 @@ function probs({ a, c, n_other, n_npl }, choiceRule) {
 }
 
 const inRange = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
-const valid = p => [p.a, p.c].every(Number.isFinite) && inRange(p.set_size, 1, MAX.set_size) &&
-  inRange(p.n_other, 0, p.set_size - 1) && inRange(p.n_npl, 0, MAX.n_npl) && probs(p, rule()) !== null;
 
-// n_other cannot exceed the other list items there are; a smaller set size pulls it down.
+// What keeps the current values from being drawn, as [fields, hint element id, message]; empty if nothing.
+function problems(p, choiceRule) {
+  const counts = [];
+  if (!inRange(p.set_size, 1, MAX.set_size)) counts.push(["set_size", `set size 1–${MAX.set_size}`]);
+  else if (!inRange(p.n_other, 0, p.set_size - 1)) counts.push(["n_other", `n_other 0–${p.set_size - 1}`]);
+  if (!inRange(p.n_npl, 0, MAX.n_npl)) counts.push(["n_npl", `n_npl 0–${MAX.n_npl}`]);
+  const out = counts.length ? [[counts.map(q => q[0]), "m3-n-total", `Out of range: ${counts.map(q => q[1]).join(", ")}.`]] : [];
+  const ac = ["a", "c"].filter(k => !Number.isFinite(p[k]) || (choiceRule === "simple" && p[k] < 0));
+  if (ac.length) {
+    out.push([ac, "m3-range-hint", choiceRule === "simple" ? "Under the simple rule a and c must be numbers ≥ 0." : "a and c must be numbers."]);
+  } else if (!counts.length && !probs(p, choiceRule)) {
+    out.push([["a", "c"], "m3-range-hint", "No finite prediction for these a and c."]);
+  }
+  return out;
+}
+
+// n_other cannot exceed the other list items there are; a smaller set size pulls it down. A set size
+// that is empty or out of range, as while it is being typed, leaves n_other and its limits alone.
 function capOther() {
-  const { set_size, n_other } = readParams(pairs), hi = Math.max(0, set_size - 1);
-  if (!Number.isInteger(set_size)) return;
-  pairs.n_other.range.max = pairs.n_other.num.max = hi;
-  // Re-set even when in range: the slider clamped itself to the old max and must follow the box.
-  if (Number.isFinite(n_other)) pairs.n_other.value = Math.min(n_other, hi);
+  const { set_size, n_other } = readParams(pairs);
+  if (!inRange(set_size, 1, MAX.set_size)) return;
+  pairs.n_other.setBounds({ max: set_size - 1 });
+  if (n_other > set_size - 1) pairs.n_other.value = set_size - 1;
 }
 
 function drawTask({ set_size, n_other, n_npl }) {
@@ -87,7 +101,6 @@ function drawTask({ set_size, n_other, n_npl }) {
    [800, "npl", `${n_npl} letter${n_npl === 1 ? "" : "s"} never shown`]].forEach(([x, k, label]) => {
     el("text", { x, y: 302, "text-anchor": "middle", class: "task-bin", fill: TILE[k].text }, svg).textContent = label;
   });
-  $("m3-n-total").textContent = `N = 1 correct + ${n_other} other + ${n_npl} lures = ${1 + n_other + n_npl}`;
 }
 
 function drawBars(cur, ref) {
@@ -98,20 +111,24 @@ function drawBars(cur, ref) {
   });
   rects[0].forEach((r, i) => {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
-    r.setAttribute("fill", Object.values(COLOR)[i]);
+    r.setAttribute("fill", [COLOR.corr, COLOR.other, COLOR.npl][i]);
     el("rect", { x, y: sy(ref[i]), width: w, height: sy(0) - sy(ref[i]), fill: "none", stroke: "#222", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
     el("text", { x: x + w / 2, y: sy(Math.max(cur[i], ref[i])) - 6, "text-anchor": "middle", class: "tick" }, svg).textContent = fmt(cur[i], 2);
   });
 }
 
-// P(correct) along three ways of growing the response set from the current composition.
-const compositions = p => [
-  { color: COLOR.npl, pts: Array.from({ length: MAX.n_npl + 1 }, (_, k) => ({ ...p, n_npl: k })) },
-  { color: COLOR.other, pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k })) },
-  { color: COLOR.both, pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k, n_npl: k })) }
-];
+// P(correct) along three ways of changing the response set from the current composition: lures only,
+// other list items only, or both by the same step. Each runs through the current counts.
+function compositions(p) {
+  const lo = -Math.min(p.n_other, p.n_npl), hi = Math.min(p.set_size - 1 - p.n_other, MAX.n_npl - p.n_npl);
+  return [
+    { color: COLOR.npl, pts: Array.from({ length: MAX.n_npl + 1 }, (_, k) => ({ ...p, n_npl: k })) },
+    { color: COLOR.other, pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k })) },
+    { color: COLOR.both, pts: Array.from({ length: hi - lo + 1 }, (_, i) => ({ ...p, n_other: p.n_other + lo + i, n_npl: p.n_npl + lo + i })) }
+  ];
+}
 
-function drawAcross(p, ref, choiceRule) {
+function drawAcross(p, ref, choiceRule, cur) {
   const series = [{ ...p, ...ref }, p].flatMap((q, j) => compositions(q).map(comp => ({
     x: comp.pts.map(s => 1 + s.n_other + s.n_npl), y: comp.pts.map(s => probs(s, choiceRule)[0]),
     color: comp.color, dashed: j === 0
@@ -121,11 +138,16 @@ function drawAcross(p, ref, choiceRule) {
     xticks: [1, 5, 9, 13, 17, 21], yticks: [0, 0.25, 0.5, 0.75, 1], xlab: "Response-set size N", ylab: "P(correct)", series
   });
   const N = 1 + p.n_other + p.n_npl, pc = q => fmt(probs(q, choiceRule)[0], 2);
-  el("circle", { cx: sx(N), cy: sy(probs(p, choiceRule)[0]), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, $("m3-across"));
-  $("m3-across-now").textContent =
-    `With the current values, P(correct) is ${pc(p)} at N = ${N}. With ${MAX.n_npl} lures instead it would be ` +
-    `${pc({ ...p, n_npl: MAX.n_npl })} (N = ${1 + p.n_other + MAX.n_npl}); with all ${p.set_size - 1} other list items ` +
-    `offered it would be ${pc({ ...p, n_other: p.set_size - 1 })} (N = ${p.set_size + p.n_npl}).`;
+  el("circle", { cx: sx(N), cy: sy(cur[0]), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, $("m3-across"));
+  // A counterfactual that equals the current state (12 lures already, all other list items already
+  // offered, or none to offer) is left out.
+  const alt = [
+    p.n_npl < MAX.n_npl && `with ${MAX.n_npl} lures instead it would be ${pc({ ...p, n_npl: MAX.n_npl })} (N = ${1 + p.n_other + MAX.n_npl})`,
+    p.n_other < p.set_size - 1 && `with ${p.set_size === 2 ? "the other list item" : `all ${p.set_size - 1} other list items`} ` +
+      `offered it would be ${pc({ ...p, n_other: p.set_size - 1 })} (N = ${p.set_size + p.n_npl})`
+  ].filter(Boolean).join("; ");
+  $("m3-across-now").textContent = `With the current values, P(correct) is ${fmt(cur[0], 2)} at N = ${N}.` +
+    (alt && ` ${alt[0].toUpperCase()}${alt.slice(1)}.`);
 }
 
 // x in the dm3() call: 100 trials split as the model predicts, rounded so the counts sum to 100.
@@ -155,15 +177,30 @@ dm3(x = c(${expectedCounts(pr).join(", ")}), pars = c(a = ${p.a}, c = ${p.c}), m
 fit <- bmm(formula = bmf(c ~ 1, a ~ 1), data = my_data, model = model)`;
 }
 
+const RULE_HINT = {
+  simple: "b = 0.1, fixed. Sliders move on the log scale; boxes show a and c.",
+  softmax: "b = 0, fixed. Only differences between activations matter."
+};
+
 function draw() {
   const t0 = performance.now();
   capOther();
-  const p = readParams(pairs), r = rule();
-  if (!valid(p)) return;
+  const p = readParams(pairs), r = rule(), bad = problems(p, r);
+  // Out-of-range input flags its box and dims every output, so nothing reads as the result for it.
+  const flagged = new Set(bad.flatMap(([fields]) => fields));
+  for (const [k, pair] of Object.entries(pairs)) {
+    pair.num.classList.toggle("ex-invalid", flagged.has(k));
+    pair.num.setAttribute("aria-invalid", flagged.has(k));
+  }
+  for (const id of ["m3-widget", "m3-code", "m3-across-now"]) $(id).classList.toggle("ex-stale", bad.length > 0);
+  $("m3-n-total").textContent = `N = 1 correct + ${p.n_other} other + ${p.n_npl} lures = ${1 + p.n_other + p.n_npl}`;
+  $("m3-range-hint").textContent = RULE_HINT[r];
+  for (const [, hint, msg] of bad) $(hint).textContent = msg;
+  if (bad.length) return;
   const ref = priorMeans(r), cur = probs(p, r);
   drawTask(p);
   drawBars(cur, probs({ ...p, ...ref }, r));
-  drawAcross(p, ref, r);
+  drawAcross(p, ref, r, cur);
   drawCode(p, r, cur);
   $("m3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
@@ -172,15 +209,10 @@ function draw() {
 function applyRule() {
   const pr = PRIOR[rule()];
   for (const k of ["a", "c"]) {
-    const [m, sd] = pr[k], pair = pairs[k];
-    pair.scale = pr.scale;
-    Object.assign(pair.range, { min: m - 3 * sd, max: m + 3 * sd, step: pr.step });
-    Object.assign(pair.num, { min: pr.scale.fromRange(m - 3 * sd), max: pr.scale.fromRange(m + 3 * sd), step: "any" });
+    const [m, sd] = pr[k];
+    pairs[k].setBounds({ min: m - 3 * sd, max: m + 3 * sd, step: pr.step, scale: pr.scale });
   }
   setParams(pairs, priorMeans(rule()));
-  $("m3-range-hint").textContent = rule() === "simple"
-    ? "b = 0.1, fixed. Sliders move on the log scale; boxes show a and c."
-    : "b = 0, fixed. Only differences between activations matter.";
 }
 
 ruleInputs.forEach(r => r.addEventListener("change", () => { applyRule(); draw(); }));
