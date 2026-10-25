@@ -2,15 +2,19 @@
 title: "How to read a page"
 ---
 
-Every model page has the same five parts.
+Every model page opens with one screen of panels: a drawing of the task, the task settings, the
+parameters, the predicted responses, and the prediction across task settings. Move any control and
+every panel follows. The dashed lines and outlines show the model at bmm's prior means, so a change is
+always a comparison. Each slider covers the range bmm's default priors consider plausible.
+
+Below the panels, every page has the same five parts.
 
 1. **What the model says.** The model in a few sentences and its formula, with the parameters named
    as bmm names them.
 2. **The task.** A drawing of the experimental trial the model is written for. Where the task has
    settings that enter the model (how many items, how many response candidates), the drawing follows
    the controls.
-3. **Explore.** Sliders for the parameters and the predicted response distribution. Move a slider and
-   the curve moves with it. The dashed curve is the starting point, so a change is always a comparison.
+3. **Explore.** How to read the panels, and where the slider ranges come from.
 4. **Across task settings.** Some models predict how responses change when the task changes while the
    parameters stay the same: more candidates, more items on the screen. Those pages show that
    prediction. Models whose likelihood has no such setting say so, which is worth knowing before an

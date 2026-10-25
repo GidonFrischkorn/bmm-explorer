@@ -19,8 +19,50 @@
 .ex-legend .blue { color: var(--ex-blue); font-weight: 600; }
 .ex-legend .orange { color: var(--ex-orange); font-weight: 600; }
 .ex-legend .green { color: var(--ex-green); font-weight: 600; }
+.ex-legend .grey { color: var(--ex-grey); font-weight: 600; }
+.ex-legend .purple { color: var(--ex-purple); font-weight: 600; }
+.ex-legend button { margin-left: 0.6rem; }
 .ex-code { background: var(--ex-bg); border-radius: 8px; padding: 0.6rem 0.9rem; font-family: var(--bs-font-monospace, monospace); font-size: 0.9em; white-space: pre-wrap; }
 .ex-task { background: #fff; border: 1px dashed var(--ex-border); border-radius: 10px; padding: 0.6rem; }
+/* Dashboard: the task and its settings on top, parameters and predictions below, one screen. */
+.ex-dash { display: grid; gap: 0.8rem; margin: 0.5rem 0 2rem;
+  grid-template-columns: minmax(250px, 0.7fr) 1fr 1fr;
+  grid-template-areas: "controls task task" "controls bars across"; }
+.ex-p-controls { grid-area: controls; display: flex; flex-direction: column; gap: 0.8rem; min-width: 0; }
+.ex-panel { border: 1px solid var(--ex-border); border-radius: 10px; padding: 0.4rem 0.7rem; min-width: 0; }
+.ex-panel-title { font-weight: 600; font-size: 0.95em; margin-bottom: 0.15rem; }
+.ex-p-task { grid-area: task; }
+.ex-p-bars { grid-area: bars; } .ex-p-across { grid-area: across; }
+.ex-dash svg { width: 100%; height: auto; max-height: 24vh; display: block; margin: 0 auto; }
+.ex-dash .ex-controls { grid-template-columns: 1fr 4.8em; gap: 0.1rem 0.6rem; font-size: 0.92em; }
+.ex-dash .ex-controls label { grid-column: 1 / -1; margin-top: 0.15rem; }
+/* A dashboard page trades the large title block for screen height; the sidebar already shows the path. */
+body:has(.ex-dash) .quarto-title-breadcrumbs { display: none !important; }
+body:has(.ex-dash) #title-block-header { margin-bottom: 0.6rem; }
+body:has(.ex-dash) #title-block-header h1.title { font-size: 1.6rem; margin-bottom: 0.1rem; }
+body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top: 0; }
+.ex-dash .ex-options { margin-top: 0; gap: 0.6rem; flex-wrap: nowrap; }
+.ex-dash .ex-legend { font-size: 0.8em; }
+.ex-dash .grid { stroke: #e3e3e3; stroke-width: 1.5; }
+.ex-dash .grid-x { stroke: #f0f0f0; }
+.ex-dash .tick { font-size: 18px; fill: #555; }
+.ex-dash .axis-label { font-size: 20px; fill: #222; }
+.ex-dash .task-note { font-size: 19px; fill: #5a6472; }
+.ex-dash .task-letter { font-size: 26px; font-weight: 600; }
+.ex-dash .task-bin { font-size: 21px; font-weight: 700; }
+#m3-reset { margin-top: 0.4rem; }
+/* Out-of-range input: the box is outlined and the outputs fade, so old results are not read as new. */
+.ex-invalid { outline: 2px solid var(--ex-orange); outline-offset: 1px; }
+.ex-dash.ex-stale > section, .ex-stale:not(.ex-dash) { opacity: 0.35; }
+@media (max-width: 1000px) {
+  .ex-dash { grid-template-columns: 1fr 1fr; grid-template-areas: "task task" "controls controls" "bars across"; }
+  .ex-p-controls { flex-direction: row; } .ex-p-controls > .ex-panel { flex: 1; }
+}
+@media (max-width: 640px) {
+  .ex-dash { grid-template-columns: 1fr; grid-template-areas: "task" "controls" "bars" "across"; }
+  .ex-p-controls { flex-direction: column; }
+  .ex-dash svg { max-height: none; }
+}
 @media (max-width: 600px) {
   .ex-controls { grid-template-columns: 1fr 5.5em; }
   .ex-controls label { grid-column: 1 / -1; }
