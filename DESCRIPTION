@@ -1,0 +1,9 @@
+Package: bmm.explorer
+Type: Website
+Title: Interactive Model Explorer for the bmm R Package
+Version: 0.0.1
+Description: Not an R package. This file lists the R dependencies of R/make_fixtures.R so that
+    r-lib/actions/setup-r-dependencies can resolve them on CI.
+Imports:
+    bmm,
+    jsonlite
