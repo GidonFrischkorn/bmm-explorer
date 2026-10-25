@@ -11,17 +11,20 @@ ships pages that pass the parity test, render, and read well to someone who has 
 | Source of truth | bmm's `d*()` functions, through fixtures written by `R/make_fixtures.R` and `node --test` | The explorer may not become a second definition of a model. |
 | Oracle version | CRAN bmm blocks, bmm `develop` reports | Pages should match what users have installed; drift in develop should be visible early. |
 | Hosting | This repo, GitHub Pages via Actions | Independent of bmm's pkgdown build; pkgdown links here. |
-| Page template | Five fixed sections (below) | A reader learns the layout once. |
+| Page template | A one-screen dashboard, then five fixed sections (below) | Everything that moves is visible at once; a reader learns the layout once. |
 | First models | M3 simple span, then IMM | The two models with the richest task-settings axis; they fix the categorical and the circular template. |
 
 ## Page template
 
+Dashboard first, one screen at 1280 x 800: task drawing, task settings, parameters (ranges from bmm's
+default priors, mean +- 3 SD), predicted distribution with the prior means dashed, and the prediction
+across the design variable. Then the five sections:
+
 1. **What the model says**: the model in prose and formula, bmm's parameter names.
-2. **The task**: an SVG illustration of the trial, driven by the design inputs.
-3. **Explore**: coupled slider + number input per parameter, reset, the predicted response
-   distribution with the starting curve dashed for comparison.
-4. **Across task settings**: the prediction across the design variable with parameters fixed, or
-   one paragraph stating that the likelihood has no such variable.
+2. **The task**: what a trial is and which settings enter the likelihood.
+3. **Explore**: how to read the panels and where the ranges come from.
+4. **Across task settings**: why the prediction moves with the design variable, or one paragraph
+   stating that the likelihood has no such variable.
 5. **In bmm**: the `bmm()` call and the `d*()` call with the current values, copyable; links to the
    article and the reference page.
 

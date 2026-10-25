@@ -2,13 +2,24 @@
 
 export const fmt = (v, digits = 2) => Number(v).toFixed(digits).replace("-", "−");
 
-// A slider and a number field that mirror each other; onInput fires on either.
-export function bindPair(rangeId, numberId, onInput) {
+// Slider scales. LOG moves the slider in log units for parameters bmm estimates on the log scale; the
+// number field keeps the natural value, rounded to what it shows, so the value used is the value seen.
+export const LINEAR = { toRange: v => v, fromRange: r => r };
+export const LOG = { toRange: Math.log, fromRange: r => +Math.exp(r).toPrecision(3) };
+
+// A slider and a number field that mirror each other; onInput fires on either. `scale` can be
+// swapped at run time (pair.scale = LOG) when a page changes parametrisation.
+export function bindPair(rangeId, numberId, onInput, scale = LINEAR) {
   const range = document.getElementById(rangeId);
   const num = document.getElementById(numberId);
-  range.addEventListener("input", () => { num.value = range.value; onInput(); });
-  num.addEventListener("input", () => { range.value = num.value; onInput(); });
-  return { range, num, get value() { return +num.value; }, set value(v) { range.value = num.value = v; } };
+  const pair = {
+    range, num, scale,
+    get value() { return +num.value; },
+    set value(v) { num.value = v; range.value = pair.scale.toRange(v); }
+  };
+  range.addEventListener("input", () => { num.value = pair.scale.fromRange(+range.value); onInput(); });
+  num.addEventListener("input", () => { range.value = pair.scale.toRange(+num.value); onInput(); });
+  return pair;
 }
 
 // ids: { paramName: [rangeId, numberId] } -> { paramName: pair }

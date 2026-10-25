@@ -2,120 +2,143 @@
 title: "Memory Measurement Model, simple span"
 subtitle: "Categorical recall: a correct item, other list items and new lures compete for the response"
 model: m3
+page-layout: full
+toc: false
 ---
+
+```{=html}
+<div class="ex-dash" id="m3-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-panel-title">The task</div>
+    <svg id="m3-task" role="img" aria-label="A studied list of letters with one box cued by a question mark, and the response screen with the candidate letters"></svg>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-controls">
+      <label for="m3-set-size">set size, letters studied</label>
+      <input type="range" id="m3-set-size" min="1" max="9" step="1">
+      <input type="number" id="m3-set-size-num" min="1" max="9" step="1" aria-label="set size">
+      <label for="m3-n-other">n_other, other list items offered</label>
+      <input type="range" id="m3-n-other" min="0" max="8" step="1">
+      <input type="number" id="m3-n-other-num" min="0" max="8" step="1" aria-label="n_other">
+      <label for="m3-n-npl">n_npl, lures (never shown)</label>
+      <input type="range" id="m3-n-npl" min="0" max="12" step="1">
+      <input type="number" id="m3-n-npl-num" min="0" max="12" step="1" aria-label="n_npl">
+      <div class="ex-hint" id="m3-n-total"></div>
+    </div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-options" role="radiogroup" aria-label="Choice rule">
+      <span>Rule:</span>
+      <label><input type="radio" name="m3-rule" value="simple" checked> simple</label>
+      <label><input type="radio" name="m3-rule" value="softmax"> softmax</label>
+    </div>
+    <div class="ex-controls">
+      <label for="m3-a">a, general activation</label>
+      <input type="range" id="m3-a">
+      <input type="number" id="m3-a-num" aria-label="a">
+      <label for="m3-c">c, context activation</label>
+      <input type="range" id="m3-c">
+      <input type="number" id="m3-c-num" aria-label="c">
+      <div class="ex-hint" id="m3-range-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="m3-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted proportions">
+    <div class="ex-panel-title">Predicted proportions</div>
+    <svg id="m3-bars" role="img" aria-label="Predicted proportion of correct, other-list-item and lure responses"></svg>
+    <div class="ex-legend">Probability of each response category on a trial. Dashed: bmm's prior means.</div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="P(correct) across response-set size">
+    <div class="ex-panel-title">P(correct) across response-set size</div>
+    <svg id="m3-across" role="img" aria-label="Predicted probability correct against response-set size for three ways of adding candidates"></svg>
+    <div class="ex-legend">
+      From the current counts, add <span class="grey">lures</span>, <span class="orange">other list
+      items</span> or <span class="purple">both</span>. Solid: current a, c; dashed: prior means;
+      circle: current N.
+    </div>
+  </section>
+</div>
+```
 
 ## What the model says
 
-The memory measurement model (M3), implemented in the R package bmm, treats recall as a choice among
-response candidates: the options a participant can give. Candidates that receive activation from the
-same sources form a category. In a simple-span task, a list is studied and one serial position is
-cued, which gives three categories, labelled as in bmm: the item at the cued position (`corr`), the
-other items of the list (`other`), and candidates that were not on the list (`npl`, not-presented
-lures). The activation of each category is a sum of parameters:
+The memory measurement model (M3; [Oberauer & Lewandowsky, 2019](https://doi.org/10.1037/rev0000159)),
+implemented in the R package bmm, treats recall as a choice among response candidates, the options a
+participant can give. Each candidate has an activation, how strongly it comes to mind, and candidates
+with the same sources of activation form a category. In a simple-span task (bmm's version `ss`) there
+are three categories: the item at the cued position (`corr`), the other list items (`other`), and
+candidates that were not on the list (`npl`, not-presented lures). Their activations are
 
 $$
 \begin{aligned}
-\text{corr} &= b + a + c \\
-\text{other} &= b + a \\
-\text{npl} &= b
+A_\text{corr} &= b + a + c \\
+A_\text{other} &= b + a \\
+A_\text{npl} &= b
 \end{aligned}
 $$
 
-Here `b` is background activation, `a` general activation and `c` context activation (all three
-explained below). A choice rule turns the activations $A_i$ into the probability $p_i$ of a response
-from category $i$, with each category weighted by its number of candidates $n_i$ (`num_options` in
-bmm). The sums run over the three categories:
+with background activation `b`, general activation `a` and context activation `c`. A choice rule turns
+the activations into the probability $p_i$ that a response falls in category $i$. Each category is
+weighted by its number of candidates $n_i$ ($n_\text{corr} = 1$, `n_other`, `n_npl`; `num_options` in
+bmm), and $j$ runs over the three categories:
 
 $$
-\text{simple:}\quad p_i = \frac{n_i A_i}{\sum_j n_j A_j}
-\qquad\qquad
-\text{softmax:}\quad p_i = \frac{n_i e^{A_i}}{\sum_j n_j e^{A_j}}
+\begin{aligned}
+\text{simple:}&\quad p_i = \frac{n_i A_i}{\sum_j n_j A_j} \\[4pt]
+\text{softmax:}&\quad p_i = \frac{n_i e^{A_i}}{\sum_j n_j e^{A_j}}
+\end{aligned}
 $$
 
-The background activation `b` is shared by every candidate. One parameter has to be fixed to set the
-scale, and bmm fixes `b`: 0.1 under the simple rule, 0 under softmax. `a` and `c` are therefore read
-relative to `b`. `a` is general activation: every item on
-the current list receives it, so it lifts the cued item and the other list items above the lures.
-`c` is context activation: it comes from the cue and goes only to the item at the cued position, so
-it separates the correct response from the other list items.
+`b` reaches every candidate. The simple rule gives the same probabilities when all activations are
+multiplied by one constant, softmax when one constant is added to all of them, so one value has to be
+fixed: bmm fixes `b` at 0.1 under the simple rule and at 0 under softmax. `a` reaches every item on
+the studied list and lifts the cued item and the other list items above the lures. `c` comes from the
+cue and reaches only the item at the cued position, so it separates the correct response from the
+other list items.
 
 ## The task
 
-```{=html}
-<div class="ex-task">
-  <svg id="m3-task" role="img" aria-label="A studied list of letters, the cue for one position, and the response screen with the candidates"></svg>
-  <div class="ex-legend" id="m3-task-legend"></div>
-</div>
-```
-
-One trial is cued recall from a candidate set. A list of letters is studied, a serial position is
-cued, and the participant picks the letter from that position among the candidates on the screen.
-The candidates are the correct letter (blue), the other letters of the list (orange) and letters
-that were not on the list (grey). N is the number of candidates, 1 + `n_other` + `n_npl`; the drawing
-follows these two counts as they are set in the controls below.
+One trial is cued recall from a candidate set. A list of letters is studied one at a time; then one
+box is cued with a question mark, and the participant picks the letter that was in it from the
+candidates on the screen. The candidates are the correct letter (blue), the other letters of the list
+(orange) and letters that were not on the list (grey). Slots marked xxx are not in use on this trial.
+Set size is the number of letters studied; `n_other` of the other list letters are offered at test,
+so `n_other` is at most set size − 1. N is the number of candidates, 1 + `n_other` + `n_npl`.
 
 ## Explore
 
-```{=html}
-<div class="ex-widget" id="m3-widget">
-  <div class="ex-options" role="radiogroup" aria-label="Choice rule">
-    <span>Choice rule:</span>
-    <label><input type="radio" name="m3-rule" value="simple" checked> simple</label>
-    <label><input type="radio" name="m3-rule" value="softmax"> softmax</label>
-  </div>
-  <div class="ex-controls">
-    <label for="m3-a">a, general activation</label>
-    <input type="range" id="m3-a" min="0" max="10" step="0.1">
-    <input type="number" id="m3-a-num" min="0" max="10" step="0.1" aria-label="a">
-    <label for="m3-c">c, context activation</label>
-    <input type="range" id="m3-c" min="0" max="10" step="0.1">
-    <input type="number" id="m3-c-num" min="0" max="10" step="0.1" aria-label="c">
-    <label for="m3-n-other">n_other, other list items</label>
-    <input type="range" id="m3-n-other" min="0" max="8" step="1">
-    <input type="number" id="m3-n-other-num" min="0" max="8" step="1" aria-label="n_other">
-    <label for="m3-n-npl">n_npl, lures</label>
-    <input type="range" id="m3-n-npl" min="0" max="12" step="1">
-    <input type="number" id="m3-n-npl-num" min="0" max="12" step="1" aria-label="n_npl">
-    <div class="ex-hint" id="m3-range-hint"></div>
-  </div>
-  <svg id="m3-bars" role="img" aria-label="Predicted probability of a correct response, an other-list-item response and a lure response"></svg>
-  <div class="ex-legend">
-    Filled bars: current values. Dashed outlines: a = 1, c = 2 with the same counts and rule.
-    <button type="button" class="btn btn-sm btn-outline-secondary" id="m3-reset">Reset</button>
-  </div>
-</div>
-```
+Each bar is the probability that the response on one trial falls in that category; the three add up
+to 1. Raising `a` moves responses from the lures to the list, raising `c` from the other list items
+to the correct one. Set size alone does not move the bars (see below). Reset restores the start.
 
-Every change redraws the bars, the drawing above and the plot below. The bars are the probabilities
-of the three response categories, summed over the candidates in each, so they add up to 1. The dashed
-outlines stay at the starting values `a` = 1, `c` = 2; Reset returns all four controls to the start.
-Raising `a` moves responses from the lures to the list; raising `c` moves them from the other list
-items to the correct one. Switching the rule keeps the numbers but changes their meaning: under the
-simple rule activations are ratios to `b`, under softmax only differences between activations count.
-The counts change the bars as well, with `a` and `c` held fixed; the next section follows that up.
+The slider ranges come from bmm's default priors. The simple rule estimates log `a` with prior
+normal(0, 1) and log `c` with normal(3, 1); softmax estimates `a` and `c` directly, both normal(3, 1).
+Each slider spans the prior mean ± 3 SD: under the simple rule `a` runs from 0.05 to 20 and `c` from
+1 to 403, under softmax both run from 0 to 6. The sliders start at the prior means, shown dashed.
+Switching the rule restarts them there, because the same number means different things under the
+two rules.
 
 ## Across task settings
 
-```{=html}
-<div class="ex-widget">
-  <svg id="m3-across" role="img" aria-label="Predicted probability correct against response-set size for three ways of adding candidates"></svg>
-  <div class="ex-legend">
-    Candidates added as <span class="grey">lures</span>, as <span class="orange">other list items</span>,
-    or as <span class="purple">both in equal numbers</span>. Solid: simple rule. Dashed: softmax.
-    Circle: the current settings.
-  </div>
-  <p class="ex-legend" id="m3-across-now"></p>
-</div>
-```
-
 The counts $n_i$ enter the probabilities $p_i$, and through them the likelihood (the probability the
-model assigns to the observed responses). The model therefore predicts how recall changes with the size
-of the response set without a new parameter: `a` and `c` stay as set above, and only the number of
-candidates in each category changes. Every added candidate adds to the denominator of the choice rule,
-so P(correct) falls as N grows. How fast it falls depends on what is added. Other list items have
-activation `b + a`, so for positive `a` they compete harder than lures, which have only `b`. Softmax allows negative values; the simple rule needs `b + a` and
-`b + a + c` to stay at or above 0 with `b` = 0.1, so its lines disappear when `a` or `a + c` goes below
-−0.1.
+model assigns to the observed responses). The model therefore predicts how recall changes with the
+size of the response set without a new parameter: `a` and `c` stay as set; only the counts change.
+Every added candidate adds to the denominator of the choice rule, so P(correct) falls as N grows.
+Other list items have activation `b + a`, so for positive `a` they compete harder than lures, which
+have only `b`.
+<span id="m3-across-now"></span> These numbers follow the controls.
+
+Set size is not in the likelihood of the simple-span version. It limits how many other list items can be
+offered (at most set size − 1), and only that count enters. A longer list with the same response set
+predicts the same proportions unless the bmm formula lets `a` or `c` differ between set sizes.
 
 ## In bmm
 
@@ -129,9 +152,8 @@ activation `b + a`, so for positive `a` they compete harder than lures, which ha
 
 The code updates with the controls. `m3()` defines the model (`version = "ss"` is the simple-span
 version), `dm3()` returns the log probability of a set of response counts, and `bmf()` writes the
-formula for `bmm()`, which fits `a` and `c` to data. `b` is not passed: bmm adds it from the choice
-rule. See the
-[M3 article](https://venpopov.com/bmm/articles/bmm_m3.html) for the full model, including the
-complex-span version and custom activation functions, and the reference pages for
+formula for `bmm()`, which estimates `a` and `c` from data; `my_data` stands for your own data, and
+fitting runs Stan through brms. `b` is not passed: bmm adds it from the choice rule. See the [M3 article](https://venpopov.com/bmm/articles/bmm_m3.html) for the full model,
+including the complex-span version and custom activation functions, and the reference pages for
 [`m3()`](https://venpopov.com/bmm/reference/m3.html) and
 [`dm3()`](https://venpopov.com/bmm/reference/m3dist.html).

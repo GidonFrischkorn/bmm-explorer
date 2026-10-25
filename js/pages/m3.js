@@ -1,133 +1,145 @@
 // Page script for models/m3.qmd: M3 simple span (version "ss"), simple and softmax choice rules.
 import { m3Probs, ssActs, defaultB } from "../models/m3.js";
-import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
+import { bindParams, readParams, setParams, fmt, LINEAR, LOG } from "../lib/widget.js";
 import { barPlot, linePlot, el, clear } from "../lib/plot.js";
 
-// bmm's dm3() example: a = 1, c = 2, num_options = c(1, 4, 5). Valid under both rules.
-const START = { a: 1, c: 2, n_other: 4, n_npl: 5 };
-const RANGES = { simple: [0, 10], softmax: [-3, 6] };
-const MAX = { n_other: 8, n_npl: 12 };
+// bmm's default priors for m3(version = "ss"), [mean, sd] on the link scale: log for simple, identity
+// for softmax. The sliders span mean +- 3 SD; the prior means are the starting values.
+const PRIOR = {
+  simple: { a: [0, 1], c: [3, 1], scale: LOG, step: 0.05 },
+  softmax: { a: [3, 1], c: [3, 1], scale: LINEAR, step: 0.1 }
+};
+// Set size is the list length; only n_other of the set_size - 1 other list items are offered at test.
+const MAX = { set_size: 9, n_npl: 12 };
+const START_COUNTS = { set_size: 6, n_other: 4, n_npl: 5 };
 const COLOR = { corr: "#0072B2", other: "#D55E00", npl: "#595959", both: "#CC79A7" };
-// Consonants only, so no letter reads as a word; the rank string fixes where each tile sits on the
-// response screen, so changing a count adds or removes tiles without reshuffling the rest.
+const TILE = {
+  corr: { fill: "#e5f0f7", stroke: "#0072B2", text: "#0072B2" },
+  other: { fill: "#fbebe0", stroke: "#D55E00", text: "#b04a00" },
+  npl: { fill: "#f3f4f7", stroke: "#a3adb7", text: "#595959" },
+  empty: { fill: "#f8f9fa", stroke: "#dde1e6", text: "#c3c8cf" }
+};
+// Consonants only, so no letter string reads as a word. A letter's place in RANK is its fixed slot on
+// the response screen, so changing a count fills or empties slots without moving the other letters.
 const LETTERS = "FKPTBLRXHMNQSVZJDGCWY";
 const RANK = "MZBQHTXCLFWJRDVKNGPSY";
 
 const $ = id => document.getElementById(id);
 const pairs = bindParams({
   a: ["m3-a", "m3-a-num"], c: ["m3-c", "m3-c-num"],
-  n_other: ["m3-n-other", "m3-n-other-num"], n_npl: ["m3-n-npl", "m3-n-npl-num"]
+  set_size: ["m3-set-size", "m3-set-size-num"], n_other: ["m3-n-other", "m3-n-other-num"], n_npl: ["m3-n-npl", "m3-n-npl-num"]
 }, draw);
 const ruleInputs = [...document.querySelectorAll('input[name="m3-rule"]')];
 const rule = () => ruleInputs.find(r => r.checked).value;
+const priorMeans = r => ({ a: PRIOR[r].scale.fromRange(PRIOR[r].a[0]), c: PRIOR[r].scale.fromRange(PRIOR[r].c[0]) });
 
-// null where the simple rule would need a negative activation: the softmax range lets a go below −0.1,
-// and the across-settings panel draws both rules from the same a and c.
+// null where the simple rule would get a negative or zero total activation (only reachable by typing).
 function probs({ a, c, n_other, n_npl }, choiceRule) {
   const acts = ssActs({ a, c, b: defaultB(choiceRule) });
   if (choiceRule === "simple" && acts.some(A => A < 0)) return null;
   const pr = m3Probs(acts, [1, n_other, n_npl], choiceRule);
-  // All-zero activations under the simple rule give 0 / 0.
   return pr.every(Number.isFinite) ? pr : null;
 }
 
-function valid(p) {
-  const [lo, hi] = RANGES[rule()];
-  return [p.a, p.c].every(v => Number.isFinite(v) && v >= lo && v <= hi) &&
-    ["n_other", "n_npl"].every(k => Number.isInteger(p[k]) && p[k] >= 0 && p[k] <= MAX[k]);
+const inRange = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+const valid = p => [p.a, p.c].every(Number.isFinite) && inRange(p.set_size, 1, MAX.set_size) &&
+  inRange(p.n_other, 0, p.set_size - 1) && inRange(p.n_npl, 0, MAX.n_npl) && probs(p, rule()) !== null;
+
+// n_other cannot exceed the other list items there are; a smaller set size pulls it down.
+function capOther() {
+  const { set_size, n_other } = readParams(pairs), hi = Math.max(0, set_size - 1);
+  if (!Number.isInteger(set_size)) return;
+  pairs.n_other.range.max = pairs.n_other.num.max = hi;
+  // Re-set even when in range: the slider clamped itself to the old max and must follow the box.
+  if (Number.isFinite(n_other)) pairs.n_other.value = Math.min(n_other, hi);
 }
 
-function drawTask({ n_other, n_npl }) {
+function drawTask({ set_size, n_other, n_npl }) {
   const svg = $("m3-task");
   clear(svg);
-  svg.setAttribute("viewBox", "0 0 600 330");
-  const list = LETTERS.slice(0, 1 + n_other).split("");
-  const lures = LETTERS.slice(1 + n_other, 1 + n_other + n_npl).split("");
-  const cued = Math.min(2, list.length - 1);
-  const kind = ch => (ch === list[cued] ? "corr" : list.includes(ch) ? "other" : "npl");
+  svg.setAttribute("viewBox", "0 0 1000 312");
+  const list = LETTERS.slice(0, set_size).split("");
+  const cued = Math.min(2, set_size - 1);
+  const offered = list.filter((_, i) => i !== cued).slice(0, n_other);
+  const lures = LETTERS.slice(set_size, set_size + n_npl);
+  const kind = ch => (ch === list[cued] ? "corr" : offered.includes(ch) ? "other" : lures.includes(ch) ? "npl" : "empty");
 
-  el("text", { x: 10, y: 34, class: "task-label" }, svg).textContent = "1  Study";
+  el("text", { x: 500, y: 20, "text-anchor": "middle", class: "task-note" }, svg).textContent = "study the list, one letter at a time";
+  const x0 = 500 - (list.length * 92 - 12) / 2;
   list.forEach((ch, i) => {
-    el("rect", { x: 130 + i * 48, y: 10, width: 40, height: 40, rx: 4, fill: "#fff", stroke: "#999", "stroke-width": 1.5 }, svg);
-    el("text", { x: 150 + i * 48, y: 38, "text-anchor": "middle", class: "task-letter" }, svg).textContent = ch;
-    el("text", { x: 150 + i * 48, y: 66, "text-anchor": "middle", class: "task-small" }, svg).textContent = i + 1;
+    const isCue = i === cued;
+    el("rect", { x: x0 + i * 92, y: 32, width: 80, height: 50, rx: 6, fill: isCue ? TILE.corr.fill : "#fff",
+      stroke: isCue ? TILE.corr.stroke : "#1a2340", "stroke-width": isCue ? 3 : 2 }, svg);
+    el("text", { x: x0 + i * 92 + 40, y: 66, "text-anchor": "middle", class: "task-letter", fill: isCue ? TILE.corr.text : "#1a2340" }, svg)
+      .textContent = isCue ? "?" : ch;
   });
 
-  el("text", { x: 10, y: 104, class: "task-label" }, svg).textContent = "2  Cue";
-  el("text", { x: 130, y: 104, class: "task-cue" }, svg).textContent = `Which letter was in position ${cued + 1}?`;
-
-  el("text", { x: 10, y: 150, class: "task-label" }, svg).textContent = "3  Choose";
-  [...list, ...lures].sort((p, q) => RANK.indexOf(p) - RANK.indexOf(q)).forEach((ch, i) => {
-    const x = 130 + (i % 8) * 58, y = 126 + Math.floor(i / 8) * 64, k = kind(ch);
-    el("rect", { x, y, width: 50, height: 50, rx: 6, fill: COLOR[k], "fill-opacity": 0.14, stroke: COLOR[k], "stroke-width": 3 }, svg);
-    el("text", { x: x + 25, y: y + 34, "text-anchor": "middle", class: "task-letter", fill: COLOR[k] }, svg).textContent = ch;
+  el("text", { x: 500, y: 114, "text-anchor": "middle", class: "task-note" }, svg).textContent = "then: which letter was in the cued box? pick one";
+  RANK.split("").forEach((ch, i) => {
+    const x = 114 + (i % 7) * 112, y = 126 + Math.floor(i / 7) * 52, k = kind(ch);
+    el("rect", { x, y, width: 100, height: 42, rx: 6, fill: TILE[k].fill, stroke: TILE[k].stroke, "stroke-width": k === "corr" ? 3 : 2 }, svg);
+    el("text", { x: x + 50, y: y + 29, "text-anchor": "middle", class: "task-letter task-tile", fill: TILE[k].text }, svg)
+      .textContent = k === "empty" ? "xxx" : ch;
   });
 
-  $("m3-task-legend").innerHTML =
-    `<span class="blue">1 correct</span> · <span class="orange">${n_other} other list item${n_other === 1 ? "" : "s"}</span> · ` +
-    `<span class="grey">${n_npl} lure${n_npl === 1 ? "" : "s"}</span> · N = ${1 + n_other + n_npl} candidates`;
+  [[200, "corr", "1 correct letter"],
+   [500, "other", `${n_other} of ${set_size - 1} other list letter${set_size === 2 ? "" : "s"}`],
+   [800, "npl", `${n_npl} letter${n_npl === 1 ? "" : "s"} never shown`]].forEach(([x, k, label]) => {
+    el("text", { x, y: 302, "text-anchor": "middle", class: "task-bin", fill: TILE[k].text }, svg).textContent = label;
+  });
+  $("m3-n-total").textContent = `N = 1 correct + ${n_other} other + ${n_npl} lures = ${1 + n_other + n_npl}`;
 }
 
-function drawBars(p, cur, start) {
-  const spec = {
-    W: 600, H: 330, margin: { l: 70, r: 15, t: 20, b: 50 }, ylim: [0, 1], yticks: [0, 0.25, 0.5, 0.75, 1],
-    categories: ["correct", "other list items", "lures"], ylab: "Probability", groups: [{ values: cur }]
-  };
+function drawBars(cur, ref) {
   const svg = $("m3-bars");
-  const { rects, sy } = barPlot(svg, spec);
+  const { rects, sy } = barPlot(svg, {
+    W: 500, H: 300, margin: { l: 64, r: 10, t: 22, b: 44 }, ylim: [0, 1], yticks: [0, 0.25, 0.5, 0.75, 1],
+    categories: ["correct", "other list items", "lures"], ylab: "Proportion", groups: [{ values: cur }]
+  });
   rects[0].forEach((r, i) => {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
     r.setAttribute("fill", Object.values(COLOR)[i]);
-    el("rect", { x, y: sy(start[i]), width: w, height: sy(0) - sy(start[i]), fill: "none", stroke: "#222", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
-    el("text", { x: x + w / 2, y: sy(cur[i]) - 6, "text-anchor": "middle", class: "tick" }, svg).textContent = fmt(cur[i], 3);
+    el("rect", { x, y: sy(ref[i]), width: w, height: sy(0) - sy(ref[i]), fill: "none", stroke: "#222", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
+    el("text", { x: x + w / 2, y: sy(Math.max(cur[i], ref[i])) - 6, "text-anchor": "middle", class: "tick" }, svg).textContent = fmt(cur[i], 2);
   });
 }
 
 // P(correct) along three ways of growing the response set from the current composition.
-function compositions(p) {
-  return [
-    { label: "lures", color: COLOR.npl, pts: Array.from({ length: MAX.n_npl + 1 }, (_, k) => ({ ...p, n_npl: k })) },
-    { label: "others", color: COLOR.other, pts: Array.from({ length: MAX.n_other + 1 }, (_, k) => ({ ...p, n_other: k })) },
-    { label: "both", color: COLOR.both, pts: Array.from({ length: MAX.n_other + 1 }, (_, k) => ({ ...p, n_other: k, n_npl: k })) }
-  ];
-}
+const compositions = p => [
+  { color: COLOR.npl, pts: Array.from({ length: MAX.n_npl + 1 }, (_, k) => ({ ...p, n_npl: k })) },
+  { color: COLOR.other, pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k })) },
+  { color: COLOR.both, pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k, n_npl: k })) }
+];
 
-function drawAcross(p, choiceRule) {
-  const series = [];
-  for (const r of ["simple", "softmax"]) {
-    for (const comp of compositions(p)) {
-      const ys = comp.pts.map(q => probs(q, r)?.[0]);
-      if (ys.some(y => y === undefined)) continue;
-      series.push({ x: comp.pts.map(q => 1 + q.n_other + q.n_npl), y: ys, color: comp.color, dashed: r === "softmax" });
-    }
-  }
-  const spec = {
-    W: 600, H: 340, margin: { l: 70, r: 15, t: 15, b: 55 }, xlim: [1, 21], ylim: [0, 1],
-    xticks: [1, 5, 9, 13, 17, 21], yticks: [0, 0.25, 0.5, 0.75, 1],
-    xlab: "Response-set size N = 1 + n_other + n_npl", ylab: "P(correct)", series
-  };
-  const { sx, sy } = linePlot($("m3-across"), spec);
-  const now = probs(p, choiceRule);
-  if (now) el("circle", { cx: sx(1 + p.n_other + p.n_npl), cy: sy(now[0]), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, $("m3-across"));
-
-  const end = (q) => fmt(probs(q, choiceRule)[0], 2);
-  $("m3-across-now").textContent = !now ? "" :
-    `Under the ${choiceRule} rule with a = ${fmt(p.a, 1)} and c = ${fmt(p.c, 1)}, P(correct) is ${fmt(now[0], 2)} ` +
-    `with ${p.n_other} other list items and ${p.n_npl} lures (N = ${1 + p.n_other + p.n_npl}). ` +
-    `With ${MAX.n_npl} lures instead (N = ${1 + p.n_other + MAX.n_npl}) it would be ${end({ ...p, n_npl: MAX.n_npl })}; ` +
-    `with ${MAX.n_other} other list items instead (N = ${1 + MAX.n_other + p.n_npl}) it would be ${end({ ...p, n_other: MAX.n_other })}.`;
+function drawAcross(p, ref, choiceRule) {
+  const series = [{ ...p, ...ref }, p].flatMap((q, j) => compositions(q).map(comp => ({
+    x: comp.pts.map(s => 1 + s.n_other + s.n_npl), y: comp.pts.map(s => probs(s, choiceRule)[0]),
+    color: comp.color, dashed: j === 0
+  })));
+  const { sx, sy } = linePlot($("m3-across"), {
+    W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, xlim: [1, 21], ylim: [0, 1],
+    xticks: [1, 5, 9, 13, 17, 21], yticks: [0, 0.25, 0.5, 0.75, 1], xlab: "Response-set size N", ylab: "P(correct)", series
+  });
+  const N = 1 + p.n_other + p.n_npl, pc = q => fmt(probs(q, choiceRule)[0], 2);
+  el("circle", { cx: sx(N), cy: sy(probs(p, choiceRule)[0]), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, $("m3-across"));
+  $("m3-across-now").textContent =
+    `With the current values, P(correct) is ${pc(p)} at N = ${N}. With ${MAX.n_npl} lures instead it would be ` +
+    `${pc({ ...p, n_npl: MAX.n_npl })} (N = ${1 + p.n_other + MAX.n_npl}); with all ${p.set_size - 1} other list items ` +
+    `offered it would be ${pc({ ...p, n_other: p.set_size - 1 })} (N = ${p.set_size + p.n_npl}).`;
 }
 
 // x in the dm3() call: 100 trials split as the model predicts, rounded so the counts sum to 100.
 function expectedCounts(pr, n = 100) {
   const raw = pr.map(v => v * n), k = raw.map(Math.floor);
   const order = raw.map((v, i) => [v - k[i], i]).sort((u, v) => v[0] - u[0]);
-  for (let j = 0; j < n - k.reduce((s, v) => s + v, 0); j++) k[order[j][1]]++;
+  // Fixed before the loop: recomputing it inside would shrink it with every increment.
+  const short = n - k.reduce((s, v) => s + v, 0);
+  for (let j = 0; j < short; j++) k[order[j][1]]++;
   return k;
 }
 
 function drawCode(p, choiceRule, pr) {
-  // R code: plain ASCII minus, so the snippet pastes into R unchanged.
+  // R code: plain ASCII digits and minus, so the snippet pastes into R unchanged.
   $("m3-code").textContent =
 `library(bmm)
 model <- m3(resp_cats = c("corr", "other", "npl"),
@@ -135,8 +147,9 @@ model <- m3(resp_cats = c("corr", "other", "npl"),
             choice_rule = "${choiceRule}",
             version = "ss")
 
-# log likelihood of response counts per category; here 100 trials split as predicted
-dm3(x = c(${expectedCounts(pr).join(", ")}), pars = c(a = ${p.a.toFixed(1)}, c = ${p.c.toFixed(1)}), m3_model = model)
+# log likelihood of response counts per category; here 100 trials split as predicted.
+# pars are on the natural scale${choiceRule === "simple" ? "; bmm() estimates log(a) and log(c) under the simple rule" : ""}.
+dm3(x = c(${expectedCounts(pr).join(", ")}), pars = c(a = ${p.a}, c = ${p.c}), m3_model = model)
 
 # fit: one row per participant and condition, columns corr, other, npl with the counts
 fit <- bmm(formula = bmf(c ~ 1, a ~ 1), data = my_data, model = model)`;
@@ -144,30 +157,35 @@ fit <- bmm(formula = bmf(c ~ 1, a ~ 1), data = my_data, model = model)`;
 
 function draw() {
   const t0 = performance.now();
+  capOther();
   const p = readParams(pairs), r = rule();
   if (!valid(p)) return;
-  const cur = probs(p, r);
+  const ref = priorMeans(r), cur = probs(p, r);
   drawTask(p);
-  drawBars(p, cur, probs({ ...p, a: START.a, c: START.c }, r));
-  drawAcross(p, r);
+  drawBars(cur, probs({ ...p, ...ref }, r));
+  drawAcross(p, ref, r);
   drawCode(p, r, cur);
   $("m3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
-function applyRange() {
-  const [lo, hi] = RANGES[rule()];
+// Switching the rule switches the parametrisation, so a and c restart at that rule's prior means.
+function applyRule() {
+  const pr = PRIOR[rule()];
   for (const k of ["a", "c"]) {
-    for (const input of [pairs[k].range, pairs[k].num]) { input.min = lo; input.max = hi; }
-    pairs[k].value = Math.min(hi, Math.max(lo, pairs[k].value));
+    const [m, sd] = pr[k], pair = pairs[k];
+    pair.scale = pr.scale;
+    Object.assign(pair.range, { min: m - 3 * sd, max: m + 3 * sd, step: pr.step });
+    Object.assign(pair.num, { min: pr.scale.fromRange(m - 3 * sd), max: pr.scale.fromRange(m + 3 * sd), step: "any" });
   }
+  setParams(pairs, priorMeans(rule()));
   $("m3-range-hint").textContent = rule() === "simple"
-    ? "Simple rule: b = 0.1, a and c from 0 to 10 (activations must stay positive)."
-    : "Softmax rule: b = 0, a and c from −3 to 6 (only differences between activations matter).";
+    ? "b = 0.1, fixed. Sliders move on the log scale; boxes show a and c."
+    : "b = 0, fixed. Only differences between activations matter.";
 }
 
-ruleInputs.forEach(r => r.addEventListener("change", () => { applyRange(); draw(); }));
-$("m3-reset").addEventListener("click", () => { setParams(pairs, START); draw(); });
+ruleInputs.forEach(r => r.addEventListener("change", () => { applyRule(); draw(); }));
+$("m3-reset").addEventListener("click", () => { setParams(pairs, { ...priorMeans(rule()), ...START_COUNTS }); draw(); });
 $("m3-copy").addEventListener("click", () => navigator.clipboard?.writeText($("m3-code").textContent));
-setParams(pairs, START);
-applyRange();
+setParams(pairs, START_COUNTS);
+applyRule();
 draw();
