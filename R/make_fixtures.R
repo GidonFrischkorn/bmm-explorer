@@ -46,6 +46,14 @@ for (i in seq_len(nrow(grid))) {
   cells[[length(cells) + 1]] <- list(fn = "m3_ss", args = list(a = g$a, c = g$cc, n_other = g$n_other, n_npl = g$n_npl,
     b = mod$fixed_parameters$b, choice_rule = g$rule), probs = unname(probs))
 }
+# Slider corners of the M3 page: bmm's default prior means +- 3 SD (log scale for simple), largest counts.
+corners <- list(simple = list(c(.05, 1), c(1, 20.1), c(20.1, 403)), softmax = list(c(0, 0), c(3, 3), c(0, 6), c(6, 6)))
+for (rule in names(corners)) for (ac in corners[[rule]]) for (n in list(c(0, 0), c(4, 5), c(8, 12))) {
+  mod <- m3(resp_cats = c("corr", "other", "npl"), num_options = c(1, n), choice_rule = rule, version = "ss")
+  probs <- bmm:::.compute_m3_probability_vector(c(a = ac[1], c = ac[2]), mod)
+  cells[[length(cells) + 1]] <- list(fn = "m3_ss", args = list(a = ac[1], c = ac[2], n_other = n[1], n_npl = n[2],
+    b = mod$fixed_parameters$b, choice_rule = rule), probs = unname(probs))
+}
 for (rule in c("simple", "softmax")) for (f in c(.2, .8)) {
   mod <- m3(resp_cats = c("corr", "dist_context", "other", "dist_other", "npl"), num_options = c(1, 4, 1, 4, 8), choice_rule = rule, version = "cs")
   probs <- bmm:::.compute_m3_probability_vector(c(a = 1, c = 2, f = f), mod)
