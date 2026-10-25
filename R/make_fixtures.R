@@ -46,9 +46,15 @@ for (i in seq_len(nrow(grid))) {
   cells[[length(cells) + 1]] <- list(fn = "m3_ss", args = list(a = g$a, c = g$cc, n_other = g$n_other, n_npl = g$n_npl,
     b = mod$fixed_parameters$b, choice_rule = g$rule), probs = unname(probs))
 }
-# Slider corners of the M3 page: bmm's default prior means +- 3 SD (log scale for simple), largest counts.
-corners <- list(simple = list(c(.05, 1), c(1, 20.1), c(20.1, 403)), softmax = list(c(0, 0), c(3, 3), c(0, 6), c(6, 6)))
-for (rule in names(corners)) for (ac in corners[[rule]]) for (n in list(c(0, 0), c(4, 5), c(8, 12))) {
+# Values the M3 page can set: slider ends and midpoint at bmm's default prior mean +- 3 SD. Simple
+# moves log a and log c, and the page computes with exp(slider) at 3 significant digits; softmax is
+# linear on [0, 6]. Full a x c cross at middle counts, the four extreme pairings at the count limits.
+levels <- list(simple = list(a = c(.0498, 1, 20.1), c = c(1, 20.1, 403)), softmax = list(a = c(0, 3, 6), c = c(0, 3, 6)))
+ext <- data.frame(i = c(1, 3, 1, 3), j = c(1, 3, 3, 1))
+idx <- rbind(data.frame(expand.grid(i = 1:3, j = 1:3), n_other = 4, n_npl = 5),
+             data.frame(ext, n_other = 0, n_npl = 0), data.frame(ext, n_other = 8, n_npl = 12))
+for (rule in names(levels)) for (k in seq_len(nrow(idx))) {
+  ac <- c(levels[[rule]]$a[idx$i[k]], levels[[rule]]$c[idx$j[k]]); n <- c(idx$n_other[k], idx$n_npl[k])
   mod <- m3(resp_cats = c("corr", "other", "npl"), num_options = c(1, n), choice_rule = rule, version = "ss")
   probs <- bmm:::.compute_m3_probability_vector(c(a = ac[1], c = ac[2]), mod)
   cells[[length(cells) + 1]] <- list(fn = "m3_ss", args = list(a = ac[1], c = ac[2], n_other = n[1], n_npl = n[2],
