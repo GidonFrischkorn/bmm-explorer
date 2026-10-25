@@ -1,0 +1,25 @@
+---
+title: "Memory Measurement Model, simple span"
+subtitle: "Categorical recall: a correct item, other list items and new lures compete for the response"
+model: m3
+---
+
+::: {.callout-note}
+This page is the first milestone of the explorer and is under construction. The structure below is
+the template every page follows; the controls arrive with milestone E1.
+:::
+
+## What the model says
+
+## The task
+
+## Explore
+
+```{=html}
+<div class="ex-widget" id="m3-widget"></div>
+<script type="module" src="../js/pages/m3.js"></script>
+```
+
+## Across task settings
+
+## In bmm

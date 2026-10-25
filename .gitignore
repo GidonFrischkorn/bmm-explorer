@@ -1,0 +1,21 @@
+# Quarto
+/.quarto/
+/_site/
+/*_files/
+**/*.quarto_ipynb
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+
+# macOS
+.DS_Store
+
+# Local / private: prompts, state, reviews, scratch
+/local/
+.claude/
+LOCAL-AGENTS.md
+
+# node (there are no dependencies; a stray install must not be committed)
+node_modules/

@@ -1,0 +1,54 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - js/
+    - css/
+    - tests/parity/fixtures/
+  render:
+    - "*.qmd"
+    - "models/*.qmd"
+
+website:
+  title: "bmm model explorer"
+  description: "See what each parameter of a bmm measurement model does, in the browser, without installing anything."
+  site-url: https://gidonfrischkorn.github.io/bmm-explorer/
+  repo-url: https://github.com/GidonFrischkorn/bmm-explorer
+  repo-actions: [issue]
+  navbar:
+    left:
+      - href: index.qmd
+        text: Models
+      - href: about.qmd
+        text: How to read a page
+    right:
+      - text: bmm
+        href: https://venpopov.com/bmm/
+      - icon: github
+        href: https://github.com/GidonFrischkorn/bmm-explorer
+  sidebar:
+    style: docked
+    contents:
+      - section: "Categorical decision tasks"
+        contents:
+          - models/m3.qmd
+      - section: "Continuous reproduction tasks"
+        contents:
+          - models/imm.qmd
+  page-footer:
+    left: "bmm model explorer · code GPL-2, text CC BY 4.0"
+    right: "Built with Quarto. No R, no server: everything runs in your browser."
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    css: css/explorer.css
+    code-copy: true
+    include-in-header:
+      text: '<meta name="color-scheme" content="light">'
+
+execute:
+  enabled: false
+
+lang: en

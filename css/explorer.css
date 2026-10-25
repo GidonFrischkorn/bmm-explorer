@@ -1,0 +1,27 @@
+/* bmm model explorer: widget layout and plot styling. Colours: Okabe-Ito. */
+:root {
+  --ex-blue: #0072B2; --ex-orange: #D55E00; --ex-green: #009E73;
+  --ex-purple: #CC79A7; --ex-sky: #56B4E9; --ex-yellow: #E69F00;
+  --ex-grey: #595959; --ex-border: #d0d7de; --ex-bg: #f6f8fa;
+}
+.ex-widget { border: 1px solid var(--ex-border); border-radius: 10px; padding: 1rem; margin: 1rem 0 1.5rem; }
+.ex-controls { display: grid; grid-template-columns: max-content 1fr 6.5em; gap: 0.5rem 0.8rem; align-items: center; }
+.ex-controls input[type="range"], .ex-controls input[type="number"] { width: 100%; }
+.ex-controls .ex-hint { grid-column: 1 / -1; font-size: 0.85em; color: #5a6470; }
+.ex-options { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 0.6rem 0 0.2rem; font-size: 0.95em; }
+.ex-widget svg { width: 100%; height: auto; display: block; }
+.ex-widget svg .grid { stroke: #e3e3e3; stroke-width: 1.5; }
+.ex-widget svg .grid-x { stroke: #f0f0f0; }
+.ex-widget svg .tick { font-size: 18px; fill: #555; }
+.ex-widget svg .axis-label { font-size: 20px; fill: #222; }
+.ex-widget svg .bar { fill-opacity: 0.9; }
+.ex-legend { font-size: 0.85em; color: #5a6470; margin-top: 0.3rem; }
+.ex-legend .blue { color: var(--ex-blue); font-weight: 600; }
+.ex-legend .orange { color: var(--ex-orange); font-weight: 600; }
+.ex-legend .green { color: var(--ex-green); font-weight: 600; }
+.ex-code { background: var(--ex-bg); border-radius: 8px; padding: 0.6rem 0.9rem; font-family: var(--bs-font-monospace, monospace); font-size: 0.9em; white-space: pre-wrap; }
+.ex-task { background: #fff; border: 1px dashed var(--ex-border); border-radius: 10px; padding: 0.6rem; }
+@media (max-width: 600px) {
+  .ex-controls { grid-template-columns: 1fr 5.5em; }
+  .ex-controls label { grid-column: 1 / -1; }
+}

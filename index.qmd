@@ -1,0 +1,27 @@
+---
+title: "bmm model explorer"
+subtitle: "What does each parameter do? Move it and see."
+toc: false
+---
+
+The pages below belong to the measurement models in the
+[bmm](https://venpopov.com/bmm/) R package. Each one lets you move a model's parameters and watch the
+predicted responses change, shows the task the model is written for, and, where the model has
+something to say about it, what happens when the task changes while the parameters do not. Nothing
+is installed and nothing is sent anywhere: the curves are computed in your browser.
+
+## Categorical decision tasks
+
+- [Memory Measurement Model, simple span (`m3`)](models/m3.qmd): a correct item, other list items and
+  new lures compete for a response. Candidate counts are part of the model.
+
+## Continuous reproduction tasks
+
+- [Interference Measurement Model (`imm`)](models/imm.qmd): responses on a colour wheel drawn to the
+  target, to the other items in proportion to their distance, and to noise.
+
+More pages follow in the order of [the roadmap](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/dev/ROADMAP.md):
+the two- and three-parameter mixture models and the signal discrimination model, multinomial
+processing trees, the signal detection family, and the response-time models.
+
+New here? Read [how to read a page](about.qmd) first.

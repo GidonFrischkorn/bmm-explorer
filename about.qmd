@@ -1,0 +1,23 @@
+---
+title: "How to read a page"
+---
+
+Every model page has the same five parts.
+
+1. **What the model says.** The model in a few sentences and its formula, with the parameters named
+   as bmm names them.
+2. **The task.** A drawing of the experimental trial the model is written for. Where the task has
+   settings that enter the model (how many items, how many response candidates), the drawing follows
+   the controls.
+3. **Explore.** Sliders for the parameters and the predicted response distribution. Move a slider and
+   the curve moves with it. The dashed curve is the starting point, so a change is always a comparison.
+4. **Across task settings.** Some models predict how responses change when the task changes while the
+   parameters stay the same: more candidates, more items on the screen. Those pages show that
+   prediction. Models whose likelihood has no such setting say so, which is worth knowing before an
+   experiment is designed around one.
+5. **In bmm.** The call that fits the model you are looking at, and the density call with the current
+   values, ready to paste into R.
+
+The curves are computed in your browser by small JavaScript copies of bmm's density functions. Each
+copy is tested against values produced by bmm itself; the test and the fixtures are in the
+[repository](https://github.com/GidonFrischkorn/bmm-explorer/tree/main/tests/parity).

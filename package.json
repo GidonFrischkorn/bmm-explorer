@@ -1,0 +1,13 @@
+{
+  "name": "bmm-explorer",
+  "private": true,
+  "type": "module",
+  "description": "Interactive model explorer for the bmm R package: client-side JavaScript, no runtime dependencies.",
+  "scripts": {
+    "test": "node --test",
+    "fixtures": "Rscript R/make_fixtures.R tests/parity/fixtures",
+    "render": "quarto render",
+    "preview": "quarto preview"
+  },
+  "engines": { "node": ">=20" }
+}
