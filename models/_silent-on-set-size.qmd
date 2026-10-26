@@ -1,0 +1,14 @@
+{{< meta set-size-fixed >}} Set size can change them only if the parameters differ between the
+conditions of an experiment, for example between set sizes. In bmm that is a formula such as
+`{{< meta set-size-formula >}}` with `set_size` coded as a factor (a factor column in the data, or
+`factor(set_size)` in the formula): `0 +` drops the intercept, so every set size gets its own value of
+the parameter ([formula syntax](https://venpopov.com/bmm/reference/bmmformula.html)). A numeric
+`set_size` in the same formula estimates a single slope for set size instead, which without the
+intercept runs through the origin. What the model then predicts at each set size is whatever the
+estimated values say: how the parameters differ between set sizes comes from the data, and the model
+makes no prediction about it. No slider on this page makes a parameter depend on set size for that
+reason. The
+[interference measurement model](imm.qmd#across-task-settings) (IMM) is the contrast, as the Across set size
+panel on that page shows: every item on the display adds its own activation $c\,e^{-s d_i} + a$ to the
+sum that each weight is divided by, so with the parameters fixed the target's weight falls with set
+size, unless `a` = 0 and `s` is so large that the non-targets' activations vanish.
