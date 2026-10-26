@@ -12,7 +12,7 @@ export function loadFixture(name) {
 
 // Fixtures that need a bmm function newer than the oldest bmm the script runs on, with the bmm version
 // that ships it. Only these may be absent, and only when an older bmm wrote the directory.
-export const SINCE = { nodes: "1.4.1", mpt: "1.4.1" };
+export const SINCE = { nodes: "1.4.1", mpt: "1.4.1", sdt: "1.4.1" };
 // Version strings compared numerically per component, so "1.4.1.9000" (develop) counts as >= "1.4.1". A
 // version that is not dotted integers throws: read as older, it would turn a missing fixture into a skip.
 const versionParts = v => {
@@ -45,5 +45,15 @@ export function assertClose(got, ref, tol, label) {
   let worst = 0;
   got.forEach((g, i) => { worst = Math.max(worst, Math.abs(g - ref[i])); });
   assert.ok(worst <= tol, `${label}: max abs error ${worst.toExponential(2)} > ${tol}`);
+  return worst;
+}
+
+// The same, relative to |ref| where |ref| > 1: log probabilities in a far tail reach -1e12, where an absolute
+// tolerance is below one unit in the last place. Where |ref| <= 1 it is the absolute tolerance above.
+export function assertCloseRel(got, ref, tol, label) {
+  assert.equal(got.length, ref.length, `${label}: length`);
+  let worst = 0;
+  got.forEach((g, i) => { worst = Math.max(worst, Math.abs(g - ref[i]) / Math.max(1, Math.abs(ref[i]))); });
+  assert.ok(worst <= tol, `${label}: max error ${worst.toExponential(2)} > ${tol} (relative beyond 1)`);
   return worst;
 }

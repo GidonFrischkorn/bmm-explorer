@@ -54,6 +54,11 @@ website:
       - section: "Continuous reproduction tasks"
         contents:
           - models/imm.qmd
+      - section: "Signal detection"
+        contents:
+          - models/sdt_yn.qmd
+          - models/sdt_mafc.qmd
+          - models/sdt_rating.qmd
   page-footer:
     left: "bmm model explorer · [source](https://github.com/GidonFrischkorn/bmm-explorer) · code GPL-2, text CC BY 4.0"
     right: "Built with Quarto. No R, no server: everything runs in your browser."

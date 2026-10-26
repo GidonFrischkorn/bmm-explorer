@@ -1,0 +1,178 @@
+---
+title: "Signal detection theory, confidence ratings"
+subtitle: "Old/new recognition on a rating scale: K − 1 thresholds on one evidence axis give K response categories"
+model: sdt_rating
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="sdtrating-widget">
+  <section class="ex-panel ex-p-task" aria-label="The decision">
+    <div class="ex-panel-title">The decision: K − 1 thresholds split the evidence into K ratings</div>
+    <svg id="sdtrating-latent" role="img" aria-label="Evidence densities of noise and signal trials with the rating thresholds as vertical lines and the rating numbers between them"></svg>
+    <div class="ex-legend">
+      Evidence on <span class="blue">noise</span> (new) and <span class="orange">signal</span> (old) trials, and the
+      ratings between the thresholds. Drag a threshold or use the arrow keys.
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-controls ex-inline">
+      <label for="sdtrating-k" title="rating categories">K</label>
+      <input type="range" id="sdtrating-k" min="3" max="8" step="1">
+      <input type="number" id="sdtrating-k-num" min="3" max="8" step="1" aria-label="K">
+      <div class="ex-hint" id="sdtrating-k-hint"></div>
+    </div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title ex-title-row">Parameters
+      <label class="ex-select">dist
+        <select id="sdtrating-dist">
+          <option value="normal">normal</option>
+          <option value="logistic">logistic</option>
+          <option value="gumbel_min">gumbel_min</option>
+          <option value="gumbel_max">gumbel_max</option>
+        </select>
+      </label>
+    </div>
+    <div class="ex-controls ex-inline sdt-thresholds">
+      <label for="sdtrating-d" title="sensitivity">d</label>
+      <input type="range" id="sdtrating-d">
+      <input type="number" id="sdtrating-d-num" aria-label="d">
+      <label for="sdtrating-s" title="signal scale over noise scale">sdratio</label>
+      <input type="range" id="sdtrating-s">
+      <input type="number" id="sdtrating-s-num" aria-label="sdratio">
+      <label for="sdtrating-t1" data-thr="1">t1</label>
+      <input type="range" id="sdtrating-t1" data-thr="1">
+      <input type="number" id="sdtrating-t1-num" data-thr="1" aria-label="threshold 1">
+      <label for="sdtrating-t2" data-thr="2">t2</label>
+      <input type="range" id="sdtrating-t2" data-thr="2">
+      <input type="number" id="sdtrating-t2-num" data-thr="2" aria-label="threshold 2">
+      <label for="sdtrating-t3" data-thr="3">t3</label>
+      <input type="range" id="sdtrating-t3" data-thr="3">
+      <input type="number" id="sdtrating-t3-num" data-thr="3" aria-label="threshold 3">
+      <label for="sdtrating-t4" data-thr="4">t4</label>
+      <input type="range" id="sdtrating-t4" data-thr="4">
+      <input type="number" id="sdtrating-t4-num" data-thr="4" aria-label="threshold 4">
+      <label for="sdtrating-t5" data-thr="5">t5</label>
+      <input type="range" id="sdtrating-t5" data-thr="5">
+      <input type="number" id="sdtrating-t5-num" data-thr="5" aria-label="threshold 5">
+      <label for="sdtrating-t6" data-thr="6">t6</label>
+      <input type="range" id="sdtrating-t6" data-thr="6">
+      <input type="number" id="sdtrating-t6-num" data-thr="6" aria-label="threshold 6">
+      <label for="sdtrating-t7" data-thr="7">t7</label>
+      <input type="range" id="sdtrating-t7" data-thr="7">
+      <input type="number" id="sdtrating-t7-num" data-thr="7" aria-label="threshold 7">
+      <div class="ex-hint" id="sdtrating-range-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtrating-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted rating proportions">
+    <div class="ex-panel-title">Predicted ratings</div>
+    <svg id="sdtrating-bars" role="img" aria-label="Predicted proportion of each rating on noise and on signal trials"></svg>
+    <div class="ex-legend">Probability of each rating on <span class="blue">noise</span> and on
+      <span class="orange">signal</span> trials. Dashed: bmm's prior means.</div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="ROC">
+    <div class="ex-panel-title">ROC from the cumulative rates</div>
+    <svg id="sdtrating-roc" role="img" aria-label="Receiver operating characteristic with one point per threshold: the rate of ratings at or above it on noise and signal trials"></svg>
+    <div class="ex-legend">Circles: P(rating ≥ j), noise vs. signal. Solid: all criteria. Dashed: prior means.
+      Grey: chance.</div>
+  </section>
+</div>
+```
+
+## What the model says
+
+A confidence rating is a yes/no decision with several criteria at once (Green & Swets, 1966). The evidence
+axis and the two distributions are those of the [yes/no model](sdt_yn.qmd): noise trials (new items) draw their
+evidence from a distribution at 0 with scale 1 (for the normal distribution, SD 1), signal trials (old items)
+from the same distribution moved to $\delta$ and stretched by $s$ (`sdratio`). `d` is the sensitivity:
+$\delta = d\,\sqrt{(1 + s^2)/2}$, which equals `d` when $s = 1$. `dist` names the shape, `normal`, `logistic` or
+one of the two skewed Gumbel distributions. $K - 1$ ordered thresholds $t_1 < \dots < t_{K-1}$ split the axis
+into $K$ ratings, from 1 (sure new) to $K$ (sure old). The probability of rating $j$ is the area under the
+density between thresholds $j - 1$ and $j$. With $F$ the cumulative distribution function of the distribution at
+location 0 and scale 1, $t_0 = -\infty$ and $t_K = \infty$:
+
+$$
+P(j \mid \text{noise}) = F(t_j) - F(t_{j-1}), \qquad
+P(j \mid \text{signal}) = F\!\left(\frac{t_j - \delta}{s}\right) - F\!\left(\frac{t_{j-1} - \delta}{s}\right).
+$$
+
+The thresholds are positions measured from the noise location in units of the noise scale, and `sdratio` does
+not rescale them. A row of data holds the $K$ counts of one stimulus class, which are multinomial with these
+probabilities. bmm does not estimate the thresholds one by one; its argument `threshold_type` decides how they
+are built from fewer parameters. Every type places a `criterion` at the same point, the middle threshold when
+$K$ is even and the centre of the middle rating when $K$ is odd, and builds the other thresholds around it.
+The default, `parsimonious`, uses one more parameter, `spacing`, and puts threshold $k$ at
+$\text{criterion} + e^{\text{spacing}} \log\big(k / (K - k)\big)$
+([Selker et al., 2019](https://doi.org/10.3758/s13428-019-01231-3)). `log_distance` instead estimates the log
+widths of the $K - 2$ gaps between neighbouring thresholds, `delta1`, `delta2`, and so on, which can place any
+ordered set. This page moves the thresholds one by one, as `log_distance` can, and the code below gives the
+matching `criterion` and `delta` values.
+
+## The task
+
+One trial presents one item, a studied or a new one, and the participant rates it on a $K$-point scale from
+"sure new" to "sure old". bmm fits counts: each row of the data holds one count per rating, in columns ordered
+from "sure new" to "sure old", and `stimulus` coded 0 for new (noise) and 1 for old (signal) items. The number of
+ratings $K$ is the one task setting the likelihood knows: it sets the number of thresholds.
+
+## Explore
+
+The top panel draws both densities with the $K - 1$ thresholds; the numbers between them are the ratings. Drag a
+threshold or move its slider (`t1` is the leftmost). A threshold that runs into its neighbour pushes it along,
+so the order holds; a typed value out of order is flagged instead. The bars give the probability of each rating
+on noise and on signal trials.
+
+Each threshold also turns the ratings into a yes/no decision: count every rating at or above $j$ as "old".
+The rate of such ratings on noise trials is then a false-alarm rate, on signal trials a hit rate. The ROC
+(receiver operating characteristic) panel plots these pairs, one circle per threshold: the circle labelled
+≥ $j$ comes from threshold $t_{j-1}$. They lie on the solid curve, which gives the hit rate against the
+false-alarm rate for every possible threshold at the current `d` and `sdratio`. The grey diagonal is chance.
+
+`d` and `sdratio` have the ranges of the yes/no page: `d` from −2 to 4 (bmm's prior normal(1, 1), mean 1 and SD
+1, ± 3 SD), `sdratio` from 0.41 to 2.46 on the log scale (normal(0, 0.3)). The threshold sliders span the prior
+of the `criterion`, normal(0.5, 1.5), from −4 to 5. Changing $K$ places the thresholds where `parsimonious` puts
+them at its prior means, `criterion` 0.5 and `spacing` 0, rounded to two decimals: for $K = 6$,
+$0.5 + \log(1/5) = -1.11$ up to $0.5 + \log 5 = 2.11$. The dashed bars and the dashed ROC are these thresholds
+with `d` = 1 and `sdratio` = 1, so at the start values they lie under the solid ones.
+
+## Across task settings
+
+$K$ is the only design variable, and it does not change what a threshold predicts: each threshold is the
+criterion of a yes/no decision, and its point lies on the same ROC whatever $K$ is. What $K$ changes is how many
+points one condition gives. A yes/no condition gives a single point, and many curves pass through one point,
+which is why `sdt_yn()` cannot tell `sdratio` from `d` within one condition. $K - 1$ points on one curve fix its
+shape, so `sdt_rating()` identifies `sdratio` from one condition. Under normal noise this is easy to see on
+z-scores, the rates transformed by the inverse of the normal distribution function: the ROC becomes a straight
+line with slope 1/`sdratio`. Counting what a condition offers: each stimulus class has $K$ proportions that sum
+to 1, so $2(K - 1)$ are free, and the model with `sdratio` estimated has $K + 1$ parameters (`d`, `sdratio`
+and $K - 1$ thresholds). At $K = 3$ the fit uses every degree of freedom, and from $K = 4$ the shape of the ROC
+can be tested. <span id="sdtrating-across-now"></span>
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="sdtrating-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtrating-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/sdt_rating.js"></script>
+```
+
+The code updates with the controls. `sdt_rating()` names the count columns, the stimulus column, the threshold
+parametrisation and the evidence distribution; `dsdt_rating()` returns the log likelihood of the counts; and
+`bmm()` estimates the parameters from data. `my_data` stands for your own data, and fitting runs Stan through
+brms. `dsdt_rating()` takes the thresholds as positions and `sdratio` as the ratio itself, while the model
+estimates the `log_distance` parameters and the log of `sdratio`. See the
+[signal detection article](https://venpopov.com/bmm/articles/bmm_sdt.html) and the reference pages for
+[`sdt_rating()`](https://venpopov.com/bmm/reference/sdt_rating.html) and
+[`dsdt_rating()`](https://venpopov.com/bmm/reference/sdt_rating_dist.html).

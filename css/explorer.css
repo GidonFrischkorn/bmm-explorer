@@ -103,3 +103,19 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-task-pair .imm-drag:focus { outline: none; stroke: #E69F00; stroke-width: 5; }
 /* A display formula wider than a phone screen scrolls in its own box instead of widening the page. */
 mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+/* Signal detection pages: the distribution choice in the parameters' title row, notes and draggable
+   boundaries on the evidence axis. */
+.ex-select { font-weight: 400; font-size: 0.92em; display: flex; gap: 0.4rem; align-items: center; margin: 0; }
+.ex-select select { font-size: 0.95em; padding: 0 0.2rem; }
+.ex-dash .sdt-note { font-size: 19px; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 5px; }
+.ex-dash .sdt-line-label { font-size: 19px; fill: #222; }
+.ex-dash .sdt-drag { cursor: ew-resize; }
+.ex-dash .sdt-drag:focus { outline: none; fill: #E69F00; fill-opacity: 0.25; }
+#sdtyn-latent, #sdtrating-latent, #sdtmafc-latent { touch-action: none; user-select: none; }
+/* m-AFC: the trial's tiles beside the evidence densities. */
+.sdt-task-pair { display: grid; grid-template-columns: 0.63fr 1fr; gap: 0.6rem; align-items: center; }
+.ex-dash .sdt-task-pair svg { max-height: 23vh; }
+@media (max-width: 640px) { .sdt-task-pair { grid-template-columns: 1fr; } }
+/* Rating thresholds: one inline row each below the other parameters. */
+.ex-dash .sdt-thresholds { margin-top: 0.3rem; row-gap: 0.1rem; }
+.ex-dash .sdt-thresholds input[type="number"] { padding-top: 0; padding-bottom: 0; }
