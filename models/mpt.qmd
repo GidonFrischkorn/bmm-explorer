@@ -1,0 +1,163 @@
+---
+title: "Multinomial processing tree, span task"
+subtitle: "Categorical recall as discrete states: an item is remembered with its position, without it, or not at all"
+model: mpt
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="mpt-widget">
+  <section class="ex-panel ex-p-task" aria-label="The processing tree">
+    <div class="ex-panel-title">The processing tree</div>
+    <svg id="mpt-tree" role="img" aria-label="Processing tree: item memory, then binding to the position, then guessing; each branch ends in a response category with its probability"></svg>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-controls ex-inline">
+      <label for="mpt-set-size" title="letters studied">set size</label>
+      <input type="range" id="mpt-set-size" min="1" max="9" step="1">
+      <input type="number" id="mpt-set-size-num" min="1" max="9" step="1" aria-label="set size">
+      <label for="mpt-n-other" title="other list letters offered at test">n_other</label>
+      <input type="range" id="mpt-n-other" min="0" max="8" step="1">
+      <input type="number" id="mpt-n-other-num" min="0" max="8" step="1" aria-label="n_other">
+      <label for="mpt-n-npl" title="lures: letters never shown">n_npl</label>
+      <input type="range" id="mpt-n-npl" min="0" max="12" step="1">
+      <input type="number" id="mpt-n-npl-num" min="0" max="12" step="1" aria-label="n_npl">
+      <div class="ex-hint" id="mpt-n-total"></div>
+    </div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="mpt-pi">Pi, item in memory</label>
+      <input type="range" id="mpt-pi">
+      <input type="number" id="mpt-pi-num" aria-label="Pi">
+      <label for="mpt-pb">Pb, position retrieved, given the item</label>
+      <input type="range" id="mpt-pb">
+      <input type="number" id="mpt-pb-num" aria-label="Pb">
+      <div class="ex-hint" id="mpt-range-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="mpt-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted proportions">
+    <div class="ex-panel-title">Predicted proportions</div>
+    <svg id="mpt-bars" role="img" aria-label="Predicted proportion of correct, other-list-item and lure responses"></svg>
+    <div class="ex-legend">Probability of each response category on a trial. Dashed: bmm's prior means.</div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="P(correct) across response-set size">
+    <div class="ex-panel-title">P(correct) across response-set size</div>
+    <svg id="mpt-across" role="img" aria-label="Predicted probability correct against response-set size, for the tree and for the matched M3"></svg>
+    <div class="ex-legend">
+      Changing <span class="grey">lures</span>, <span class="orange">other list items</span> or
+      <span class="purple">both</span> from the circle. Solid: this tree; dotted: M3 matched at the circle.
+    </div>
+  </section>
+</div>
+```
+
+## What the model says
+
+A multinomial processing tree (MPT; [Batchelder & Riefer, 1999](https://doi.org/10.3758/BF03210812))
+describes a response as the end of a path through discrete states. This tree is written for cued
+recall of a list item from a set of candidates, the task of the [M3 simple-span page](m3.qmd). With
+probability `Pi` the cued item is in memory. Given that, with probability `Pb` its position is
+retrieved too, and the response is correct. It uses the two memory states of the binding model of
+[Oberauer (2019)](https://doi.org/10.5334/joc.86) in the reverse order. In Oberauer's tree, which
+the [MPT article](https://venpopov.com/bmm/articles/bmm_mpt.html) uses to introduce covariates, the
+binding is tested first: its `Pb` is the probability of retrieving the binding on any trial, and its
+`Pi` the probability of item memory on trials where the binding was not retrieved. Here `Pi` holds
+for every trial and `Pb` only for trials with the item in memory, the order of the article's
+real-data example. With that tree's guessing rates set from the same response set, `GcorrPi`
+$= 1/(1 + n_\text{other})$, `GcorrNoPi` $= 1/N$ and `GotherNoPi`
+$= n_\text{other}/(n_\text{other} + n_\text{npl})$ (the share of list items among the wrong
+candidates; with no wrong candidate on the screen `GcorrNoPi` is 1 and `GotherNoPi` multiplies
+$1 - 1 = 0$, so any value in [0, 1] will do), the two trees give the same likelihood under a change
+of parameters: that tree's `Pb` is $P_i P_b$, and its `Pi` is $P_i (1 - P_b) / (1 - P_i P_b)$. An
+item in memory without its position leaves a guess among the $1 + n_\text{other}$ list items on the
+screen, the correct one among them; an item not in memory leaves a guess among all $N$ candidates. With $n_\text{other}$
+other list items and $n_\text{npl}$ lures, $N = 1 + n_\text{other} + n_\text{npl}$:
+
+$$
+\begin{aligned}
+P(\text{corr}) &= P_i P_b + P_i (1 - P_b) \tfrac{1}{1 + n_\text{other}} + (1 - P_i) \tfrac{1}{N} \\
+P(\text{other}) &= P_i (1 - P_b) \tfrac{n_\text{other}}{1 + n_\text{other}} + (1 - P_i) \tfrac{n_\text{other}}{N} \\
+P(\text{npl}) &= (1 - P_i) \tfrac{n_\text{npl}}{N}
+\end{aligned}
+$$
+
+`Pi` and `Pb` are estimated. The five guessing rates, the fractions in these formulas, are fixed by
+the response set: `gl_corr` $= 1/(1 + n_\text{other})$ and `gl_other` $= n_\text{other}/(1 + n_\text{other})$
+for the guess among list items, `g_corr` $= 1/N$, `g_other` $= n_\text{other}/N$ and `g_npl`
+$= n_\text{npl}/N$ for the guess among all candidates. They enter bmm's `mpt()` as covariates, data
+columns that the branch expressions use.
+
+## The task
+
+One trial is the cued recall of the [M3 page](m3.qmd): a list of letters is studied, one position is
+cued, and the participant picks the letter that was there from candidates on the screen: the correct
+letter, `n_other` other list letters and `n_npl` letters that were not on the list. The counts enter
+the likelihood through the guessing rates only. Set size limits `n_other` (at most set size − 1) and
+does not enter otherwise.
+
+## Explore
+
+The tree shows each state and each branch with its current probability: a parameter, or a guessing
+rate written as the share of the candidates guessed among (1/5: the correct letter among five list
+letters). An edge is drawn as wide
+as the probability that a trial passes along it, and each leaf shows the probability of that path;
+the paths ending in one category add up to its bar. Raising `Pi` moves weight from the guess among all
+candidates to the list; raising `Pb` moves it from the guess among list items to a correct response.
+
+bmm estimates `Pi` and `Pb` on the logit scale with a logistic(0, 1) prior, whose SD is π/√3 ≈ 1.81.
+Each slider spans the prior mean ± 3 SD on that scale, so `Pi` and `Pb` run from 0.004 to 0.996 and start at the prior
+mean, 0.5 (dashed bars).
+
+## Across task settings
+
+The guessing rates follow from the counts, so the tree predicts the response-set effect without a new
+parameter, and it predicts a floor: a trial on which the position is retrieved is correct whatever
+else is on the screen. Lures enter only through the guess among all candidates, so adding lures moves
+P(correct) toward $P_i P_b + P_i (1 - P_b) / (1 + n_\text{other})$, not toward 0.
+
+The [M3](m3.qmd) describes the same task with activations instead of states: every candidate gets
+background activation `b`, list items add general activation `a`, the cued item adds context
+activation `c`, and under the simple rule a category's probability is its share of the summed
+activation $S$. With these additive activations the M3 is the same likelihood as this tree for any
+one response set. With $b = 0.1$ and $S = (b + a + c) + n_\text{other} (b + a) + n_\text{npl}\, b$, the summed
+activation,
+
+$$
+P_i = \frac{(1 + n_\text{other})\, a + c}{S}, \qquad P_b = \frac{c}{(1 + n_\text{other})\, a + c}.
+$$
+
+This mapping depends on the counts. Holding `Pi` and `Pb` fixed across response sets (solid lines) is
+therefore a different prediction from holding `a` and `c` fixed (dotted lines): the lines meet at the
+circle and part away from it.
+<span id="mpt-across-now"></span> These numbers follow the controls.
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="mpt-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="mpt-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/mpt.js"></script>
+```
+
+The code updates with the controls. `mpt_tree()` writes the tree as one branch expression per response
+category, `mpt()` turns it into a model and declares the guessing rates as covariates, `dmpt()` returns
+the log probability of a set of response counts, and `bmm()` estimates `Pi` and `Pb` from data;
+`my_data` stands for your own data, with the five rates as columns, and fitting runs Stan through
+brms. See the [MPT article](https://venpopov.com/bmm/articles/bmm_mpt.html), which fits this kind of
+tree to the data of the M3 article, and the reference pages for
+[`mpt_tree()`](https://venpopov.com/bmm/reference/mpt_tree.html),
+[`mpt()`](https://venpopov.com/bmm/reference/mpt.html) and
+[`dmpt()`](https://venpopov.com/bmm/reference/mptdist.html).

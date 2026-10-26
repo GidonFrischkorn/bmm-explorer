@@ -34,7 +34,7 @@ jobs:
       - run: quarto render
       - name: Verify the render produced the site
         run: |
-          for f in index about models/m3 models/imm; do
+          for f in index about models/m3 models/mpt models/imm; do
             test -f "_site/$f.html" || { echo "::error::_site/$f.html missing after render"; exit 1; }
           done
           test -f _site/js/models/circular.js || { echo "::error::js/ not copied into _site"; exit 1; }

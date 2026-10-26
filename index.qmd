@@ -12,8 +12,11 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
 
 ## Categorical decision tasks
 
-- [Memory Measurement Model, simple span (`m3`)](models/m3.qmd): a correct item, other list items and
-  new lures compete for a response. Candidate counts are part of the model.
+- [Memory Measurement Model (`m3`)](models/m3.qmd): a correct item, other list items, distractors and
+  new lures compete for a response, in simple and complex span, under three choice rules. Candidate
+  counts are part of the model.
+- [Multinomial processing tree, span task (`mpt`)](models/mpt.qmd): recall as discrete states, with
+  guessing rates set by the response set, and how it relates to the M3.
 
 ## Continuous reproduction tasks
 
@@ -29,7 +32,6 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
   precision, and no separate guessing parameter. No task setting enters the likelihood.
 
 More pages follow in the order of [the roadmap](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/dev/ROADMAP.md):
-the complex-span and Gaussian versions of the memory measurement model, multinomial processing
-trees, the signal detection family, and the response-time models.
+the signal detection family and the response-time models.
 
 New here? Read [how to read a page](about.qmd) first.
