@@ -29,6 +29,37 @@ for (p in list(list(mu = c(0, 2, -1.5), dist = c(0, .5, 2), c = 5, a = 2, b = 1,
                list(mu = c(0, 3), dist = c(0, 1), c = 1, a = 1, b = 3, s = 0, kappa = .8),
                list(mu = 0, dist = 0, c = 4, a = 0, b = .5, s = 1, kappa = 120)))
   cells[[length(cells) + 1]] <- list(fn = "dimm", args = p, x = x, logd = do.call(dimm, c(list(x = x, log = TRUE), p)))
+# Values the IMM page can set. Its preset places n items equidistant on the display circle and spreads
+# the colours evenly around the wheel; distances and colours are rounded to 2 decimals, as the page
+# shows and uses them.
+# c, a and s move on the log scale over bmm's prior mean +- 3 SD, exp(-3) to exp(3); kappa from
+# exp(-1) to exp(5); the page computes with exp(slider) at 3 significant digits. b is fixed at 1 in
+# bmm() and runs from 0 to 5 on the page.
+equi <- function(n) {
+  ang <- 2 * pi * seq_len(n - 1) / n
+  list(mu = c(0, round(atan2(sin(ang), cos(ang)), 2)), dist = c(0, round(pmin(ang, 2 * pi - ang), 2)))
+}
+lo_hi <- c(.0498, 20.1)
+start <- list(c = 1, a = 1, b = 1, s = 1, kappa = 7.39)
+imm_page <- c(
+  lapply(c(1, 2, 4, 8), function(n) c(equi(n), start)),
+  apply(expand.grid(c = lo_hi, a = lo_hi, s = lo_hi, kappa = c(.368, 148)), 1, function(g)
+    c(equi(8), list(c = g[["c"]], a = g[["a"]], b = 1, s = g[["s"]], kappa = g[["kappa"]]))),
+  lapply(list(list(b = 0), list(b = 5), list(a = 0), list(c = 0), list(s = 0)), function(m)
+    c(equi(8), modifyList(start, m))),
+  # The square layout: straight-line distances in circle radii, unordered, from 0 (an item dragged
+  # onto the target) to 3.11 (opposite corners, 2.2 * sqrt(2)), at both kappa ends.
+  lapply(c(.368, 148), function(k) c(list(mu = c(0, 0.79, -2.36, 3.14, 1.57, -0.5, 2, -1.2),
+    dist = c(0, 0.05, 3.11, 1.2, 0, 0.6, 2.4, 1.56)), modifyList(start, list(kappa = k, s = 20.1))))
+)
+for (p in imm_page)
+  cells[[length(cells) + 1]] <- list(fn = "dimm", args = p, x = x, logd = do.call(dimm, c(list(x = x, log = TRUE), p)))
+# Probability of a response within +-20 degrees of the target, the page's across-set-size measure.
+# bmm has no pimm() yet (.NotYetImplemented), so the reference is integrate() over bmm's dimm().
+h <- 20 * pi / 180
+for (p in c(lapply(1:8, function(n) c(equi(n), start)), imm_page[c(5, 12, 20)]))
+  cells[[length(cells) + 1]] <- list(fn = "dimm_mass", args = c(p, list(lo = -h, hi = h)),
+    mass = integrate(function(x) do.call(dimm, c(list(x = x), p)), -h, h, rel.tol = 1e-12)$value)
 for (p in list(c(3, 3.5), c(1, .5), c(10, 20), c(.2, 8), c(6, 60), c(2, 200), c(0.05, 1)))
   for (par in c("sqrtexp", "bessel"))
     cells[[length(cells) + 1]] <- list(fn = "dsdm", args = list(mu = 0, c = p[1], kappa = p[2], parametrization = par),
