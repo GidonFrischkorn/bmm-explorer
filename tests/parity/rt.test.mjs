@@ -17,8 +17,14 @@ if (!fx) {
     return out;
   };
 
+  // bmm writes the coefficients as fractions of integers beyond 2^53, and R on Linux and on macOS evaluates four
+  // of them one unit in the last place apart. Relative 1e-15 holds the copy to either platform's values and still
+  // catches a wrong coefficient.
   test(`the series coefficients are bmm ${fx.bmm_version}'s`, () => {
-    assert.deepEqual(LOG_SINHC_COEF, cells("ezdm_log_sinhc_coef")[0].values);
+    const ref = cells("ezdm_log_sinhc_coef")[0].values;
+    assert.equal(LOG_SINHC_COEF.length, ref.length, "number of coefficients");
+    LOG_SINHC_COEF.forEach((a, j) =>
+      assert.ok(Math.abs(a - ref[j]) <= 1e-15 * Math.abs(ref[j]), `coefficient ${j + 1}: ${a}, bmm ${ref[j]}`));
   });
 
   // The forward EZ map (P(upper), mean and variance of the decision time): absolute 1e-10 on the natural scale.
