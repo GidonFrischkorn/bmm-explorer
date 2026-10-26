@@ -15,20 +15,38 @@ website:
   site-url: https://www.gfrischkorn.org/bmm-explorer/
   repo-url: https://github.com/GidonFrischkorn/bmm-explorer
   repo-actions: [issue]
+  favicon: images/favicon.png
+  # The navbar repeats the bmm site's tabs, so the explorer reads as one section of it.
   navbar:
+    pinned: true
+    title: bmm
+    href: https://venpopov.com/bmm/
     left:
-      - href: index.qmd
-        text: Models
-      - href: about.qmd
-        text: How to read a page
+      - text: Get started
+        href: https://venpopov.com/bmm/articles/bmm.html
+      - text: Functions
+        href: https://venpopov.com/bmm/reference/index.html
+      - text: Articles
+        href: https://venpopov.com/bmm/articles/index.html
+      - text: Changelog
+        href: https://venpopov.com/bmm/news/index.html
+      - text: Develop
+        href: https://venpopov.com/bmm/dev-notes/index.html
+      - text: Parameter recovery
+        href: https://venpopov.com/bmm/parameter-recovery/index.html
+      - text: Model explorer
+        href: index.qmd
     right:
-      - text: bmm
-        href: https://venpopov.com/bmm/
       - icon: github
-        href: https://github.com/GidonFrischkorn/bmm-explorer
+        href: https://github.com/popov-lab/bmm/
+        aria-label: GitHub
   sidebar:
     style: docked
     contents:
+      - href: index.qmd
+        text: All models
+      - href: about.qmd
+        text: How to read a page
       - section: "Categorical decision tasks"
         contents:
           - models/m3.qmd
@@ -36,12 +54,12 @@ website:
         contents:
           - models/imm.qmd
   page-footer:
-    left: "bmm model explorer · code GPL-2, text CC BY 4.0"
+    left: "bmm model explorer · [source](https://github.com/GidonFrischkorn/bmm-explorer) · code GPL-2, text CC BY 4.0"
     right: "Built with Quarto. No R, no server: everything runs in your browser."
 
 format:
   html:
-    theme: cosmo
+    theme: [default, css/bmm-theme.scss]
     toc: true
     css: css/explorer.css
     code-copy: true
