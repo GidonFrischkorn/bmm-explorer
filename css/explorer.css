@@ -103,9 +103,8 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-task-pair .imm-drag:focus { outline: none; stroke: #E69F00; stroke-width: 5; }
 /* A display formula wider than a phone screen scrolls in its own box instead of widening the page. */
 mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
-/* Response-time pages: the note in a settings panel without settings, a readout under a plot, the
-   non-decision band of the task drawing. */
+/* Response-time pages: the note in a settings panel without settings, the non-decision band of the task
+   drawing. */
 .ex-note { font-size: 0.9em; color: #5a6470; margin: 0.2rem 0; }
-.ex-readout { font-size: 0.85em; margin-top: 0.4rem; }
 .ex-dash .rt-ndt { fill: #e9ecef; }
 .ex-dash .rt-halo { paint-order: stroke; stroke: #fff; stroke-width: 7px; stroke-linejoin: round; }

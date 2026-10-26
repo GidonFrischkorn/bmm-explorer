@@ -96,7 +96,8 @@ export function drawDiffusion(svg, spec) {
       const down = walk(NOISE[2 * k + 1], { start: 0, drift: -drift, lo: -Infinity, hi: start, dt });
       const nUp = up.hit ? up.x.length : Infinity, nDown = down.hit ? down.x.length : Infinity;
       const end = Math.min(nUp, nDown, STEPS + 1), w = k ? 1.5 : 3.5, o = k ? 0.3 : 1;
-      line(up.x.slice(0, end).map(d => start + d), BLUE, w, nUp <= nDown ? o : o * 0.45, upLane);
+      // Without an arrival in the drawn time neither accumulator has won, so both are drawn faded.
+      line(up.x.slice(0, end).map(d => start + d), BLUE, w, up.hit && nUp <= nDown ? o : o * 0.45, upLane);
       line(down.x.slice(0, end).map(d => start - d), ORANGE, w, nDown < nUp ? o : o * 0.45, downLane);
     }
   } else {
@@ -114,13 +115,13 @@ export function drawDiffusion(svg, spec) {
   // The boundary separation, as a bracket at the right end.
   const bx = sx(xlim[1]) - 4, y0 = mode === "simple" ? start : 0;
   el("path", { d: `M${bx - 10},${sy(top)}H${bx}V${sy(y0)}H${bx - 10}`, fill: "none", stroke: "#222", "stroke-width": 2 }, svg);
-  el("text", { x: bx - 16, y: (sy(top) + sy(y0)) / 2 + 7, "text-anchor": "end", class: "task-note rt-halo" }, svg).textContent = `bound ${spec.boundLabel ?? bound}`;
+  el("text", { x: bx - 16, y: (sy(top) + sy(y0)) / 2 + 7, "text-anchor": "end", class: "task-note rt-halo" }, svg).textContent = `bound ${bound}`;
   el("text", { x: m.l - 10, y: sy(start) + 6, "text-anchor": "end", class: "task-note" }, svg).textContent = "start";
 }
 
 // Densities of the two responses over rt (seconds), upper above zero and lower mirrored below.
-// spec: { W, H, margin, xlim, xticks, x, upper: [{ y, color, dashed, width }], lower: [...] }, y on the
-// natural scale. The y axis is symmetric and labelled with absolute values.
+// spec: { W, H, margin, xlim, xticks, x, upper: [{ y, color, dashed, width }], lower: [...], lowerLabel }, y on
+// the natural scale. The y axis is symmetric and labelled with absolute values; lowerLabel defaults to "lower (0)".
 export function mirroredDensity(svg, spec) {
   const ymax = Math.max(1e-9, ...[...spec.upper, ...spec.lower].flatMap(s => s.y.filter(Number.isFinite)));
   const { ylim, yticks } = niceAxis(ymax * 1.05);
@@ -128,13 +129,13 @@ export function mirroredDensity(svg, spec) {
   const fin = v => (Number.isFinite(v) ? v : 0);
   const out = linePlot(svg, {
     W: spec.W, H: spec.H, margin: spec.margin, xlim: spec.xlim, ylim: [-ylim[1], ylim[1]], xticks: spec.xticks,
-    yticks: ticks, ytickLabels: ticks.map(v => String(Math.abs(v))), xlab: "rt (s)", ylab: spec.ylab ?? "density",
+    yticks: ticks, ytickLabels: ticks.map(v => String(Math.abs(v))), xlab: "rt (s)", ylab: "density",
     series: [...spec.upper.map(s => ({ ...s, x: spec.x, y: s.y.map(fin) })),
              ...spec.lower.map(s => ({ ...s, x: spec.x, y: s.y.map(v => -fin(v)) }))]
   });
   el("line", { x1: out.sx(spec.xlim[0]), x2: out.sx(spec.xlim[1]), y1: out.sy(0), y2: out.sy(0), stroke: "#222", "stroke-width": 1.5 }, svg);
   el("text", { x: out.sx(spec.xlim[1]) - 6, y: out.sy(ylim[1]) + 20, "text-anchor": "end", class: "task-note", fill: BLUE }, svg)
-    .textContent = spec.upperLabel ?? "upper (1)";
+    .textContent = "upper (1)";
   el("text", { x: out.sx(spec.xlim[1]) - 6, y: out.sy(-ylim[1]) - 8, "text-anchor": "end", class: "task-note", fill: ORANGE }, svg)
     .textContent = spec.lowerLabel ?? "lower (0)";
   return out;

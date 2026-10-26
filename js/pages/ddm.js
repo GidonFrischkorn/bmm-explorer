@@ -54,19 +54,20 @@ function drawSpeedAccuracy(p, s) {
   el("circle", { cx: sx(s.meanRt), cy: sy(s.pC), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
 }
 
-// R code: plain ASCII digits and minus, so the snippet pastes into R unchanged.
-const r = v => String(+v.toPrecision(3));
+// R code: plain ASCII digits and minus, so the snippet pastes into R unchanged. The densities in the comment
+// are taken at the printed three-digit values, so they are what R returns for the call as shown.
 function drawCode(p, s) {
+  const q = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, +v.toPrecision(3)]));
   const rts = [s.rtUpper, s.rtLower].map(v => +v.toFixed(3));
-  const ll = [dddm(rts[0], { ...p, response: 1 }), dddm(rts[1], { ...p, response: 0 })];
-  const freeZr = p.zr !== 0.5;
+  const ll = [dddm(rts[0], { ...q, response: 1 }), dddm(rts[1], { ...q, response: 0 })];
+  const freeZr = q.zr !== 0.5;
   $("ddm-code").textContent =
 `library(bmm)
 model <- ddm(rt = "rt", response = "response")
 
 # log density of an upper (1) and a lower (0) response, each at its predicted mean rt
 dddm(rt = c(${rts.join(", ")}), response = c(1, 0),
-     drift = ${r(p.drift)}, bound = ${r(p.bound)}, ndt = ${r(p.ndt)}, zr = ${r(p.zr)})
+     drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr})
 # ${ll.map(v => v.toFixed(4)).join("  ")}
 
 # fit: one row per trial, rt in seconds, response 0 or 1
