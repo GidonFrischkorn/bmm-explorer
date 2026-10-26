@@ -16,11 +16,20 @@ test(`the series coefficients are bmm ${fx.bmm_version}'s`, () => {
 });
 
 // The forward EZ map (P(upper), mean and variance of the decision time): absolute 1e-10 on the natural scale.
+// The third and fourth cumulants, which enter dezdm() through the sampling distribution of the observed
+// statistics, are compared relative to max(1, |k|): just above the switch to the closed form (bound 4.48,
+// s 0.7, drift -0.1) k4 is 2e4 and divides a difference of cgf derivatives by s^8 w^4 = 2e-7, so the one
+// unit in the last place by which V8's sinh() and R's differ there moves it by 4e-8 (2e-12 relative).
 for (const [fn, moments] of [["ezdm_moments_3par", ezdmMoments3par], ["ezdm_moments_4par", ezdmMoments4par]]) {
   for (const cell of cells(fn)) {
     test(`${fn}(${JSON.stringify(cell.args)}) matches bmm ${fx.bmm_version}`, () => {
-      for (const [k, ref] of Object.entries(cell.moments))
-        assertClose(cell.args.drift.map(drift => moments({ ...cell.args, drift })[k]), ref, 1e-10, `${fn} ${k}`);
+      for (const [k, ref] of Object.entries(cell.moments)) {
+        const got = cell.args.drift.map(drift => moments({ ...cell.args, drift })[k]);
+        if (!/^k[34]/.test(k)) { assertClose(got, ref, 1e-10, `${fn} ${k}`); continue; }
+        assert.equal(got.length, ref.length, `${fn} ${k}: length`);
+        got.forEach((g, i) => assert.ok(Math.abs(g - ref[i]) <= 1e-10 * Math.max(1, Math.abs(ref[i])),
+          `${fn} ${k} at drift ${cell.args.drift[i]}: ${g}, bmm ${ref[i]}`));
+      }
     });
   }
 }
@@ -43,12 +52,17 @@ for (const cell of cells("dcswald")) {
   });
 }
 
-// dddm(): 1e-10 on the log scale. The port repeats rtdists' series truncation, so the tails match too.
+// dddm(): 1e-10 on the log scale. The port repeats rtdists' series truncation, so the tails match too. Where
+// bmm's density is 0 (zero_x) the port has to give -Infinity, not a finite tail value or NaN.
 for (const cell of cells("dddm")) {
   test(`dddm(${JSON.stringify(cell.args)}) matches bmm ${fx.bmm_version}`, () => {
     assertClose(dddm(cell.x, cell.args), cell.logd, 1e-10, "dddm");
+    for (const rt of cell.zero_x) assert.equal(dddm(rt, cell.args), -Infinity, `dddm at rt ${rt}`);
   });
 }
+test("rt.json has dddm cells where bmm's density is 0", () => {
+  assert.ok(cells("dddm").some(c => c.zero_x.length));
+});
 
 // Before ndt nothing has happened: no density, and a censored simple-cswald response has probability 1.
 test("rt at or before ndt", () => {

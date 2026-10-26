@@ -193,19 +193,21 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
   for (b in ez_bound) for (s in c(1, .7)) {
     m <- bmm:::.ezdm_moments_3par(ez_drift, b, s)
     cells[[length(cells) + 1]] <- list(fn = "ezdm_moments_3par", args = list(drift = ez_drift, bound = b, s = s),
-      moments = list(pC = m$pC, MDT = m$MDT, VRT = m$VRT))
+      moments = m[c("pC", "MDT", "VRT", "k3", "k4")])
   }
   for (b in ez_bound) for (zr in ez_zr) {
     m <- bmm:::.ezdm_moments_4par(ez_drift, b, zr, 1)
     cells[[length(cells) + 1]] <- list(fn = "ezdm_moments_4par", args = list(drift = ez_drift, bound = b, zr = zr, s = 1),
-      moments = list(pC = m$pC, mdt_upper = m$mdt_upper, mdt_lower = m$mdt_lower, vrt_upper = m$vrt_upper, vrt_lower = m$vrt_lower))
+      moments = m[c("pC", "mdt_upper", "mdt_lower", "vrt_upper", "vrt_lower", "k3_upper", "k3_lower", "k4_upper", "k4_lower")])
   }
   m <- bmm:::.ezdm_moments_3par(c(10, -10), 4.48, 1)
   cells[[length(cells) + 1]] <- list(fn = "ezdm_moments_3par", args = list(drift = c(10, -10), bound = 4.48, s = 1),
-    moments = list(pC = m$pC, MDT = m$MDT, VRT = m$VRT))
+    moments = m[c("pC", "MDT", "VRT", "k3", "k4")])
   # dezdm(): summary statistics near and away from the ones the parameters predict, at trial counts from 3
   # (the smallest bmm accepts) to 500, with n_upper from 0 to n_trials. The 4par cells give one boundary fewer
-  # than 2 responses, so its RT terms drop out, and one boundary NA.
+  # than 2 responses, so its RT terms drop out, and one boundary NA. 4par logit P(upper) has its own branches
+  # (.ezdm_logit_pc): no drift (|2 drift bound| < 1e-4) at the ezdm page's starting values and at tiny drifts
+  # of either sign, and a small negative drift on the falling branch.
   ez_par <- list(c(1.5, 1, .3), c(-1, 4.48, .05), c(3, .223, 1), c(0, 1, .2), c(.05, 2, .4), c(2, 4.48, .3))
   for (p in ez_par) {
     m <- bmm:::.ezdm_moments_3par(p[1], p[2], 1)
@@ -217,7 +219,8 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
       n_trials = n_trials, drift = p[1], bound = p[2], ndt = p[3], s = 1, version = "3par"),
       logd = dezdm(mean_rt, var_rt, n_upper, n_trials, p[1], p[2], p[3], version = "3par"))
   }
-  for (p in list(c(1.5, 1, .3, .5), c(-1, 4.48, .05, .182), c(3, .223, 1, .818), c(.8, 2, .2, .3))) {
+  for (p in list(c(1.5, 1, .3, .5), c(-1, 4.48, .05, .182), c(3, .223, 1, .818), c(.8, 2, .2, .3),
+                 c(0, 1, .223, .5), c(2e-5, 2, .2, .3), c(-1e-5, 4.48, .1, .7), c(-.05, 1.5, .3, .6))) {
     m <- bmm:::.ezdm_moments_4par(p[1], p[2], p[4], 1)
     for (k in list(c(100, .5), c(20, 1), c(100, 0), c(50, 1.2))) {
       n_upper <- min(k[1], max(0, round(m$pC * k[1] * k[2])))
@@ -228,6 +231,14 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
         n_trials = k[1], drift = p[1], bound = p[2], ndt = p[3], zr = p[4], s = 1, version = "4par"),
         logd = dezdm(mean_rt, var_rt, n_upper, k[1], p[1], p[2], p[3], zr = p[4], version = "4par"))
     }
+  }
+  # Exactly one response at a boundary: its statistics are finite here, so only the count of 1 drops its RT terms.
+  m <- bmm:::.ezdm_moments_4par(1.5, 1, .5, 1)
+  for (n_upper in c(1, 19)) {
+    mean_rt <- .3 + c(m$mdt_upper, m$mdt_lower); var_rt <- c(m$vrt_upper, m$vrt_lower)
+    cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
+      n_trials = 20, drift = 1.5, bound = 1, ndt = .3, zr = .5, s = 1, version = "4par"),
+      logd = dezdm(mean_rt, var_rt, n_upper, 20, 1.5, 1, .3, zr = .5, version = "4par"))
   }
   # dcswald(): log densities of both responses on an rt grid from just above ndt to 3 s, both versions.
   rt_after <- function(ndt) ndt + c(.002, .01, .03, .06, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3)
@@ -244,17 +255,22 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
   }
   # dddm(): through rtdists::ddiffusion. Both responses, an rt grid from just above ndt to 5 s, the slider
   # corners and middles; far tails included, where fast-dm's truncated series departs from the exact
-  # density and the port has to follow it.
+  # density and the port has to follow it. The cswald page compares its simple version with dddm(drift,
+  # 2 * bound, ndt, zr = 0.5), which reaches drift exp(+-3) and bound 2 exp(+-0.9): its start and corners.
+  # Where bmm's density underflows to 0 the rt goes to zero_x, at which the port must return -Inf.
   ddm_par <- list(c(0, 1, .223, .5), c(1.5, 1, .223, .5), c(-3, .223, .0498, .182), c(3, 4.48, 1, .818),
                   c(3, 4.48, .0498, .182), c(-3, 4.48, .3, .5), c(3, .223, .3, .818), c(.5, 2, .2, .3),
-                  c(-.5, 2.5, .15, .65), c(2, .6, .25, .5), c(0, 4.48, .1, .5), c(1, 1.5, .2, .7))
+                  c(-.5, 2.5, .15, .65), c(2, .6, .25, .5), c(0, 4.48, .1, .5), c(1, 1.5, .2, .7),
+                  c(1, 2, .135, .5), c(20.1, 4.92, .333, .5), c(20.1, .814, .055, .5), c(.0498, 4.92, .333, .5),
+                  c(.0498, .814, .055, .5))
   rt_ddm <- function(ndt) ndt + c(.001, .005, .01, .02, .05, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3, 5)
   for (p in ddm_par) for (r in 0:1) {
     rt <- rt_ddm(p[3])
     logd <- dddm(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = p[4])
+    stopifnot(!is.na(logd), logd < Inf)
     keep <- is.finite(logd)
     cells[[length(cells) + 1]] <- list(fn = "dddm", args = list(response = r, drift = p[1], bound = p[2], ndt = p[3], zr = p[4]),
-      x = rt[keep], logd = logd[keep])
+      x = rt[keep], logd = logd[keep], zero_x = I(rt[!keep]))
   }
   write_fx("rt", cells)
 } else cat("rt         skipped: this bmm lacks dezdm(), dcswald() or dddm()\n")
