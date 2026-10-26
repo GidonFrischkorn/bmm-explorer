@@ -262,7 +262,11 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
                   c(3, 4.48, .0498, .182), c(-3, 4.48, .3, .5), c(3, .223, .3, .818), c(.5, 2, .2, .3),
                   c(-.5, 2.5, .15, .65), c(2, .6, .25, .5), c(0, 4.48, .1, .5), c(1, 1.5, .2, .7),
                   c(1, 2, .135, .5), c(20.1, 4.92, .333, .5), c(20.1, .814, .055, .5), c(.0498, 4.92, .333, .5),
-                  c(.0498, .814, .055, .5))
+                  c(.0498, .814, .055, .5),
+                  # At rt = ndt + 1 fast-dm's truncated series has the wrong sign (lower response here, the
+                  # upper one in the mirror cell), and rtdists returns its absolute value: bmm's log density
+                  # there is log|sum|, which the port has to reproduce instead of a NaN.
+                  c(2.5, 4.48, .2, .818), c(-2.5, 4.48, .2, .182))
   rt_ddm <- function(ndt) ndt + c(.001, .005, .01, .02, .05, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3, 5)
   for (p in ddm_par) for (r in 0:1) {
     rt <- rt_ddm(p[3])

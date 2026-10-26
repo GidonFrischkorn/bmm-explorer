@@ -7,9 +7,13 @@ const [committed, fresh, tolArg] = process.argv.slice(2);
 const tol = +(tolArg ?? 1e-10);
 let bad = 0;
 // Every number a cell holds is compared (logd, probs, nodes, ...), except its args and the evaluation points
-// x, including numbers inside objects (the EZ moments are an object of arrays).
+// x, key by key: a point that moves from logd to zero_x changes the length of both keys, which a single list
+// of the cell's numbers would notice only through shifted positions. Objects are walked to their arrays (the
+// EZ moments are an object of arrays, compared per moment).
 const numbers = v => (v !== null && typeof v === "object" ? Object.values(v).flatMap(numbers) : typeof v === "string" ? [] : [v]);
-const values = cell => Object.entries(cell).filter(([k]) => k !== "args" && k !== "x").flatMap(([, v]) => numbers(v));
+const leaves = (v, key) => v !== null && typeof v === "object" && !Array.isArray(v)
+  ? Object.entries(v).flatMap(([k, w]) => leaves(w, `${key}.${k}`)) : [[key, numbers(v)]];
+const values = cell => new Map(Object.entries(cell).filter(([k]) => k !== "args" && k !== "x").flatMap(([k, v]) => leaves(v, k)));
 for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // R/make_fixtures.R writes no file for a density an older bmm lacks (mpt.json before dmpt()); any other
   // missing file is a failure, as in the parity tests.
@@ -25,10 +29,18 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // would differ: there the difference is relative to the value, as in math.test.mjs.
   a.cells.forEach((ca, i) => {
     const va = values(ca), vb = values(b.cells[i]);
-    const worst = va.length === vb.length
-      ? Math.max(...va.map((v, k) => Math.abs(v - vb[k]) / (f === "math.json" ? Math.max(2 ** -1022, Math.abs(v)) : 1)))
-      : Infinity;
-    if (!(worst <= tol)) { console.log(`${f} cell ${i} ${ca.fn}: max diff ${worst.toExponential(2)} (bmm ${a.bmm_version} vs ${b.bmm_version})`); bad++; }
+    const keys = [...new Set([...va.keys(), ...vb.keys()])];
+    const diffs = keys.map(key => {
+      const x = va.get(key), y = vb.get(key);
+      if (!x || !y) return [key, `only in the ${x ? "committed" : "fresh"} cell`];
+      if (x.length !== y.length) return [key, `${x.length} vs ${y.length} values`];
+      const worst = Math.max(0, ...x.map((v, k) => Math.abs(v - y[k]) / (f === "math.json" ? Math.max(2 ** -1022, Math.abs(v)) : 1)));
+      return [key, worst <= tol ? null : `max diff ${worst.toExponential(2)}`];
+    }).filter(([, d]) => d !== null);
+    if (diffs.length) {
+      console.log(`${f} cell ${i} ${ca.fn}: ${diffs.map(([k, d]) => `${k} ${d}`).join("; ")} (bmm ${a.bmm_version} vs ${b.bmm_version})`);
+      bad++;
+    }
   });
 }
 console.log(bad ? `${bad} differing cell(s) or missing file(s)` : `fixtures agree within ${tol}`);

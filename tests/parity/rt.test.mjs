@@ -17,9 +17,12 @@ test(`the series coefficients are bmm ${fx.bmm_version}'s`, () => {
 
 // The forward EZ map (P(upper), mean and variance of the decision time): absolute 1e-10 on the natural scale.
 // The third and fourth cumulants, which enter dezdm() through the sampling distribution of the observed
-// statistics, are compared relative to max(1, |k|): just above the switch to the closed form (bound 4.48,
-// s 0.7, drift -0.1) k4 is 2e4 and divides a difference of cgf derivatives by s^8 w^4 = 2e-7, so the one
-// unit in the last place by which V8's sinh() and R's differ there moves it by 4e-8 (2e-12 relative).
+// statistics, are compared relative to |k| at 1e-10 (absolute 1e-10 where bmm's k is exactly 0). Absolute
+// error does not work for them: just above the switch to the closed form (bound 4.48, s 0.7, drift -0.1) k4
+// is 2e4 and divides a difference of cgf derivatives by s^8 w^4 = 2e-7, so the one unit in the last place by
+// which V8's sinh() and R's differ there moves it by 4e-8 (2e-12 relative). Nor does a floor of 1: most
+// cumulants here are below 1, down to k4 = 4e-8 at bound 0.223, where an error of 1e-3 relative would pass.
+// The largest relative error measured against bmm 1.4.1 is 3.6e-12.
 for (const [fn, moments] of [["ezdm_moments_3par", ezdmMoments3par], ["ezdm_moments_4par", ezdmMoments4par]]) {
   for (const cell of cells(fn)) {
     test(`${fn}(${JSON.stringify(cell.args)}) matches bmm ${fx.bmm_version}`, () => {
@@ -27,7 +30,7 @@ for (const [fn, moments] of [["ezdm_moments_3par", ezdmMoments3par], ["ezdm_mome
         const got = cell.args.drift.map(drift => moments({ ...cell.args, drift })[k]);
         if (!/^k[34]/.test(k)) { assertClose(got, ref, 1e-10, `${fn} ${k}`); continue; }
         assert.equal(got.length, ref.length, `${fn} ${k}: length`);
-        got.forEach((g, i) => assert.ok(Math.abs(g - ref[i]) <= 1e-10 * Math.max(1, Math.abs(ref[i])),
+        got.forEach((g, i) => assert.ok(Math.abs(g - ref[i]) <= 1e-10 * (ref[i] === 0 ? 1 : Math.abs(ref[i])),
           `${fn} ${k} at drift ${cell.args.drift[i]}: ${g}, bmm ${ref[i]}`));
       }
     });
