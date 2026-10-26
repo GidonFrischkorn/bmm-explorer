@@ -1,0 +1,160 @@
+---
+title: "EZ Diffusion Model"
+subtitle: "Two-choice response times, summarised: accuracy and the mean and variance of the response times"
+model: ezdm
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="ezdm-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-panel-title ex-title-row">The task
+      <span class="ex-options" role="radiogroup" aria-label="Model version">
+        <label><input type="radio" name="ezdm-version" value="3par" checked> 3par</label>
+        <label><input type="radio" name="ezdm-version" value="4par"> 4par</label>
+      </span>
+    </div>
+    <svg id="ezdm-task" role="img" aria-label="Evidence paths starting between two horizontal boundaries after the non-decision time; each path ends at the upper or the lower boundary"></svg>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-controls">
+      <label for="ezdm-n" title="trials the summary statistics of one cell come from">n_trials, trials per cell</label>
+      <input type="range" id="ezdm-n">
+      <input type="number" id="ezdm-n-num" aria-label="n_trials">
+    </div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="ezdm-drift">drift, rate of evidence accumulation</label>
+      <input type="range" id="ezdm-drift">
+      <input type="number" id="ezdm-drift-num" aria-label="drift">
+      <label for="ezdm-bound">bound, boundary separation</label>
+      <input type="range" id="ezdm-bound">
+      <input type="number" id="ezdm-bound-num" aria-label="bound">
+      <label for="ezdm-ndt">ndt, non-decision time (s)</label>
+      <input type="range" id="ezdm-ndt">
+      <input type="number" id="ezdm-ndt-num" aria-label="ndt">
+      <label for="ezdm-zr" class="ezdm-4par-only">zr, relative starting point</label>
+      <input type="range" id="ezdm-zr" class="ezdm-4par-only">
+      <input type="number" id="ezdm-zr-num" class="ezdm-4par-only" aria-label="zr">
+      <div class="ex-hint" id="ezdm-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="ezdm-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted summary statistics">
+    <div class="ex-panel-title">Predicted summary statistics</div>
+    <svg id="ezdm-stats" role="img" aria-label="Predicted probability of an upper response, and the mean response time with one standard deviation either side, split into non-decision time and decision time"></svg>
+    <div class="ex-legend">Grey: <code>ndt</code>; coloured: mean decision time; whiskers: ±1 SD of the rt.
+      Dashed: prior means.</div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Across trial counts">
+    <div class="ex-panel-title">Across trial counts</div>
+    <svg id="ezdm-across" role="img" aria-label="Range of observed accuracy and observed mean response time, plus or minus two standard deviations, against the number of trials per cell"></svg>
+    <div class="ex-legend">Bands: ±2 SD of what one cell of <code>n_trials</code> trials would show, around the
+      prediction (line). Dashed: the current <code>n_trials</code>.</div>
+  </section>
+</div>
+```
+
+## What the model says
+
+The EZ diffusion model ([Wagenmakers et al., 2007](https://doi.org/10.3758/BF03194023)) is the diffusion
+model ([Ratcliff, 1978](https://doi.org/10.1037/0033-295X.85.2.59)) fitted to summary statistics instead
+of single trials. Evidence starts between two boundaries, drifts at rate `drift` with noise, and the
+response is made when it first reaches the upper boundary at `bound` or the lower one at 0; the response
+time adds the non-decision time `ndt`. The diffusion model predicts three statistics in closed form: the
+probability of an upper response, and the mean and variance of the response time. With the noise `s`
+fixed at 1 and the start halfway between the boundaries (version `3par`), and writing $v$ = `drift`,
+$a$ = `bound` and $y = -va$,
+
+$$
+P(\text{upper}) = \frac{1}{1 + e^{y}}, \qquad
+\text{MRT} = \texttt{ndt} + \frac{a}{2v}\,\frac{1 - e^{y}}{1 + e^{y}}, \qquad
+\text{VRT} = \frac{a}{2v^3}\,\frac{2y e^{y} - e^{2y} + 1}{(e^{y} + 1)^2}.
+$$
+
+At `drift` = 0 the two fractions are 0/0, and their limits are $a^2/4$ for the mean decision time and
+$a^4/24$ for its variance; bmm switches to a series near zero drift, and so does this page. The
+non-decision time adds to the mean and not to the variance; what remains of the response time is the
+decision time. With the start halfway, the decision
+time has the same distribution whichever boundary is reached, so `3par` uses the mean and variance of
+all response times together. Version `4par` lets the start, `zr` × `bound`, move; then the two responses
+differ in their decision times, and the model uses the mean and variance of each response separately
+([Srivastava et al., 2016](https://doi.org/10.1016/j.jmp.2016.10.001)).
+
+## The task
+
+One trial is a choice between two responses, with the response time recorded. The model never sees the
+trials: it takes, for each cell of the design (a participant in a condition), the number of trials
+`n_trials`, the number of upper responses `n_upper`, and the mean `mean_rt` and variance `var_rt` of the
+response times, in seconds. [`ezdm_summary_stats()`](https://venpopov.com/bmm/articles/bmm_ezdm.html) computes them from
+trial-level data. The task panel
+draws five evidence paths from the start under the current parameters, with the noise of each path held
+fixed while the sliders move; blue paths end at the upper boundary, orange ones at the lower. The paths
+illustrate the process; the statistics are computed from the formulas, not from them.
+
+## Explore
+
+The panel *Predicted summary statistics* is the forward EZ map: the summary statistics the current
+parameters predict. The bar is P(upper), the probability of response 1. Below it is one row of response
+times in `3par` and one per response in `4par`: the grey part is `ndt`, the coloured part the mean
+decision time, and the whiskers one standard deviation (the square root of VRT) either side of the mean
+response time. Moving `drift` away from 0 makes one response more likely (positive: the upper) and shortens and narrows
+the response times. Raising `bound` makes the
+responses slower and more variable and, for a drift other than 0, more often the one the drift favours.
+`ndt` shifts the mean and leaves the SD alone. In `4par`, moving `zr` toward 1 makes upper responses more
+frequent and faster and lower responses slower.
+
+Slider ranges come from bmm's default priors for `ezdm()`. `bound` is estimated on the log scale with a
+normal(0, 0.5) prior, `ndt` on the log scale with normal(−1.5, 0.5), and `zr` on the logit scale with
+normal(0, 0.5); each slider spans the prior mean ± 3 SD: `bound` from 0.22 to 4.48, `ndt` from 0.05 to
+1 s, `zr` from 0.18 to 0.82. `drift` has an identity link and a cauchy(0, 1) prior, which has no standard
+deviation; its slider spans the location ± 3 scale, from −3 to 3. The sliders start at the prior means
+(dashed): `drift` = 0, `bound` = 1, `ndt` = 0.22 s, `zr` = 0.5. With no drift and the start in the middle,
+both responses are equally likely.
+
+## Across task settings
+
+The predicted statistics do not depend on `n_trials`, but the likelihood does. The statistics of one cell
+are themselves data, and `dezdm()` scores them against how much they would vary from one sample of
+`n_trials` trials to the next ([Chávez De la Peña & Vandekerckhove,
+2025](https://doi.org/10.3758/s13423-025-02729-y)). The number of upper responses is binomial. The
+observed variance follows a gamma distribution with mean VRT, and the observed mean, given the observed
+variance, a normal distribution; their spread uses the third and fourth cumulants of the decision time,
+because decision times are skewed. The panel *Across trial counts* shows the result: ±2 standard deviations of the
+observed P(upper) and of the observed mean response time around the prediction. Both bands narrow with
+the square root of `n_trials`, so a cell with more trials pins the parameters down more tightly. In
+`4par`, each response's mean comes from the trials that ended at that boundary only (the panel uses
+the expected count, `n_trials` × P(upper) or its complement), so a rare response has a wide band.
+A boundary reached fewer than twice has no variance; `dezdm()` then drops its response-time terms, and
+the cell counts through `n_upper` alone.
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="ezdm-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="ezdm-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/ezdm.js"></script>
+```
+
+The code updates with the controls. `ezdm()` defines the model from the names of the columns that hold
+the summary statistics (two names each for `mean_rt` and `var_rt` in `4par`: upper, then lower).
+`dezdm()` returns the log likelihood of one cell's statistics; the call here passes the statistics the
+current parameters predict for `n_trials` trials, rounded as shown, and the comment under it holds the
+value this page computes for them. `bmf()` writes the formula for `bmm()`, which estimates the parameters
+from one row per cell; `my_data` stands for your own data, and fitting runs Stan through brms. See the
+[EZ diffusion article](https://venpopov.com/bmm/articles/bmm_ezdm.html) for the sampling model and for
+`ezdm_summary_stats()`, and the reference pages for
+[`ezdm()`](https://venpopov.com/bmm/reference/ezdm.html) and
+[`dezdm()`](https://venpopov.com/bmm/reference/ezdm_dist.html).

@@ -37,7 +37,8 @@ across the design variable. Then the five sections:
 | SDT mAFC, ranking | `m` | accuracy by `m` |
 | SDT yes/no, rating | none (number of thresholds only) | ROC; the paragraph |
 | mixture2p, mixture3p, SDM | none | the paragraph: the model is silent on set size |
-| ezdm, cswald, DDM | none | the paragraph; speed/accuracy is a parameter story |
+| ezdm | `n_trials` (the sampling spread of the summary statistics, not their expected values) | ±2 SD of the observed accuracy and mean rt across trial counts |
+| cswald, DDM | none | the paragraph; speed/accuracy (DDM) and the diffusion-model comparison (cswald) in the fourth panel |
 
 ## Milestones
 
@@ -65,4 +66,6 @@ have no `d*()` function in a released bmm.
 - SDM's `c` and `kappa` ranges on the slider: the article's priors or the recovery grid?
 - Whether the MPT page should later build trees from bmm's `mpt_from_string()` syntax (parsed in JS).
   E4 ships the span tree only, as a branch list that `js/models/mpt.js` evaluates.
-- DDM: port Navarro and Fuss's series or precompute a density grid from `rtdists` at fixture time.
+- DDM, settled in E6: ported. `rtdists::ddiffusion()` truncates its series with an absolute error target, so in
+  the far tails its log density departs from the exact value; the port repeats fast-dm's term counts and
+  matches `dddm()` to 4e-15 down to log densities of -675. No grid needed.

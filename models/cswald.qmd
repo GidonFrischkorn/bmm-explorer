@@ -1,0 +1,155 @@
+---
+title: "Censored Shifted Wald Model"
+subtitle: "Two-choice response times with few errors: evidence accumulates toward the correct response"
+model: cswald
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="cswald-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-panel-title ex-title-row">The task
+      <span class="ex-options" role="radiogroup" aria-label="Model version">
+        <label><input type="radio" name="cswald-version" value="simple" checked> simple</label>
+        <label title="competing risks"><input type="radio" name="cswald-version" value="crisk"> crisk</label>
+      </span>
+    </div>
+    <svg id="cswald-task" role="img" aria-label="Evidence accumulating after the non-decision time toward the response boundary or boundaries"></svg>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <p class="ex-note">No task setting enters the likelihood. A trial is one response time and one of two
+    responses; the likelihood uses those two and nothing else about the trial.</p>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="cswald-drift">drift, rate of evidence accumulation</label>
+      <input type="range" id="cswald-drift">
+      <input type="number" id="cswald-drift-num" aria-label="drift">
+      <label for="cswald-bound">bound, evidence needed</label>
+      <input type="range" id="cswald-bound">
+      <input type="number" id="cswald-bound-num" aria-label="bound">
+      <label for="cswald-ndt">ndt, non-decision time (s)</label>
+      <input type="range" id="cswald-ndt">
+      <input type="number" id="cswald-ndt-num" aria-label="ndt">
+      <label for="cswald-zr" class="cswald-crisk-only">zr, relative starting point</label>
+      <input type="range" id="cswald-zr" class="cswald-crisk-only">
+      <input type="number" id="cswald-zr-num" class="cswald-crisk-only" aria-label="zr">
+      <div class="ex-hint" id="cswald-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="cswald-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted response times">
+    <div class="ex-panel-title">Predicted response times</div>
+    <svg id="cswald-density" role="img" aria-label="Likelihood of a correct and of an error response against response time, now and at the prior means"></svg>
+    <div class="ex-legend" id="cswald-legend"></div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Compared with the diffusion model">
+    <div class="ex-panel-title">Compared with the diffusion model</div>
+    <svg id="cswald-ddm" role="img" aria-label="The densities of this model drawn over the densities of the diffusion decision model with matching parameters"></svg>
+    <div class="ex-legend">Thin: this model, as on the left. Wide grey: the diffusion model with the same
+      parameters. <span id="cswald-ddm-readout"></span></div>
+  </section>
+</div>
+```
+
+## What the model says
+
+The censored shifted Wald model ([Miller et al., 2018](https://doi.org/10.1177/0146621617710465)) is a
+simplification of the diffusion model ([Ratcliff & McKoon,
+2008](https://doi.org/10.1162/neco.2008.12-06-420)) for tasks with few errors. Evidence for the correct
+response accumulates at rate `drift` with noise until it reaches `bound`; the time this takes follows a
+Wald (inverse Gaussian) distribution, and the response time adds the non-decision time `ndt`. For a
+response at decision time $t$ = rt − `ndt`, with $v$ = `drift`, $a$ = `bound` and the noise `s` fixed at 1, the
+density is
+
+$$
+f(t) = \frac{a}{\sqrt{2\pi t^3}} \exp\left(-\frac{(a - v t)^2}{2t}\right).
+$$
+
+In the `simple` version there is no second boundary for errors. An error at time $t$ is a censored
+observation: a trial on which the correct response had not been reached by $t$. It enters the likelihood
+with the survival function $S(t) = 1 - F(t)$, where $F$ is the cumulative distribution of the Wald: the
+probability that the accumulator is still on its way.
+`bound` here is the distance from the start to the correct boundary, half the boundary separation of the
+diffusion model (the distance between its two boundaries), and `drift` is positive. The competing-risks
+version `crisk` gives each response its own accumulator. Both start at `zr` × `bound`, where `zr` is the
+relative starting point between 0 and 1; one runs the distance (1 − `zr`) × `bound` to the upper
+boundary with rate `drift`, the other the distance `zr` × `bound` to the lower boundary with rate
+−`drift`, and the first to arrive gives the response. The likelihood of a response at $t$ is its own accumulator's Wald density times the other
+accumulator's survival at $t$. In `crisk`, `bound` is the full boundary separation and `drift` can be
+negative, as in the diffusion model.
+
+## The task
+
+One trial is a choice between two responses, with the response time recorded; bmm codes them 0 (lower)
+and 1 (upper), and in this model 1 is usually the correct response. The task panel draws the
+accumulation under the current parameters, with the noise held fixed while the sliders move. In
+`simple` one accumulator rises from the start toward `bound`; an error has no boundary of its own and
+stops the accumulator before it arrives. In `crisk` the two accumulators run at once, each in its own
+lane: the upper one from the start up, the lower one from the start down. An accumulator that wanders
+away from its boundary leaves its lane for a while, and the one that loses the race is drawn fainter.
+
+## Explore
+
+In `simple`, the blue curve is the density of a correct response at each response time and the orange
+curve the likelihood of an error at that time, the probability that no correct response has come yet.
+They share the axis, but one is a density and the other a probability. In `crisk` the two curves are
+defective densities, upper responses above the axis and lower responses below, and each area is the
+probability of that response. Raising `drift` makes responses faster and less variable; in `crisk` it
+also moves area from lower to upper responses. Raising `bound` makes responses slower and more spread
+out. `ndt` shifts everything. The time axis ends at 6 s at most.
+
+Slider ranges come from bmm's default priors for `cswald()`. In `simple`, `drift` is estimated on the log
+scale with a normal(0, 1) prior, `bound` on the log scale with normal(0, 0.3), and `ndt` on the log scale
+with normal(−2, 0.3); each slider spans the prior mean ± 3 SD: `drift` from 0.05 to 20.1, `bound` from
+0.41 to 2.46, `ndt` from 0.05 to 0.33 s. In `crisk`, `drift` has an identity link and a normal(0, 1)
+prior, so it runs from −3 to 3; `bound` and `ndt` keep their ranges, and `zr` is estimated on the logit
+scale with normal(0, 0.3), from 0.29 to 0.71. bmm fixes `zr` at 0.5 unless the formula estimates it. The
+sliders start at the prior means (dashed). Switching the version restarts the parameters there, since
+`drift` and `bound` mean different things in the two versions.
+
+## Across task settings
+
+The likelihood of `cswald()` has no task-setting variable. Conditions of an experiment enter only if the
+bmm formula lets the parameters differ between them, as in `drift ~ 0 + condition`; what the model then
+predicts in each condition follows from the estimated parameters.
+
+What does change across tasks is how good the approximation is, and the panel *Compared with the
+diffusion model* shows it. It draws this model's curves over the [diffusion model](ddm.qmd)'s with the
+same parameters; for `simple`, the diffusion model gets twice `bound` as its boundary separation and
+its start in the middle. Its readout gives the diffusion model's probability of a lower response, the
+error rate the comparison is about. When the diffusion model
+gives few lower responses, the correct-response densities nearly coincide. As errors become frequent,
+they part: `simple` has no density for errors at all and keeps all its area on correct responses, while
+the diffusion model moves area to the lower boundary. In `crisk` both models have both densities, and
+they part as the two accumulators' independent races drift away from the single diffusion process.
+bmm's [cswald article](https://venpopov.com/bmm/articles/bmm_cswald.html) recommends `simple` for error rates
+below 20% and `crisk` above.
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="cswald-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="cswald-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/cswald.js"></script>
+```
+
+The code updates with the controls. `cswald()` defines the model, `dcswald()` returns the log likelihood
+of response times and responses, and `bmf()` writes the formula for `bmm()`, which estimates the
+parameters from trial-level data; `my_data` stands for your own data, and fitting runs Stan through brms.
+The comment under the `dcswald()` call holds the values this page computes for it. To compare `bound`
+across versions or with `ddm()`, multiply the `simple` estimate by 2. See the
+[cswald article](https://venpopov.com/bmm/articles/bmm_cswald.html) for the full model and the reference
+pages for [`cswald()`](https://venpopov.com/bmm/reference/cswald.html) and
+[`dcswald()`](https://venpopov.com/bmm/reference/cswald_dist.html).

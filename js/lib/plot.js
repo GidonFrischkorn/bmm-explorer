@@ -20,10 +20,10 @@ export function scales({ W, H, margin: m, xlim, ylim }) {
 }
 
 function axes(svg, spec, { sx, sy }) {
-  const { W, H, margin: m, xticks, yticks, xlab, ylab, xtickLabels } = spec;
-  yticks.forEach(v => {
+  const { W, H, margin: m, xticks, yticks, xlab, ylab, xtickLabels, ytickLabels } = spec;
+  yticks.forEach((v, i) => {
     el("line", { x1: sx(spec.xlim[0]), x2: sx(spec.xlim[1]), y1: sy(v), y2: sy(v), class: "grid" }, svg);
-    el("text", { x: m.l - 8, y: sy(v) + 5, "text-anchor": "end", class: "tick" }, svg).textContent = String(v);
+    el("text", { x: m.l - 8, y: sy(v) + 5, "text-anchor": "end", class: "tick" }, svg).textContent = ytickLabels ? ytickLabels[i] : String(v);
   });
   xticks.forEach((v, i) => {
     el("line", { x1: sx(v), x2: sx(v), y1: sy(spec.ylim[0]), y2: sy(spec.ylim[1]), class: "grid grid-x" }, svg);
@@ -35,7 +35,7 @@ function axes(svg, spec, { sx, sy }) {
 
 export const pathFor = (xs, ys, sx, sy) => xs.map((x, i) => (i ? "L" : "M") + sx(x).toFixed(1) + "," + sy(ys[i]).toFixed(1)).join("");
 
-// spec: { W, H, margin, xlim, ylim, xticks, yticks, xlab, ylab, series: [{ x, y, color, dashed, width, label }] }
+// spec: { W, H, margin, xlim, ylim, xticks, yticks, xtickLabels?, ytickLabels?, xlab, ylab, series: [{ x, y, color, dashed, width, label }] }
 // Returns the <path> elements so a page can update "d" on input without rebuilding the axes.
 export function linePlot(svg, spec) {
   clear(svg);

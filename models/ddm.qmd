@@ -1,0 +1,146 @@
+---
+title: "Diffusion Decision Model"
+subtitle: "Two-choice response times: noisy evidence drifts between two boundaries until it reaches one"
+model: ddm
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="ddm-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-panel-title">The task</div>
+    <svg id="ddm-task" role="img" aria-label="Evidence paths starting between two horizontal boundaries after the non-decision time; each path ends at the upper or the lower boundary"></svg>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <p class="ex-note">No task setting enters the likelihood. A trial is one response time and one of two
+    responses; the density uses those two and nothing else about the trial.</p>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="ddm-drift">drift, rate of evidence accumulation</label>
+      <input type="range" id="ddm-drift">
+      <input type="number" id="ddm-drift-num" aria-label="drift">
+      <label for="ddm-bound">bound, boundary separation</label>
+      <input type="range" id="ddm-bound">
+      <input type="number" id="ddm-bound-num" aria-label="bound">
+      <label for="ddm-ndt">ndt, non-decision time (s)</label>
+      <input type="range" id="ddm-ndt">
+      <input type="number" id="ddm-ndt-num" aria-label="ndt">
+      <label for="ddm-zr">zr, relative starting point</label>
+      <input type="range" id="ddm-zr">
+      <input type="number" id="ddm-zr-num" aria-label="zr">
+      <div class="ex-hint" id="ddm-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="ddm-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted response-time densities">
+    <div class="ex-panel-title">Predicted response times</div>
+    <svg id="ddm-density" role="img" aria-label="Density of the response time for upper responses above the axis and for lower responses below it, now and at the prior means"></svg>
+    <div class="ex-legend"><span class="blue">Upper</span> above the axis, <span class="orange">lower</span> below; each
+      area is that response's probability. Dashed: prior means. <span id="ddm-readout"></span></div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Speed and accuracy as bound changes">
+    <div class="ex-panel-title">Speed and accuracy as bound changes</div>
+    <svg id="ddm-sat" role="img" aria-label="Probability of an upper response against mean response time as the boundary separation runs over its slider range"></svg>
+    <div class="ex-legend">The line runs over <code>bound</code> from 0.22 to 4.48, the other parameters as set;
+      circle: now. Dashed: prior means.</div>
+  </section>
+</div>
+```
+
+## What the model says
+
+The diffusion decision model (DDM; [Ratcliff, 1978](https://doi.org/10.1037/0033-295X.85.2.59);
+[Ratcliff & McKoon, 2008](https://doi.org/10.1162/neco.2008.12-06-420)) describes a two-choice decision
+as the accumulation of noisy evidence. Evidence starts at `zr` × `bound`, moves on average at rate
+`drift` with noise of standard deviation 1 per second, and the decision is made when it first reaches the
+upper boundary at `bound` (response 1) or the lower boundary at 0 (response 0). The response time adds
+the non-decision time `ndt`, for encoding the stimulus and executing the response. `drift` is the
+quality of the evidence; a positive drift favours the upper response, a negative one the lower. `bound` is how much evidence the
+participant waits for, and `zr` is a bias toward one response before any evidence arrives.
+
+For a response at the lower boundary at decision time $t$ = rt − `ndt`, with $v$ = `drift`, $a$ = `bound` and
+$z_r$ = `zr`, the density is
+
+$$
+f_0(t) = \frac{\pi}{a^2}\, e^{-v a z_r - v^2 t / 2} \sum_{k=1}^{\infty} k\, e^{-k^2 \pi^2 t / (2 a^2)} \sin(k \pi z_r),
+$$
+
+and $f_1(t)$, the density at the upper boundary, is the same with $v$ replaced by $-v$ and $z_r$ by
+$1 - z_r$: the same process seen upside down. Each of the two is a defective density: its area is the probability of that response, and
+the two areas sum to 1. The noise per unit time, `s`, is fixed at 1 in bmm; it sets the scale on which
+the other parameters are measured.
+
+## The task
+
+One trial is a choice between two responses, with the response time recorded: a brightness or a
+lexical decision, for example. bmm codes the responses 0 (lower) and 1 (upper); which response is
+which is the analyst's choice, often correct as 1 and error as 0. The task panel draws five evidence
+paths from the same start under the current parameters, with the noise of each path held fixed while
+the sliders move. Paths that end at the upper boundary are blue, those that end at the lower boundary
+orange. The grey band is the non-decision time, the dashed line is the mean path, the start plus
+`drift` × time, and the bracket on the right marks `bound`. The paths illustrate the process; they are
+not data.
+
+## Explore
+
+The density panel shows the two defective densities, upper responses above the axis and lower
+responses below. Raising `drift` moves area from the lower to the upper density and makes both faster.
+Raising `bound` makes both slower and more spread out and, for a drift other than 0, moves area toward
+the response the drift favours. `ndt` shifts both densities without changing their shape. Moving `zr`
+toward 1 makes upper responses more frequent and faster and lower responses rarer and slower.
+P(upper), the probability of response 1, and the mean response times in the readout come from exact
+formulas for this process, the same ones the [EZ diffusion page](ezdm.qmd) uses.
+
+Slider ranges come from bmm's default priors for `ddm()`. `bound` is estimated on the log scale with a
+normal(0, 0.5) prior, `ndt` on the log scale with normal(−1.5, 0.5), and `zr` on the logit scale with
+normal(0, 0.5); each slider spans the prior mean ± 3 SD: `bound` from 0.22 to 4.48, `ndt` from 0.05
+to 1 s, `zr` from 0.18 to 0.82. `drift` has an identity link and a cauchy(0, 1) prior, which has no
+standard deviation; its slider spans the location ± 3 scale, from −3 to 3. The sliders start at the
+prior means (dashed): `drift` = 0, `bound` = 1, `ndt` = 0.22 s, `zr` = 0.5. With no drift and the start
+in the middle, both responses are equally likely.
+
+## Across task settings
+
+The likelihood of `ddm()` has no task-setting variable. Conditions of an experiment, for example easy
+and hard stimuli or instructions to be fast or accurate, enter only if the bmm formula lets the
+parameters differ between them, as in `drift ~ 0 + difficulty`. What the model then predicts in each
+condition follows from the estimated parameters.
+
+Speed and accuracy are both outcomes of the same parameters, and the panel *Speed and accuracy as bound
+changes* shows how they trade. As `bound` grows from 0.22 to 4.48 with the other parameters fixed, the mean response time grows,
+and P(upper) moves toward 1 for a positive drift (toward 0 for a negative one). With `drift` at 0
+the line is flat: waiting for more evidence costs time and buys no accuracy, because the evidence
+favours neither response. bmm's DDM article reads `bound` as response caution, the parameter behind a
+speed/accuracy trade-off, and `drift` as the quality of the evidence or the difficulty of the task.
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="ddm-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="ddm-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/ddm.js"></script>
+```
+
+The code updates with the controls. `ddm()` defines the model, `dddm()` returns the log density of
+response times and responses, and `bmf()` writes the formula for `bmm()`, which estimates the parameters
+from trial-level data; `my_data` stands for your own data, and fitting runs Stan through brms. The
+comment under the `dddm()` call holds the values this page computes for it. `dddm()` calls
+`rtdists::ddiffusion()`, which sums the series above until the error of stopping is below 10⁻⁶ relative
+to the factor in front of the sum. Where a density is very small, far in a tail, that cut-off decides
+the value, and this page
+follows the same rule, so it shows what bmm returns. See the
+[DDM article](https://venpopov.com/bmm/articles/bmm_ddm.html) for the full model and the reference pages
+for [`ddm()`](https://venpopov.com/bmm/reference/ddm.html) and
+[`dddm()`](https://venpopov.com/bmm/reference/ddm_dist.html).

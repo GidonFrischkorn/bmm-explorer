@@ -24,8 +24,17 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
   target, to the other items by their closeness to the cued location, and to noise. Set size and
   spacing are part of the model.
 
+## Response times
+
+- [EZ Diffusion Model (`ezdm`)](models/ezdm.qmd): the diffusion model's accuracy, mean and variance of
+  the response times in closed form, and how much they vary with the number of trials per cell.
+- [Censored Shifted Wald Model (`cswald`)](models/cswald.qmd): evidence for the correct response
+  accumulates to one boundary, errors censored or racing; compared with the diffusion model.
+- [Diffusion Decision Model (`ddm`)](models/ddm.qmd): response-time densities of both responses, and how
+  speed and accuracy trade as the boundary separation changes.
+
 More pages follow in the order of [the roadmap](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/dev/ROADMAP.md):
-the two- and three-parameter mixture models and the signal discrimination model, the signal detection
-family, and the response-time models.
+the two- and three-parameter mixture models and the signal discrimination model, and the signal
+detection family.
 
 New here? Read [how to read a page](about.qmd) first.
