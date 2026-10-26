@@ -105,10 +105,12 @@ curve the likelihood of an error at that time, the probability that no correct r
 They share the axis, but one is a density and the other a probability. In `crisk` the two curves are
 defective densities, upper responses above the axis and lower responses below, and each area is the
 probability of that response. In `simple`, raising `drift` makes correct responses faster and less
-variable: the decision time has mean $a/v$ and variance $a/v^3$. In `crisk`, moving `drift` away from 0
-in either direction makes both responses faster and less variable, and raising it moves area from lower
-to upper responses. Raising `bound` makes responses slower and more spread
-out. `ndt` shifts everything. The time axis ends at 6 s at most.
+variable: the decision time has mean $a/v$ and variance $a/v^3$. In `crisk`, raising `drift` moves area
+from lower to upper responses, and moving it away from 0 in either direction makes the response it works
+against faster and less variable. At drift 0 neither accumulator has a finite mean finishing time, so
+both responses have long tails. The response `drift` favours changes differently: its median and
+interquartile range first grow as `drift` leaves 0 and shrink only at larger drifts. Raising `bound`
+makes responses slower and more spread out. `ndt` shifts everything. The time axis ends at 6 s at most.
 
 Slider ranges come from bmm's default priors for `cswald()`. In `simple`, `drift` is estimated on the log
 scale with a normal(0, 1) prior, `bound` on the log scale with normal(0, 0.3), and `ndt` on the log scale
@@ -133,7 +135,7 @@ error rate the comparison is about. When the diffusion model
 gives few lower responses, the correct-response densities nearly coincide. As errors become frequent,
 they part: `simple` has no density for errors at all and keeps all its area on correct responses, while
 the diffusion model moves area to the lower boundary. In `crisk` both models have both densities; they
-agree when one response dominates and differ most when the two responses are about equally common.
+come close when the readout's P(lower) is near 0 or 1 and differ most when it is near 0.5.
 bmm's [cswald article](https://venpopov.com/bmm/articles/bmm_cswald.html) recommends `simple` for error rates
 below 20% and `crisk` above.
 

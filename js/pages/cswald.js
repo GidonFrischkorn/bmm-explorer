@@ -76,10 +76,16 @@ function drawCompare(p, v, axis, x) {
 
 // R code: plain ASCII digits and minus, so the snippet pastes into R unchanged. The call prints the
 // parameters to 3 significant digits, and the comment is computed from those printed values, so it is
-// what R returns for the call even when a typed value has more digits.
-const r = v => +v.toPrecision(3);
+// what R returns for the call even when a typed value has more digits. A typed zr just below 1 would
+// print as 1, which bmm rejects, so zr takes as many more digits as keep it inside (0, 1).
+function printed(k, x) {
+  for (let digits = 3; ; digits++) {
+    const y = +x.toPrecision(digits);
+    if (k !== "zr" || (y > 0 && y < 1)) return y;
+  }
+}
 function drawCode(p, v) {
-  const q = Object.fromEntries(Object.entries(p).map(([k, x]) => [k, r(x)])), crisk = v === "crisk";
+  const q = Object.fromEntries(Object.entries(p).map(([k, x]) => [k, printed(k, x)])), crisk = v === "crisk";
   const rt = +(q.ndt + 0.5).toFixed(3);
   const ll = [1, 0].map(resp => dcswald(rt, { ...q, response: resp, version: v }));
   const freeZr = crisk && q.zr !== 0.5;
