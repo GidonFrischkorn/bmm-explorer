@@ -20,7 +20,8 @@ export function niceAxis(max) {
 }
 
 // spec: { W, H, margin, series: [{ y, color, dashed, width }] on CIRC_X, window (half-width in radians,
-// shaded around 0), marks: [{ at (radians), color, label }] under the axis, ylab, xlab }.
+// shaded around 0), areas: [{ lo, hi, color, opacity }] stacked components on CIRC_X, marks: [{ at
+// (radians), color, label }] under the axis, ylab, xlab }.
 // Returns the paths and scales so a page can add to the plot.
 export function circularPlot(svg, spec) {
   const ymax = Math.max(...spec.series.flatMap(s => s.y).filter(Number.isFinite));
@@ -37,6 +38,12 @@ export function circularPlot(svg, spec) {
     const w = spec.window * DEG;
     svg.insertBefore(el("rect", { x: sx(-w), width: sx(w) - sx(-w), y: spec.margin.t, height: y0 - spec.margin.t,
       class: "circ-window" }), paths[0]);
+  }
+  // Stacked components: each area fills between lo and hi (values on CIRC_X), under the curves.
+  for (const a of spec.areas ?? []) {
+    const up = CIRC_X.map((_, i) => `${i ? "L" : "M"}${sx(xs[i]).toFixed(1)},${sy(a.hi[i]).toFixed(1)}`).join("");
+    const down = CIRC_X.map((_, i) => `L${sx(xs[CIRC_X.length - 1 - i]).toFixed(1)},${sy(a.lo[CIRC_X.length - 1 - i]).toFixed(1)}`).join("");
+    svg.insertBefore(el("path", { d: `${up}${down}Z`, fill: a.color, "fill-opacity": a.opacity ?? 0.35, stroke: "none" }), paths[0]);
   }
   for (const m of spec.marks ?? []) {
     const x = sx(wrap(m.at) * DEG);
