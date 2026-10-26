@@ -56,6 +56,7 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-dash .task-note { font-size: 19px; fill: #5a6472; }
 .ex-dash .task-letter { font-size: 26px; font-weight: 600; }
 .ex-dash .task-bin { font-size: 21px; font-weight: 700; }
+.ex-panel > .btn { margin-top: 0.4rem; }
 #m3-reset, #mpt-reset { margin-top: 0.25rem; }
 /* Out-of-range input: the box is outlined and the outputs fade, so old results are not read as new. */
 .ex-invalid { outline: 2px solid var(--ex-orange); outline-offset: 1px; }
@@ -77,9 +78,28 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-dash .task-dist { font-size: 22px; }
 .ex-dash .task-bin-sm { font-size: 18px; }
 #m3-bars.m3-five .tick { font-size: 15px; }
-/* A display formula wider than a phone screen scrolls in its own box instead of widening the page. */
-mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 /* MPT tree: state labels under the nodes, branch values on the edges, categories at the leaves. */
 .ex-dash .tree-state { font-size: 20px; fill: #5a6472; }
 .ex-dash .tree-edge { font-size: 20px; fill: #222; paint-order: stroke; stroke: #fff; stroke-width: 5px; }
 .ex-dash .tree-leaf { font-size: 22px; font-weight: 700; }
+/* Circular pages: the display and the colour wheel side by side in the task panel. */
+.ex-task-pair { display: grid; grid-template-columns: 1fr 1fr minmax(250px, 1.2fr); gap: 0.6rem; align-items: start; }
+.ex-dash .ex-task-pair svg { max-height: 22vh; }
+@media (max-width: 640px) { .ex-task-pair { grid-template-columns: 1fr 1fr; } .ex-task-pair > section { grid-column: 1 / -1; } }
+.ex-buttons { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.2rem 0 0.2rem; }
+.ex-task-pair .ex-buttons { gap: 0.3rem; }
+.ex-task-pair .ex-buttons .btn { font-size: 0.8em; padding: 0.15rem 0.4rem; }
+.ex-task-pair .ex-options { margin: 0; font-size: 0.9em; }
+.ex-task-pair .ex-buttons { margin: 0.1rem 0 0; }
+#imm-density { max-height: 22vh; }
+.ex-dash .circ-window { fill: #009E73; fill-opacity: 0.08; }
+.ex-dash .circ-mark { font-size: 15px; fill: #222; }
+.ex-dash .imm-seg { font-size: 17px; font-weight: 600; fill: #fff; }
+.ex-dash .imm-seg-dim { fill: #222; }
+#imm-wheel, #imm-display { touch-action: none; user-select: none; }
+.ex-task-pair .task-note { font-size: 25px; }
+.ex-task-pair .task-bin { font-size: 24px; }
+.ex-task-pair .imm-drag { cursor: grab; }
+.ex-task-pair .imm-drag:focus { outline: none; stroke: #E69F00; stroke-width: 5; }
+/* A display formula wider than a phone screen scrolls in its own box instead of widening the page. */
+mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
