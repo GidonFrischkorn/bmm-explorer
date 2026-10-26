@@ -1,0 +1,165 @@
+---
+title: "Three-parameter mixture model"
+subtitle: "Continuous reproduction: responses centred on the target, on a non-target, or guesses"
+model: mixture3p
+set-size-formula: "thetat ~ 0 + set_size"
+set-size-fixed: "Set size 1 aside, `kappa` and the three weights (`p_mem` for the target, `p_nt` for all non-targets together, and guessing) are set by the parameters alone, whatever the number of items on the display."
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash ex-dash-circ" id="mix3-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-task-pair ex-task-pair-2">
+      <div>
+        <div class="ex-panel-title">The task</div>
+        <svg id="mix3-wheel" aria-label="The colour wheel with the target's colour at the top and the non-targets' colours around it"></svg>
+      </div>
+      <section aria-label="Task settings">
+        <div class="ex-panel-title">Task settings</div>
+        <div class="ex-controls">
+          <label for="mix3-set-size">set size, items on the display</label>
+          <input type="range" id="mix3-set-size">
+          <input type="number" id="mix3-set-size-num" aria-label="set size">
+          <div class="ex-hint" id="mix3-task-hint"></div>
+        </div>
+        <div class="ex-buttons">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="mix3-spread">Even colours</button>
+        </div>
+        <p class="ex-note">Set size and the non-targets' colours enter the density as the number and the
+        places of the non-target peaks. They do not change how much weight the non-targets get together.</p>
+      </section>
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="mix3-p_mem">p_mem, probability of recalling the target</label>
+      <input type="range" id="mix3-p_mem">
+      <input type="number" id="mix3-p_mem-num" aria-label="p_mem">
+      <label for="mix3-p_nt">p_nt, probability of reporting a non-target</label>
+      <input type="range" id="mix3-p_nt">
+      <input type="number" id="mix3-p_nt-num" aria-label="p_nt">
+      <label for="mix3-kappa">kappa, precision of the memory</label>
+      <input type="range" id="mix3-kappa">
+      <input type="number" id="mix3-kappa-num" aria-label="kappa">
+      <div class="ex-hint" id="mix3-par-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="mix3-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted error distribution">
+    <div class="ex-panel-title">Predicted error distribution</div>
+    <svg id="mix3-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the starting values, with the target, non-target and guessing components shaded"></svg>
+    <svg id="mix3-weights" role="img" aria-label="Mixture weights of memory, each non-target and guessing, now and at the starting values"></svg>
+    <div class="ex-legend">
+      Weights: M is memory (the target), the numbers are the non-targets, G is guessing. Solid: now;
+      dashed and "start": starting values (see Explore). Shaded: the
+      <span class="blue">target component</span> and the <span class="orange">non-target components</span>,
+      stacked on the <span class="grey">guessing floor</span>. <span id="mix3-weights-text"></span>
+    </div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Across set size">
+    <div class="ex-panel-title">Across set size</div>
+    <svg id="mix3-across" role="img" aria-label="Weight of the target, of all non-targets together, of one non-target and of guessing against set size"></svg>
+    <div class="ex-legend">
+      <span class="blue">Target</span>, <span class="orange">all non-targets</span> (solid) and
+      <span class="orange">one non-target</span> (thin), <span class="grey">guessing</span>. Dashed: start;
+      open circle: current set size.
+    </div>
+  </section>
+</div>
+```
+
+## What the model says
+
+The three-parameter mixture model ([Bays et al., 2009](https://doi.org/10.1167/9.10.7)), as
+implemented in the R package [bmm](https://venpopov.com/bmm/), adds one kind
+of response to the two-parameter mixture: reporting a non-target item instead of the target, a swap
+error. On a fraction `p_mem` of the trials the participant recalls the target, on a fraction `p_nt`
+reports one of the $n - 1$ non-targets, each equally often, and on the remaining trials guesses. All
+memory responses, to the target or to a non-target, share the precision `kappa`. A response to a
+non-target is centred on that item's colour $\mu_j$, measured from the target's colour, so the
+response error $x$ follows (index 1 is the target, $\text{vM}(x;\, \mu, \kappa)$ the von Mises density
+with mean direction $\mu$ and precision $\kappa$):
+
+$$
+f(x) = p_\text{mem}\,\text{vM}(x;\, 0,\, \kappa)
++ \frac{p_\text{nt}}{n - 1} \sum_{j=2}^{n} \text{vM}(x;\, \mu_j,\, \kappa)
++ \frac{1 - p_\text{mem} - p_\text{nt}}{2\pi}
+$$
+
+The three weights are probabilities of exclusive kinds of response, so $p_\text{mem} + p_\text{nt}
+\le 1$ and guessing gets what remains. The page keeps the two sliders inside that limit: each
+slider's upper end is 1 minus the other value. In bmm's model formulas `p_mem` is called `thetat` and `p_nt` `thetant`, and bmm does not estimate the
+probabilities directly: it estimates `thetat` and `thetant` and turns them into weights with a softmax in which guessing is the
+reference with the value 0, so $p_\text{mem} = e^{\theta_t} / (1 + e^{\theta_t} + e^{\theta_{nt}})$,
+$p_\text{nt} = e^{\theta_{nt}} / (1 + e^{\theta_t} + e^{\theta_{nt}})$ and the guessing weight is
+$1 / (1 + e^{\theta_t} + e^{\theta_{nt}})$. This page uses the probabilities, the argument names of
+`dmixture3p()`.
+
+## The task
+
+One trial is a colour reproduction with several items. The participant sees $n$ coloured items, one
+is cued, and the participant chooses its colour on the wheel. The model needs the response error and
+the colour of every non-target relative to the target, both in radians. The wheel shows the target at
+the top and the non-targets at their colours. Drag a dot to move a colour, or click it and use the
+arrow keys; Even colours spreads them evenly around the wheel again, as does a new set size. The
+locations of the items and their distances from the cued item do not enter the model; that is the
+difference to the [interference measurement model](imm.qmd) (IMM), which uses them.
+
+## Explore
+
+The density has a peak at the target (blue) and one at each non-target's colour (orange), on the
+flat floor of guesses (grey). Move `p_nt` and watch weight shift between the non-target peaks and the floor
+or the target peak, move `kappa` and all peaks get narrower together, and drag a colour to move its
+peak. The bars under the density show the weights: M for memory (the target), numbers for the
+non-targets, G for guessing.
+
+`kappa` has bmm's normal(2, 1) prior on the log scale; its slider spans the prior mean ± 3 SD in log
+units, and the number field shows $e^{-1} = 0.37$ to $e^{5} = 148$. `p_mem` and `p_nt` run from 0 to
+1 with the limit above, which the sliders keep as you move them: each stops where the other leaves
+no room. The starting values, kept by the dashed curve and the "start" bars, are
+`p_mem` = `p_nt` = 0.33 and `kappa` = $e^{2} = 7.39$: with `thetat` and `thetant` at 0, the medians of
+bmm's logistic(0, 1) priors, the three weights are 1/3 each, which the sliders' step of 0.01 rounds
+to 0.33, so guessing starts at 0.34. Typed values outside the sliders' ranges are used as long as they are valid. Reset returns
+everything to the starting values.
+
+## Across task settings
+
+Set size enters the likelihood of `mixture3p` as the number of non-target peaks, and the
+non-targets' colours set where those peaks sit. The non-targets share `p_nt` equally: one of the
+$n - 1$ non-targets gets $p_\text{nt} / (n - 1)$ (bmm adds $\log(1 / (n - 1))$ to `thetant` for each
+non-target), so a larger set size gives more non-target peaks, each lower than before, while all
+of them together keep `p_nt`, as the target keeps `p_mem` and guessing the rest. Set size 1,
+which `mixture3p()` accepts, has no non-target: bmm sets every non-target term to $-100$, the softmax
+renormalises, and `p_nt` is split between the target and guessing in proportion to their own weights
+(at `thetat` = `thetant` = 0, 0.5 each instead of a third each). The set-size control on this page
+runs from 2 to 8. The Across set size panel draws the weights against set size. <span id="mix3-across-now"></span>
+
+{{< include _silent-on-set-size.qmd >}}
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="mix3-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="mix3-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/mixture3p.js"></script>
+```
+
+The code updates with the controls. `dmixture3p()` returns the density for one trial; `mu` holds the
+colours in radians, the target first. `mixture3p()` defines the model for a data set in which each
+row is a trial: `resp_error` is the response error, `nt_features` names the columns with the
+non-targets' colours, and `set_size` is the number of items on the display. `bmf()` writes the formula
+and `bmm()` estimates the parameters; `my_data` stands for your own data, and fitting runs Stan
+through brms. In the formula bmm calls `p_mem` `thetat` and `p_nt` `thetant`. See the
+[mixture models article](https://venpopov.com/bmm/articles/bmm_mixture_models.html) and the
+reference pages for [`mixture3p()`](https://venpopov.com/bmm/reference/mixture3p.html) and
+[`dmixture3p()`](https://venpopov.com/bmm/reference/mixture3p_dist.html).
