@@ -128,15 +128,17 @@ The predicted statistics do not depend on `n_trials`, but the likelihood does. T
 are themselves data, and `dezdm()` scores them against how much they would vary from one sample of
 `n_trials` trials to the next ([Chávez De la Peña & Vandekerckhove,
 2025](https://doi.org/10.3758/s13423-025-02729-y)). The number of upper responses is binomial. The
-observed variance follows a gamma distribution with mean VRT, and the observed mean, given the observed
-variance, a normal distribution; their spread uses the third and fourth cumulants of the decision time,
-because decision times are skewed. The panel *Across trial counts* shows the result: ±2 standard deviations of the
+observed variance follows a gamma distribution with mean VRT; its sampling variance adds the fourth
+cumulant of the decision time, divided by `n_trials`, to the term a normal sample would have. The observed
+mean, given the observed variance, follows a normal distribution, and the third cumulant, divided by
+`n_trials`, is the covariance of the two, so that mean shifts with the observed variance. The panel *Across trial counts* shows the result: ±2 standard deviations of the
 observed P(upper) and of the observed mean response time around the prediction. Both bands narrow with
 the square root of `n_trials`, so a cell with more trials pins the parameters down more tightly. In
 `4par`, each response's mean comes from the trials that ended at that boundary only (the panel uses
 the expected count, `n_trials` × P(upper) or its complement), so a rare response has a wide band.
 A boundary reached fewer than twice has no variance; `dezdm()` then drops its response-time terms, and
-the cell counts through `n_upper` alone.
+the cell counts through `n_upper` alone. A response's band therefore starts where its expected count
+reaches 2.
 
 ## In bmm
 

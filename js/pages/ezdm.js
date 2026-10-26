@@ -59,7 +59,9 @@ function drawStats(p, s, ref, axis) {
     el("text", { x: m.l - 10, y: y + 24, "text-anchor": "end", class: "tick" }, svg).textContent = row.label;
     el("rect", { x: tx(0), y: y + 8, width: tx(p.ndt) - tx(0), height: 24, class: "rt-ndt" }, svg);
     el("rect", { x: tx(p.ndt), y: y + 8, width: Math.max(0, tx(row.mean) - tx(p.ndt)), height: 24, fill: row.color, "fill-opacity": 0.85 }, svg);
-    el("path", { d: `M${tx(row.mean - sd)},${y + 20}H${tx(row.mean + sd)}M${tx(row.mean - sd)},${y + 12}V${y + 28}M${tx(row.mean + sd)},${y + 12}V${y + 28}`,
+    // The -1 SD whisker stops at rt 0, without an end tick, where a wide SD would run into the labels.
+    const left = Math.max(0, row.mean - sd);
+    el("path", { d: `M${tx(left)},${y + 20}H${tx(row.mean + sd)}${left > 0 ? `M${tx(left)},${y + 12}V${y + 28}` : ""}M${tx(row.mean + sd)},${y + 12}V${y + 28}`,
       stroke: "#222", "stroke-width": 2.5, fill: "none" }, svg);
     el("line", { x1: tx(refRow.mean), x2: tx(refRow.mean), y1: y + 2, y2: y + 38, stroke: "#222", "stroke-width": 2.5, "stroke-dasharray": "5 4" }, svg);
     el("text", { x: tx(axis.xlim[1]), y: y + 2, "text-anchor": "end", class: "tick" }, svg).textContent =
@@ -78,7 +80,8 @@ function drawStats(p, s, ref, axis) {
 // How far the observed statistics of one cell scatter around the predicted ones as n_trials changes:
 // +-2 SD of the proportion of upper responses (binomial) and of each observed mean rt. Under bmm's
 // sampling model the observed mean has variance VRT / n (normal given the observed variance, which is
-// gamma with mean VRT); in 4par n is the expected count at that boundary.
+// gamma with mean VRT); in 4par n is the expected count at that boundary. dezdm() drops a boundary's rt
+// terms below 2 responses, so its band starts where the expected count reaches 2, or is not drawn.
 const NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
 function drawAcross(p, s) {
   const svg = $("ezdm-across");
@@ -95,21 +98,23 @@ function drawAcross(p, s) {
       transform: `rotate(-90 16 ${(sc.sy(ylim[0]) + sc.sy(ylim[1])) / 2})` }, svg).textContent = ylab;
     return sc;
   };
-  // centre +- half(n), clipped to the panel's range.
-  const band = (sc, centre, half, color, [ymin, ymax] = [-Infinity, Infinity]) => {
+  // centre +- half(n) from n0 to N_MAX, clipped to the panel's range.
+  const band = (sc, centre, half, color, n0 = 3, [ymin, ymax] = [-Infinity, Infinity]) => {
+    const ns = [n0, ...NS.filter(n => n > n0)];
     const at = (n, y) => sc.sx(lx(n)).toFixed(1) + "," + sc.sy(Math.min(ymax, Math.max(ymin, y))).toFixed(1);
-    const up = NS.map(n => at(n, centre + half(n))), lo = NS.map(n => at(n, centre - half(n))).reverse();
+    const up = ns.map(n => at(n, centre + half(n))), lo = ns.map(n => at(n, centre - half(n))).reverse();
     el("path", { d: "M" + up.join("L") + "L" + lo.join("L") + "Z", fill: color, "fill-opacity": 0.22, stroke: color, "stroke-width": 1.5 }, svg);
-    el("line", { x1: sc.sx(lx(3)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5 }, svg);
+    el("line", { x1: sc.sx(lx(n0)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5 }, svg);
   };
-  band(panel(14, 178, [0, 1], [0, 0.5, 1], "P(upper)"), s.pC, n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n), GREY, [0, 1]);
-  // Lower panel: observed mean rt, axis from the widest band shown.
-  const spread = row => n => 2 * Math.sqrt(row.vrt / Math.max(1, row.share * n));
-  const lo = Math.min(...s.rows.map(r => r.mean - spread(r)(3))), hi = Math.max(...s.rows.map(r => r.mean + spread(r)(3)));
+  band(panel(14, 178, [0, 1], [0, 0.5, 1], "P(upper)"), s.pC, n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n), GREY, 3, [0, 1]);
+  // Lower panel: observed mean rt for each row whose band is drawn, axis from the widest band drawn.
+  const shown = s.rows.map(row => ({ ...row, n0: Math.max(3, 2 / row.share) })).filter(row => row.n0 < N_MAX);
+  const spread = row => n => 2 * Math.sqrt(row.vrt / (row.share * n));
+  const lo = Math.min(...shown.map(r => r.mean - spread(r)(r.n0))), hi = Math.max(...shown.map(r => r.mean + spread(r)(r.n0)));
   const { ylim, yticks } = niceAxis(hi);
   const ymin = Math.max(0, Math.floor(lo / yticks[1]) * yticks[1]);
   const rtSc = panel(146, 50, [ymin, ylim[1]], yticks.filter(v => v >= ymin - 1e-9), "mean rt (s)");
-  s.rows.forEach(row => band(rtSc, row.mean, spread(row), row.color));
+  shown.forEach(row => band(rtSc, row.mean, spread(row), row.color, row.n0));
   [3, 10, 30, 100, 300].forEach(n => {
     el("text", { x: rtSc.sx(lx(n)), y: H - 26, "text-anchor": "middle", class: "tick" }, svg).textContent = String(n);
   });
@@ -117,14 +122,16 @@ function drawAcross(p, s) {
   el("line", { x1: rtSc.sx(lx(p.n_trials)), x2: rtSc.sx(lx(p.n_trials)), y1: 10, y2: H - 46, stroke: "#222", "stroke-width": 2, "stroke-dasharray": "5 4" }, svg);
 }
 
-// R code: plain ASCII digits and minus, so the snippet pastes into R unchanged.
-const r = v => String(+v.toPrecision(3));
+// R code: plain ASCII digits and minus, so the snippet pastes into R unchanged. The parameters are rounded
+// to 3 significant digits before dezdm() runs, so the comment is what R returns for the printed call.
+const r = v => +v.toPrecision(3);
 function drawCode(p, s, v) {
   const n = p.n_trials, nUpper = Math.round(s.pC * n);
+  const pr = { drift: r(p.drift), bound: r(p.bound), ndt: r(p.ndt), zr: r(p.zr) };
   const means = s.rows.map(row => +row.mean.toFixed(3)), vars = s.rows.map(row => +row.vrt.toPrecision(3));
   const four = v === "4par";
   const vec = xs => (four ? `c(${xs.join(", ")})` : String(xs[0]));
-  const ll = dezdm({ mean_rt: four ? means : means[0], var_rt: four ? vars : vars[0], n_upper: nUpper, n_trials: n, ...p, version: v });
+  const ll = dezdm({ mean_rt: four ? means : means[0], var_rt: four ? vars : vars[0], n_upper: nUpper, n_trials: n, ...pr, version: v });
   const cols = four
     ? `mean_rt = c("mean_rt_upper", "mean_rt_lower"), var_rt = c("var_rt_upper", "var_rt_lower"),\n              `
     : 'mean_rt = "mean_rt", var_rt = "var_rt", ';
@@ -134,7 +141,7 @@ model <- ezdm(${cols}n_upper = "n_upper", n_trials = "n_trials", version = "${v}
 
 # log likelihood of one cell's summary statistics; here the values the parameters predict for ${n} trials
 dezdm(mean_rt = ${vec(means)}, var_rt = ${vec(vars)}, n_upper = ${nUpper}, n_trials = ${n},
-      drift = ${r(p.drift)}, bound = ${r(p.bound)}, ndt = ${r(p.ndt)}${four ? `, zr = ${r(p.zr)}` : ""}, version = "${v}")
+      drift = ${pr.drift}, bound = ${pr.bound}, ndt = ${pr.ndt}${four ? `, zr = ${pr.zr}` : ""}, version = "${v}")
 # ${ll.toFixed(4)}
 
 # fit: one row per participant and condition with the summary statistics, see ezdm_summary_stats()
