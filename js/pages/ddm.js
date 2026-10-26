@@ -1,6 +1,6 @@
 // Page script for models/ddm.qmd: the Wiener diffusion model, dddm().
 import { dddm, ezdmMoments4par } from "../models/rt.js";
-import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../lib/widget.js";
+import { bindParams, readParams, setParams, fmt, rValue, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { linePlot, el } from "../lib/plot.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
 
@@ -55,10 +55,18 @@ function drawSpeedAccuracy(p, s) {
 }
 
 // R code: plain ASCII digits and minus, so the snippet pastes into R unchanged. The densities in the comment
-// are taken at the printed three-digit values, so they are what R returns for the call as shown.
+// are taken at the printed values (rValue), so they are what R returns for the call as shown.
 function drawCode(p, s) {
-  const q = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, +v.toPrecision(3)]));
-  const rts = [s.rtUpper, s.rtLower].map(v => +v.toFixed(3));
+  const q = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, rValue(v, k === "zr")]));
+  // Each rt is the printed ndt plus the response's mean decision time, to 3 decimals. A zr near 0 or 1 puts
+  // one mean decision time below 0.0005 s, and 3 decimals would print rt = ndt, where the density is 0 and
+  // the log density -Inf; that rt takes as many more decimals as keep it above ndt.
+  const rts = [s.mdt_upper, s.mdt_lower].map(mdt => {
+    for (let d = 3; ; d++) {
+      const rt = +(q.ndt + mdt).toFixed(d);
+      if (rt > q.ndt || d >= 20) return rt;
+    }
+  });
   const ll = [dddm(rts[0], { ...q, response: 1 }), dddm(rts[1], { ...q, response: 0 })];
   const freeZr = q.zr !== 0.5;
   $("ddm-code").textContent =

@@ -1,7 +1,7 @@
 // Page script for models/ezdm.qmd: the EZ diffusion model, versions "3par" and "4par". The page shows the
 // forward EZ map (parameters to summary statistics) and dezdm() for the call in the In bmm section.
 import { ezdmMoments3par, ezdmMoments4par, dezdm } from "../models/rt.js";
-import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../lib/widget.js";
+import { bindParams, readParams, setParams, fmt, rValue, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { el, clear, scales } from "../lib/plot.js";
 import { drawDiffusion, timeAxis, BLUE, ORANGE, GREY } from "../lib/rt-plot.js";
 import { niceAxis } from "../lib/circular-plot.js";
@@ -130,12 +130,11 @@ function drawAcross(p, s) {
 }
 
 // R code: plain ASCII digits and minus, so the snippet pastes into R unchanged. The parameters are rounded
-// to 3 significant digits before dezdm() runs, so the comment is what R returns for the printed call.
-const r = v => +v.toPrecision(3);
+// as printed (rValue) before dezdm() runs, so the comment is what R returns for the printed call.
 function drawCode(p, s, v) {
   const n = p.n_trials, nUpper = nUpperOf(s.pC, n);
-  const pr = { drift: r(p.drift), bound: r(p.bound), ndt: r(p.ndt), zr: r(p.zr) };
-  const means = s.rows.map(row => +row.mean.toFixed(3)), vars = s.rows.map(row => +row.vrt.toPrecision(3));
+  const pr = { drift: rValue(p.drift), bound: rValue(p.bound), ndt: rValue(p.ndt), zr: rValue(p.zr, true) };
+  const means = s.rows.map(row => +row.mean.toFixed(3)), vars = s.rows.map(row => rValue(row.vrt));
   const four = v === "4par";
   const vec = xs => (four ? `c(${xs.join(", ")})` : String(xs[0]));
   const ll = dezdm({ mean_rt: four ? means : means[0], var_rt: four ? vars : vars[0], n_upper: nUpper, n_trials: n, ...pr, version: v });

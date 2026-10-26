@@ -2,6 +2,16 @@
 
 export const fmt = (v, digits = 2) => Number(v).toFixed(digits).replace("-", "−");
 
+// A parameter value as printed in a page's R call: 3 significant digits, plain ASCII. A probability (zr)
+// typed just below 1 would print as 1, which bmm rejects or scores as -Inf, so it takes as many more digits
+// as keep it strictly inside (0, 1); a double needs at most 17.
+export function rValue(x, prob = false) {
+  for (let digits = 3; ; digits++) {
+    const y = +x.toPrecision(digits);
+    if (!prob || (y > 0 && y < 1) || digits >= 17) return y;
+  }
+}
+
 // Slider scales. LOG moves the slider in log units for parameters bmm estimates on the log scale; the
 // number field keeps the natural value, rounded to what it shows, so the value used is the value seen.
 export const LINEAR = { toRange: v => v, fromRange: r => r };
