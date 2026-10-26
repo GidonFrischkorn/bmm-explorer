@@ -35,6 +35,9 @@ website:
       - section: "Continuous reproduction tasks"
         contents:
           - models/imm.qmd
+          - models/mixture2p.qmd
+          - models/mixture3p.qmd
+          - models/sdm.qmd
   page-footer:
     left: "bmm model explorer · code GPL-2, text CC BY 4.0"
     right: "Built with Quarto. No R, no server: everything runs in your browser."

@@ -1,0 +1,14 @@
+The likelihood of `{{< meta model >}}` has no set-size variable. How strongly the target is recalled,
+and in a mixture how much of the distribution goes to guessing or to non-targets, is set by the
+parameters alone, whatever the number of items on the display. Set size can change the predicted
+responses only through the parameters, by letting them differ between the conditions of an experiment, for example between set sizes. In
+bmm that is a formula such as `{{< meta set-size-formula >}}`, in which `0 +` drops the intercept so
+that every set size gets its own value of the parameter ([formula syntax](https://venpopov.com/bmm/reference/bmmformula.html)). What the model
+then predicts at each set size is whatever the estimated values say, so a prediction across set sizes
+needs those estimates first. No slider on this page makes a parameter depend on set size for that
+reason: a curve for another set size would only be another setting of the parameters, not something
+the model predicts.
+
+The page for the [interference measurement model](imm.qmd#across-task-settings) (IMM) is the contrast.
+There the distances of the other items enter the weights, so the Across set size panel on that page
+moves with the parameters held fixed.

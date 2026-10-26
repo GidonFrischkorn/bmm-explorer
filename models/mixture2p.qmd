@@ -1,0 +1,131 @@
+---
+title: "Two-parameter mixture model"
+subtitle: "Continuous reproduction: responses centred on the target, or guesses"
+model: mixture2p
+set-size-formula: "thetat ~ 0 + set_size"
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash ex-dash-circ" id="mix2-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-task-pair ex-task-pair-2">
+      <div>
+        <div class="ex-panel-title">The task</div>
+        <svg id="mix2-wheel" role="img" aria-label="The colour wheel with the target's colour at the top; the response error is the distance from it"></svg>
+      </div>
+      <section aria-label="Task settings">
+        <div class="ex-panel-title">Task settings</div>
+        <p class="ex-note">No task setting enters the likelihood. The model describes the response error, the distance
+        on the wheel between the colour the participant chose and the target's colour, and nothing else
+        about the trial: not the set size, not the other items.</p>
+      </section>
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="mix2-p_mem">p_mem, probability of recalling the target</label>
+      <input type="range" id="mix2-p_mem">
+      <input type="number" id="mix2-p_mem-num" aria-label="p_mem">
+      <label for="mix2-kappa">kappa, precision of the memory</label>
+      <input type="range" id="mix2-kappa">
+      <input type="number" id="mix2-kappa-num" aria-label="kappa">
+      <div class="ex-hint" id="mix2-par-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="mix2-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted error distribution">
+    <div class="ex-panel-title">Predicted error distribution</div>
+    <svg id="mix2-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the starting values, with the memory and guessing components shaded"></svg>
+    <div class="ex-legend">
+      Solid: now; dashed: starting values (see Explore); band: ±20° around the target, the window the
+      readout counts. Shaded: the
+      <span class="blue">memory component</span>, stacked on the
+      <span class="grey">guessing floor</span>.
+    </div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Mixture weights">
+    <div class="ex-panel-title">Mixture weights</div>
+    <svg id="mix2-weights" role="img" aria-label="Weight of memory responses and of guessing, now and at the starting values"></svg>
+    <div class="ex-legend">
+      Weights of <span class="blue">memory (M)</span> and <span class="grey">guessing (G)</span>, now and at
+      the starting values ("start").
+    </div>
+    <div class="ex-readout" id="mix2-readout"></div>
+  </section>
+</div>
+```
+
+## What the model says
+
+The two-parameter mixture model ([Zhang & Luck, 2008](https://doi.org/10.1038/nature06860)), as
+implemented in the R package [bmm](https://venpopov.com/bmm/), describes errors in continuous reproduction with two kinds of trials. On a fraction `p_mem` of the trials the
+participant recalls the target, and the response error follows a von Mises distribution (the
+circular counterpart of the normal) around 0 with the precision `kappa`. On all other trials the
+participant guesses, and every error from −π to π is equally likely. The density of the response
+error $x$ is the mixture:
+
+$$
+f(x) = p_\text{mem}\,\text{vM}(x;\, \mu = 0,\, \kappa) + \frac{1 - p_\text{mem}}{2\pi}
+$$
+
+where $\text{vM}(x;\, \mu, \kappa)$ is the von Mises density with mean direction $\mu$ and precision
+$\kappa$. In bmm's model formulas `p_mem` is called `thetat` and is estimated on the logit scale.
+
+`p_mem` sets how much of the distribution sits in the peak and how much in the flat floor, and
+`kappa` sets how narrow the peak is. The two do not trade off: changing `kappa` moves no weight, and
+changing `p_mem` leaves the width of the peak alone. The location `mu` is fixed at 0 in bmm, so a
+systematic bias in the responses is not part of this model.
+
+## The task
+
+One trial is a colour reproduction. The participant sees a display of coloured items, then one item
+is cued, and the participant chooses its colour on a wheel. The response error is the angle between
+the chosen colour and the target's colour on the wheel, in radians from −π to π. This is all the
+model uses of the trial. The colours of the other items, their locations and the set size are not
+inputs of the density, which is why the Task settings panel is empty.
+
+## Explore
+
+The Predicted error distribution panel shows the density with the memory component (blue) stacked on
+the guessing floor (grey). Move `p_mem` and the blue area grows or shrinks while the floor drops or
+rises; move `kappa` and the blue area keeps its size and changes its shape. The bars under it show
+the weights, and the readout gives the share of responses within ±20° of the target, the window
+shaded in the density panel.
+
+`p_mem` runs over its whole range, 0 to 1. bmm estimates `kappa` on the log scale with a normal(2, 1)
+prior; its slider spans the prior mean ± 3 SD and moves evenly in log units, while the number field
+shows natural units, from $e^{-1} = 0.37$ to $e^{5} = 148$. The starting values, which the dashed
+curve and the "start" bar keep, are `p_mem` = 0.5 (logit 0, the middle of bmm's logistic(0, 1) prior on
+the logit scale) and `kappa` = $e^{2} = 7.39$. Typed `kappa` values outside the slider range are used
+as long as they are 0 or more. Reset returns both parameters to their starting values.
+
+## Across task settings
+
+{{< include _silent-on-set-size.qmd >}}
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="mix2-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="mix2-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/mixture2p.js"></script>
+```
+
+The code updates with the controls. `dmixture2p()` returns the density of the response error in
+radians. `mixture2p()` defines the model for a data set in which each row is a trial and
+`resp_error` holds the response error in radians. The comment in the code gives `thetat`, which is `p_mem` on the logit scale.
+`bmf()` writes the formula and `bmm()` estimates the parameters; `my_data` stands for your own data,
+and fitting runs Stan through brms. See the
+[mixture models article](https://venpopov.com/bmm/articles/bmm_mixture_models.html) and the
+reference pages for [`mixture2p()`](https://venpopov.com/bmm/reference/mixture2p.html) and
+[`dmixture2p()`](https://venpopov.com/bmm/reference/mixture2p_dist.html).
