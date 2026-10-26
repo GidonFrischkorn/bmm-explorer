@@ -54,6 +54,9 @@ website:
       - section: "Continuous reproduction tasks"
         contents:
           - models/imm.qmd
+          - models/mixture2p.qmd
+          - models/mixture3p.qmd
+          - models/sdm.qmd
       - section: "Signal detection"
         contents:
           - models/sdt_yn.qmd
