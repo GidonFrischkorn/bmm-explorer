@@ -6,6 +6,8 @@ export const fmt = (v, digits = 2) => Number(v).toFixed(digits).replace("-", "âˆ
 // number field keeps the natural value, rounded to what it shows, so the value used is the value seen.
 export const LINEAR = { toRange: v => v, fromRange: r => r };
 export const LOG = { toRange: Math.log, fromRange: r => +Math.exp(r).toPrecision(3) };
+// LOGIT does the same for probabilities bmm estimates on the logit scale (f, MPT parameters).
+export const LOGIT = { toRange: v => Math.log(v / (1 - v)), fromRange: r => +(1 / (1 + Math.exp(-r))).toPrecision(3) };
 
 // A slider and a number field that mirror each other; onInput fires on either. setBounds changes the
 // limits (and the scale, when a page changes parametrisation) of both inputs together.
@@ -28,7 +30,7 @@ export function bindPair(rangeId, numberId, onInput, scale = LINEAR) {
       if (sc) pair.scale = sc;
       if (min !== undefined) { range.min = min; num.min = pair.scale.fromRange(min); }
       if (max !== undefined) { range.max = max; num.max = pair.scale.fromRange(max); }
-      if (step !== undefined) { range.step = step; num.step = pair.scale === LOG ? "any" : step; }
+      if (step !== undefined) { range.step = step; num.step = pair.scale === LINEAR ? step : "any"; }
       // The slider clamped its value to the old limits; the box holds the value in use.
       follow();
     }

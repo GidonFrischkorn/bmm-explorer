@@ -50,6 +50,7 @@ website:
       - section: "Categorical decision tasks"
         contents:
           - models/m3.qmd
+          - models/mpt.qmd
       - section: "Continuous reproduction tasks"
         contents:
           - models/imm.qmd

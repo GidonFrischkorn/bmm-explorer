@@ -63,6 +63,6 @@ have no `d*()` function in a released bmm.
 ## Open questions
 
 - SDM's `c` and `kappa` ranges on the slider: the article's priors or the recovery grid?
-- Whether the MPT page builds trees from bmm's `mpt_from_string()` syntax (parsed in JS) or ships the
-  span tree only.
+- Whether the MPT page should later build trees from bmm's `mpt_from_string()` syntax (parsed in JS).
+  E4 ships the span tree only, as a branch list that `js/models/mpt.js` evaluates.
 - DDM: port Navarro and Fuss's series or precompute a density grid from `rtdists` at fixture time.
