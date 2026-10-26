@@ -8,9 +8,9 @@ import {
 } from "../../js/models/sdt.js";
 import { integrateExp } from "../../js/lib/math.js";
 
-// Log probabilities and log densities, 1e-10 relative to |value| beyond 1 (assertCloseRel): the yes/no grid
-// reaches log P = -2e12 in the Gumbel tails. The m-AFC quadrature runs on bmm's own nodes, so it is held to
-// the same tolerance.
+// Log probabilities and log densities, 1e-10 absolute up to |value| 1e3 and 1e-13 relative beyond (assertCloseRel):
+// the typed tail cells reach log P = -7.5e177 under Gumbel noise. The m-AFC quadrature runs on bmm's own nodes, so it is
+// held to the same tolerance.
 const TOL = 1e-10;
 const fx = loadFixtureSince("sdt");
 const nodes = loadFixtureSince("nodes");
@@ -33,6 +33,15 @@ if (fx) {
       assertCloseRel(lo, cell.log_p_old, TOL, "log P(old)");
       assertCloseRel(each(cell.args, r => ynLogPNew(r, r.stimulus)), cell.log_p_new, TOL, "log P(new)");
       assertCloseRel(each(cell.args, r => dsdtYn(37, 100, r.stimulus, r)), cell.logd_37, TOL, "dsdt_yn(37, 100)");
+    });
+  }
+  for (const cell of cells("dsdt_yn_tail")) {
+    test(`dsdt_yn at a criterion of +-1000 (${cell.args.dist}) matches bmm ${fx.bmm_version}, -Inf included`, () => {
+      assertCloseRel(each(cell.args, r => ynLogPOld(r, r.stimulus)), cell.log_p_old, TOL, "log P(old)");
+      assertCloseRel(each(cell.args, r => ynLogPNew(r, r.stimulus)), cell.log_p_new, TOL, "log P(new)");
+      // all new and all old: the zero count's term drops out even where its log P is -Inf
+      assertCloseRel(each(cell.args, r => dsdtYn(0, 10, r.stimulus, r)), cell.logd_0, TOL, "dsdt_yn(0, 10)");
+      assertCloseRel(each(cell.args, r => dsdtYn(10, 10, r.stimulus, r)), cell.logd_10, TOL, "dsdt_yn(10, 10)");
     });
   }
   for (const cell of cells("dsdt_yn_bias")) {
@@ -61,7 +70,11 @@ if (fx) {
   for (const cell of cells("dsdt_rating")) {
     const { thresholds, dist } = cell.args;
     test(`dsdt_rating K = ${thresholds.length + 1} [${thresholds.map(t => +t.toFixed(2))}] (${dist}) matches bmm ${fx.bmm_version}`, () => {
-      assertCloseRel(each(cell.args, r => ratingLogProbs(thresholds, r, r.stimulus)).flat(), cell.logp, TOL, "category log P");
+      // bmm returns NA (read as NaN) for a category whose bounds both underflow, where its own comment means -Inf:
+      // log1m_exp()'s ifelse() turns -Inf - -Inf into NA, which the is.nan() guard of .sdt_category_log_probs()
+      // misses. The port returns the -Inf bmm intends; such a category has no count, so the densities agree.
+      const ref = cell.logp.map(v => Number.isNaN(v) ? -Infinity : v);
+      assertCloseRel(each(cell.args, r => ratingLogProbs(thresholds, r, r.stimulus)).flat(), ref, TOL, "category log P");
       assertCloseRel(each(cell.args, r => dsdtRating(r.counts, r.stimulus, thresholds, r)), cell.logd, TOL, "dsdt_rating");
     });
   }
@@ -97,6 +110,23 @@ if (fx) {
       const d = mafcMatchD(target, m, dist, rules);
       assert.ok(Math.abs(mafcLogitPc(d, m, dist, rules) - target) < 1e-9, `${dist}, m = ${m}, logit ${target}: d = ${d}`);
     }
+  });
+  test("mafcMatchD reaches the logits of d typed far outside the slider, and gives NaN where no d reaches them", () => {
+    const dists = Object.keys(DISTS);
+    for (const from of dists) for (const m of [2, 3, 10]) for (const typed of [-40, -12, 15, 25]) {
+      const target = mafcLogitPc(typed, m, from, rules);
+      for (const dist of dists) {
+        const d = mafcMatchD(target, m, dist, rules);
+        assert.ok(Math.abs(mafcLogitPc(d, m, dist, rules) - target) <= 1e-8 * Math.max(1, Math.abs(target)),
+          `${from} d = ${typed} -> ${dist}, m = ${m}, logit ${target}: d = ${d}`);
+      }
+    }
+    // normal's quadrature logit is Inf from d = 48.25; gumbel_min's is -Inf below d = -709.78, where exp(-d)
+    // overflows, and no lower than about -6374 above it at m = 10, short of normal's -1.6e5 at d = -200.
+    for (const dist of dists) assert.ok(Number.isNaN(mafcMatchD(mafcLogitPc(50, 10, "normal", rules), 10, dist, rules)), dist);
+    assert.equal(mafcLogitPc(-709.8, 10, "gumbel_min"), -Infinity);
+    assert.ok(mafcLogitPc(-709.7, 10, "gumbel_min") > mafcLogitPc(-200, 10, "normal", rules));
+    assert.ok(Number.isNaN(mafcMatchD(mafcLogitPc(-200, 10, "normal", rules), 10, "gumbel_min", rules)));
   });
   test("the ROC runs from (1, 1) to (0, 0) without increasing, and passes through the yes/no point", () => {
     for (const dist of Object.keys(DISTS)) for (const sdratio of [0.407, 1, 2.46]) {

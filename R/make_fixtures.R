@@ -180,8 +180,7 @@ if (has_since("dmpt", "1.4.1")) {
 # mean +- 3 SD on the link scale: d normal(1, 1) on [-2, 4], criterion normal(0.5, 1.5) on [-4, 5], bias
 # normal(0, 1.5) on [-4.5, 4.5], sdratio normal(0, 0.3) on the log scale, a ratio from exp(-0.9) to exp(0.9),
 # which the page computes at 3 significant digits (0.407, 2.46). The ROC panels sweep the criterion past those
-# ends, and the m-AFC page matches d across distributions, hence d up to 7. Vectorised cells: one call per
-# distribution and design, its arguments as columns.
+# ends. Vectorised cells: one call per distribution and design, its arguments as columns.
 dists <- c("normal", "gumbel_min", "gumbel_max", "logistic")
 if (has_since("dsdt_yn", "1.4.1")) {
   cells <- list()
@@ -197,13 +196,22 @@ if (has_since("dsdt_yn", "1.4.1")) {
     g <- expand.grid(stimulus = 0:1, bias = c(-4.5, 0, 1, 4.5), sdratio = c(.407, 1, 2.46), d = c(-2, 1, 4))
     cells[[length(cells) + 1]] <- list(fn = "dsdt_yn_bias", args = c(as.list(g), list(dist = dist)),
       log_p_old = dsdt_yn(1, 1, g$stimulus, g$d, bias = g$bias, sdratio = g$sdratio, dist = dist, log = TRUE))
+    # A typed criterion of +-1000 sends log P("old") or log P("new") to -Inf under both Gumbel distributions
+    # (exp() of the standardised criterion underflows or overflows); all old and all new responses then take
+    # the zero-count branch, where the -Inf term contributes nothing.
+    g <- expand.grid(stimulus = 0:1, criterion = c(-1000, 1000), sdratio = c(.407, 2.46), d = 1)
+    cells[[length(cells) + 1]] <- list(fn = "dsdt_yn_tail", args = c(as.list(g), list(dist = dist)),
+      log_p_old = yn(1, 1), log_p_new = yn(0, 1), logd_0 = yn(0, 10), logd_10 = yn(10, 10))
     # the equal-variance d, criterion and bias that one (hit, false-alarm) pair implies
     g <- expand.grid(fa_rate = c(1e-12, 1e-4, .2, .5, .9, 1 - 1e-12), hit_rate = c(1e-12, .05, .5, .8, .999, 1 - 1e-12))
     cells[[length(cells) + 1]] <- list(fn = "sdt_d", args = c(as.list(g), list(dist = dist)),
       d = sdt_d(g$hit_rate, g$fa_rate, dist), criterion = sdt_criterion(g$hit_rate, g$fa_rate, dist),
       bias = sdt_bias(g$hit_rate, g$fa_rate, dist))
-    # m-AFC: log P(correct), log P(error) and 100 trials at the rounded expected count
-    g <- expand.grid(m = 2:10, d = c(-3, -2, -1, 0, .5, 1, 1.5, 2.5, 4, 5, 7))
+    # m-AFC: log P(correct), log P(error) and 100 trials at the rounded expected count. The page draws, for every
+    # m, the d at which each other distribution gives the same P(correct); over the sliders (d -2 to 4, m 2 to 10)
+    # that matched d runs from -7.45 to 8.00, so the grid spans -8 to 8.5. A d typed beyond the sliders is matched
+    # too, but is not covered here.
+    g <- expand.grid(m = 2:10, d = c(-8, -6, -4.5, -3, -2, -1, 0, .5, 1, 1.5, 2.5, 4, 5, 7, 8.5))
     lp <- dsdt_mafc(1, 1, g$m, g$d, dist = dist, log = TRUE)
     k <- round(100 * exp(lp))
     cells[[length(cells) + 1]] <- list(fn = "dsdt_mafc", args = c(as.list(g), list(dist = dist, n_correct = k)),
@@ -221,7 +229,9 @@ if (has_since("dsdt_yn", "1.4.1")) {
       cnt <- matrix(0, nrow(g), K); cnt[, j] <- 1
       dsdt_rating(cnt, g$stimulus, g$d, thr, g$sdratio, dist = dist, log = TRUE)
     })
-    counts <- t(apply(exp(lp), 1, split100))
+    # bmm gives NA, not -Inf, for a category whose bounds both underflow (log1m_exp()'s ifelse() turns the NaN of
+    # -Inf - -Inf into NA, which the is.nan() guard in .sdt_category_log_probs() misses); it has no mass, so no count
+    counts <- t(apply(exp(lp), 1, function(p) split100(ifelse(is.na(p), 0, p))))
     list(fn = "dsdt_rating", args = c(list(thresholds = thr, dist = dist), as.list(g),
                                       list(counts = lapply(seq_len(nrow(g)), function(i) counts[i, ]))),
       logp = as.vector(t(lp)), logd = dsdt_rating(counts, g$stimulus, g$d, thr, g$sdratio, dist = dist, log = TRUE))
@@ -231,6 +241,9 @@ if (has_since("dsdt_yn", "1.4.1")) {
     cells[[length(cells) + 1]] <- rating_cell(K, seq(-4, 5, length.out = K - 1), dist)
     cells[[length(cells) + 1]] <- rating_cell(K, seq(1, by = .05, length.out = K - 1), dist)
   }
+  # Thresholds typed far into the tails: under both Gumbel distributions the outer categories have both bounds
+  # underflow (log cdf or log survival -Inf at both ends), the -Inf branch of the port's category log P.
+  for (dist in dists) cells[[length(cells) + 1]] <- rating_cell(6, c(-1000, -800, 0, 800, 1000), dist)
   # The page's "In bmm" code gives its thresholds as threshold_type = "log_distance": the criterion (the middle
   # threshold for even K, the centre of the middle category for odd K) and the log widths of the K - 2 intervals.
   # The mapping is this script's; bmm's builder must return the thresholds from it.
