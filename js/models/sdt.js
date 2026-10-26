@@ -109,14 +109,24 @@ export function dsdtMafc(nCorrect, nTrials, m, d, dist, rules) {
 }
 
 // The d at which P(correct) with m alternatives under dist equals a target logit, by bisection: logit P(correct)
-// increases with d under every distribution.
-export function mafcMatchD(logitTarget, m, dist, rules, lo = -30, hi = 40) {
+// increases with d under every distribution. The bracket doubles outward until it encloses the target, as a typed
+// d can sit far outside the slider. NaN where no d reaches the target: an infinite target, or one beyond the
+// logits the distribution resolves before they jump to -Inf or Inf (gumbel_min below d = -709.78, where exp(-d)
+// overflows; normal's quadrature from d = 48.25).
+export function mafcMatchD(logitTarget, m, dist, rules) {
+  if (!Number.isFinite(logitTarget)) return NaN;
   if (dist === "gumbel_max") return logitTarget + Math.log(m - 1);
-  for (let i = 0; i < 100 && hi - lo > 1e-13; i++) {
+  const f = d => mafcLogitPc(d, m, dist, rules);
+  let lo = -1, hi = 1;
+  while (f(lo) > logitTarget && lo > -1e9) lo *= 2;
+  while (f(hi) < logitTarget && hi < 1e9) hi *= 2;
+  for (let i = 0; i < 200 && hi - lo > 1e-13 * Math.max(1, Math.abs(lo + hi)); i++) {
     const mid = (lo + hi) / 2;
-    if (mafcLogitPc(mid, m, dist, rules) < logitTarget) lo = mid; else hi = mid;
+    if (f(mid) < logitTarget) lo = mid; else hi = mid;
   }
-  return (lo + hi) / 2;
+  const d = (lo + hi) / 2;
+  // A bracket that closed on a jump to -Inf or Inf, or never enclosed the target, leaves the logit off it.
+  return Math.abs(f(d) - logitTarget) <= 1e-8 * Math.max(1, Math.abs(logitTarget)) ? d : NaN;
 }
 
 // Density of the strongest of the m - 1 distractors, (m - 1) f(x) F(x)^(m - 2): the competitor the target has

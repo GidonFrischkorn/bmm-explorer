@@ -3,7 +3,7 @@
 import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } from "../models/sdt.js";
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
-import { linspace } from "../lib/math.js";
+import { linspace, log1pExp } from "../lib/math.js";
 import { latentPlot, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
 
 // bmm's quadrature rules for normal (m > 2) and logistic noise, written from bmm by R/make_fixtures.R. Without
@@ -87,11 +87,27 @@ function drawByD(p, cur) {
   if (p.d >= dLo && p.d <= dHi) el("circle", { cx: sx(p.d), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
 }
 
+// P(correct) as text, from its logit. Within 0.01 of 0 or 1, two decimals would print 0.00 or 1.00 for every
+// distribution, so the distance to that end is shown instead (ε or 1 − ε), to two significant digits, read off
+// log10 of it so it does not underflow.
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const pow10 = e => `10${[...String(e)].map(c => SUP[c]).join("")}`;
+function pcText(lg) {
+  if (!Number.isFinite(lg)) return lg > 0 ? "1" : "0";
+  if (Math.abs(lg) < Math.log(99)) return fmt(1 / (1 + Math.exp(-lg)), 2);
+  const l10 = -log1pExp(Math.abs(lg)) / Math.LN10, e = Math.floor(l10), mant = 10 ** (l10 - e);
+  // a mantissa that rounds up to 10.0 moves to the next power
+  const tail = l10 >= -3 ? fmt(10 ** l10, 1 - e) : mant >= 9.95 ? `1.0 × ${pow10(e + 1)}` : `${fmt(mant, 1)} × ${pow10(e)}`;
+  return lg > 0 ? `1 − ${tail}` : tail;
+}
+
 // P(correct) across m with d fixed: the chosen distribution (solid) and the other three, each at the d that
-// gives the same accuracy at the current m (dotted).
+// gives the same accuracy at the current m (dotted). A distribution whose logit cannot reach the current one
+// (mafcMatchD gives NaN) gets no curve.
 function drawAcross(p, cur) {
   const lg = mafcLogitPc(p.d, p.m, dist(), RULES);
-  const others = DIST_NAMES.filter(n => n !== dist() && available(n)).map(n => ({ n, d: mafcMatchD(lg, p.m, n, RULES) }));
+  const matched = DIST_NAMES.filter(n => n !== dist() && available(n)).map(n => ({ n, d: mafcMatchD(lg, p.m, n, RULES) }));
+  const others = matched.filter(o => !Number.isNaN(o.d));
   const svg = $("sdtmafc-across");
   const { paths, sx, sy } = linePlot(svg, {
     W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, xlim: [2, M_MAX], ylim: [0, 1],
@@ -105,12 +121,17 @@ function drawAcross(p, cur) {
   paths.slice(0, -1).forEach(path => path.setAttribute("stroke-dasharray", "2 5"));
   el("circle", { cx: sx(p.m), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
   const name = n => `<span style="color:${DIST_COLOR[n]};font-weight:600">${n}</span>`;
-  $("sdtmafc-across-legend").innerHTML = `Solid: ${name(dist())} at d = ${fmt(p.d, 2)}. Dotted: ` +
-    others.map(o => `${name(o.n)} (d = ${fmt(o.d, 2)})`).join(", ") + ", each with the same P(correct) at the circle; grey: chance.";
+  // The legend leaves the current d to the Parameters panel: with three matched values beside it, a long d wraps
+  // it to a fourth line and the dashboard past one screen. A typed d far outside the slider can match d in the
+  // hundreds or thousands, where decimals add width and nothing else.
+  $("sdtmafc-across-legend").innerHTML = `Solid: ${name(dist())}. Dotted, same P(correct) at the circle: ` +
+    matched.map(o => `${name(o.n)} (${Number.isNaN(o.d) ? "out of reach" : `d = ${fmt(o.d, Math.abs(o.d) >= 100 ? 0 : 2)}`})`).join(", ") + "; grey: chance.";
   const far = p.m === M_MAX ? 2 : M_MAX;
-  $("sdtmafc-across-now").textContent = `With the current values, ${dist()} noise gives P(correct) = ${fmt(cur, 2)} at m = ${p.m}. ` +
-    `At m = ${far} it predicts ${fmt(pc(p.d, far), 2)}, and the other distributions, matched at m = ${p.m}, predict ` +
-    others.map(o => `${fmt(pc(o.d, far, o.n), 2)} (${o.n})`).join(", ") + ".";
+  $("sdtmafc-across-now").textContent = `With the current values, ${dist()} noise gives P(correct) = ${pcText(lg)} at m = ${p.m}. ` +
+    `At m = ${far} it predicts ${pcText(mafcLogitPc(p.d, far, dist(), RULES))}` + (others.length ?
+      `, and the other distributions, matched at m = ${p.m}, predict ` +
+      others.map(o => `${pcText(mafcLogitPc(o.d, far, o.n, RULES))} (${o.n})`).join(", ") + "." :
+      `; no d of the other distributions gives the accuracy at m = ${p.m}.`);
 }
 
 function drawCode(p, cur) {

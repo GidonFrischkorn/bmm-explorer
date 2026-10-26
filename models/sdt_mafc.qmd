@@ -80,7 +80,7 @@ $$
 P(\text{correct}) = \int f(x - d)\, F(x)^{m - 1}\, dx .
 $$
 
-Read from the inside: $f(x - d)$ is the chance that the signal's evidence is $x$, and $F(x)^{m - 1}$ the chance
+Read from the inside: $f(x - d)$ is the density of the signal's evidence at $x$, and $F(x)^{m - 1}$ the chance
 that all `m` − 1 distractors fall below $x$; the integral adds this up over every $x$. `d` is the only
 parameter: m-AFC has no criterion and no response bias. Under normal noise at `m` = 2 the integral is
 $\Phi(d/\sqrt{2})$, with $\Phi$ the standard normal distribution function; both Gumbel distributions also give
@@ -117,11 +117,13 @@ and starts at the prior mean, 1 (dashed line). `m` runs from 2 to 10.
 to beat the strongest of more distractors. How fast it falls depends on the evidence distribution. At one `m`,
 each distribution can reproduce any accuracy, because each has its own `d` to adjust, so data from a single `m`
 cannot tell the distributions apart. In the panel "P(correct) across m", each of the other three distributions
-gets the `d` that gives the current accuracy at the current `m` (the legend lists these values; they differ
-because the distributions' scales differ). The dotted lines meet at the circle and separate at other values of
-`m`; how far depends on `d` and `m` (the sentence below gives the numbers), and where they stay close they can
-lie on top of each other. Several values of `m` in one data
-set, passed to `sdt_mafc()` as a column, are what lets the data decide between the distributions.
+gets the `d` that gives the current accuracy at the current `m`; the legend lists these values. They differ
+because the distributions differ in spread and in shape: `gumbel_min` and `gumbel_max` have the same spread, and
+at `m` = 2 the same `d` gives both the same accuracy, but they are skewed in opposite directions, and from `m` = 3
+on they need different values of `d` for one accuracy (except at `d` = 0, chance). The dotted lines meet at the
+circle and separate at other values of `m`; how far depends on `d` and `m` (the sentence below gives the
+numbers), and where they stay close they can lie on top of each other. Several values of `m` in one data set,
+passed to `sdt_mafc()` as a column, are what lets the data decide between the distributions.
 <span id="sdtmafc-across-now"></span>
 
 ## In bmm
