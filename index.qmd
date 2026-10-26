@@ -18,7 +18,8 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
 ## Continuous reproduction tasks
 
 - [Interference Measurement Model (`imm`)](models/imm.qmd): responses on a colour wheel drawn to the
-  target, to the other items in proportion to their distance, and to noise.
+  target, to the other items by their closeness to the cued location, and to noise. Set size and
+  spacing are part of the model.
 
 More pages follow in the order of [the roadmap](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/dev/ROADMAP.md):
 the two- and three-parameter mixture models and the signal discrimination model, multinomial

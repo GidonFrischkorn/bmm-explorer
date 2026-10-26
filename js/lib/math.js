@@ -28,3 +28,12 @@ export function logSumExp(v) {
 export const linspace = (from, to, n) => Array.from({ length: n }, (_, i) => from + (to - from) * i / (n - 1));
 
 export const mapX = (x, f) => (Array.isArray(x) ? x.map(f) : f(x));
+
+// Integral of exp(logf) over [lo, hi] by composite Simpson's rule; logf takes an array, as the ported
+// densities do. n = 160 intervals over +-20 degrees is a step of 0.25 degrees, far below the narrowest
+// von Mises the pages draw (sd 4.7 degrees at kappa 148).
+export function integrateExp(logf, lo, hi, n = 160) {
+  const h = (hi - lo) / n;
+  const f = logf(linspace(lo, hi, n + 1)).map(Math.exp);
+  return h / 3 * f.reduce((s, v, i) => s + v * (i === 0 || i === n ? 1 : i % 2 ? 4 : 2), 0);
+}

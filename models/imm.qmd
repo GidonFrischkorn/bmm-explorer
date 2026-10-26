@@ -1,25 +1,206 @@
 ---
 title: "Interference Measurement Model"
-subtitle: "Continuous reproduction: responses drawn to the target, to the other items by distance, and to noise"
+subtitle: "Continuous reproduction: responses drawn to the target, to the other items by closeness, and to noise"
 model: imm
+page-layout: full
+toc: false
 ---
 
-::: {.callout-note}
-This page is the second milestone of the explorer and is under construction. The structure below is
-the template every page follows; the controls arrive with milestone E2.
-:::
+```{=html}
+<div class="ex-dash ex-dash-circ" id="imm-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-task-pair">
+      <div>
+        <div class="ex-panel-title">The task</div>
+        <svg id="imm-display" role="img" aria-label="The memory display: coloured discs on an imaginary circle or in a square, the target's location framed"></svg>
+      </div>
+      <svg id="imm-wheel" aria-label="The colour wheel with the target's colour at the top and the other items' colours around it"></svg>
+      <section aria-label="Task settings">
+        <div class="ex-panel-title">Task settings</div>
+        <div class="ex-controls">
+          <label for="imm-set-size">set size, items on the display</label>
+          <input type="range" id="imm-set-size">
+          <input type="number" id="imm-set-size-num" aria-label="set size">
+          <label for="imm-spacing">spacing, item 2's distance (rad)</label>
+          <input type="range" id="imm-spacing">
+          <input type="number" id="imm-spacing-num" aria-label="spacing in radians">
+          <div class="ex-hint" id="imm-task-hint"></div>
+        </div>
+        <div class="ex-options" role="radiogroup" aria-label="Layout of the display">
+          <span>Layout:</span>
+          <label><input type="radio" name="imm-layout" value="circle" checked> circle</label>
+          <label><input type="radio" name="imm-layout" value="square"> square</label>
+        </div>
+        <div class="ex-buttons">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="imm-equi">Equidistant</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="imm-scatter">Scatter</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="imm-spread">Even colours</button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title">Parameters</div>
+    <div class="ex-controls">
+      <label for="imm-c">c, cue-dependent activation</label>
+      <input type="range" id="imm-c">
+      <input type="number" id="imm-c-num" aria-label="c">
+      <label for="imm-a">a, cue-independent activation</label>
+      <input type="range" id="imm-a">
+      <input type="number" id="imm-a-num" aria-label="a">
+      <label for="imm-s">s, spatial gradient</label>
+      <input type="range" id="imm-s">
+      <input type="number" id="imm-s-num" aria-label="s">
+      <label for="imm-kappa">kappa, precision</label>
+      <input type="range" id="imm-kappa">
+      <input type="number" id="imm-kappa-num" aria-label="kappa">
+      <label for="imm-b">b, background activation</label>
+      <input type="range" id="imm-b">
+      <input type="number" id="imm-b-num" aria-label="b">
+      <div class="ex-hint" id="imm-par-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="imm-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted error distribution">
+    <div class="ex-panel-title">Predicted error distribution</div>
+    <svg id="imm-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the prior means"></svg>
+    <svg id="imm-weights" role="img" aria-label="Mixture weights of the target, each non-target and guessing, now and at the prior means"></svg>
+    <div class="ex-legend">
+      Solid: now; dashed and "prior": prior means; band: ±20°. Weights of the
+      <span class="blue">target (T)</span>, <span class="orange">non-targets</span>,
+      <span class="grey">guessing (G)</span>. <span id="imm-weights-text"></span>
+    </div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Across set size">
+    <div class="ex-panel-title">Across set size</div>
+    <svg id="imm-across" role="img" aria-label="Target weight and probability of a response within 20 degrees against set size"></svg>
+    <div class="ex-legend">
+      <span class="blue">Target weight</span> and <span class="green">share of errors within ±20°</span>.
+      Solid: now; dashed: prior means; open circle: current set size.
+    </div>
+  </section>
+</div>
+```
 
 ## What the model says
 
+The interference measurement model (IMM; [Oberauer & Lin, 2017](https://doi.org/10.1037/rev0000044))
+describes errors in continuous reproduction: the participant recalls the colour of a cued item by
+choosing it on a colour wheel. At recall every item on the display adds activation to its own colour,
+from two sources: cue-dependent activation `c`, which falls off with the item's spatial distance
+$d_i$ from the cued location at the rate `s`, and cue-independent activation `a`, which every item
+gets in the same amount. Background activation `b` reaches every colour on the wheel. Item $i$ gets
+the activation $c\,e^{-s d_i} + a$; the target is item 1, with $d_1 = 0$. Each activation divided by
+the sum of all of them, `b` included, is a mixture weight: $p_i$ for item $i$, $p_b$ for guessing.
+The response error $x$, the distance on the wheel between the chosen colour and the target's
+colour, then follows a mixture of von Mises distributions (the circular counterpart of the normal),
+one centred on each item's colour $\mu_i$ (measured from the target's colour, so $\mu_1 = 0$) with
+the shared precision `kappa`, plus a uniform distribution for guessing:
+
+$$
+\begin{aligned}
+p_i &= \frac{c\,e^{-s d_i} + a}{\sum_j \left(c\,e^{-s d_j} + a\right) + b} \\[4pt]
+p_b &= \frac{b}{\sum_j \left(c\,e^{-s d_j} + a\right) + b} \\[4pt]
+f(x) &= \sum_i p_i \,\text{vM}(x;\, \mu_i, \kappa) + \frac{p_b}{2\pi}
+\end{aligned}
+$$
+
+Raising `c` lifts the peak at the target and, by less, the peaks of the target's spatial neighbours.
+Raising `a` lifts every item's peak by the same amount, so responses move to the non-targets whatever
+their distance. Raising `b` lifts the flat floor of guesses. Raising `s` narrows the reach of the cue:
+$e^{-s d}$ is 1 at the target and falls faster with distance the larger `s` is, so at large `s` only
+the target gets `c`, and at `s` = 0 every item gets the full `c`. `kappa` sets the width of every
+peak and changes no weight. Multiplying `c`, `a` and `b` by the same number leaves every weight
+unchanged, so data cannot tell those three apart from their ratios, and a fit has to fix one of them:
+the original publication fixed `c` at 1, bmm fixes `b` at 1 (log `b` = 0 on bmm's link scale, the
+reference weight of the mixture). The page lets all three move so that each one's effect can be
+seen.
+
 ## The task
+
+One trial is a colour reproduction. The display (left) shows the coloured discs; then one location
+is cued (the frame) and the participant clicks the target's colour on the wheel (right). Each disc
+has its colour on the wheel, and the numbers link the two. The model needs, for every trial, the
+response error and each non-target's colour relative to the target, both in radians, and each
+non-target's spatial distance from the cued location.
+
+The display has two layouts. On the circle, as in
+[Oberauer et al. (2017)](https://doi.org/10.1167/17.5.11), the items sit on an imaginary circle and
+a distance is the angle between two items, in radians from 0 to π. The spacing slider sets item 2's
+distance; the other items follow at multiples of it, and at the slider's maximum, 2π divided by the
+set size, they are equidistant. In the square, the items can sit anywhere, as in a visual-arrays
+display, and a distance is the straight line between two centres, measured in radii of the circle
+layout. Scatter places the items at random, at least 0.55 radii apart. Two close neighbours have
+about the same distance in both layouts, but distant items do not, because the straight line is
+shorter than the arc.
+
+Drag a disc on the display or a colour on the wheel to move it, or click it and use the arrow
+keys. On the circle the target stays at the top and the others move along the circle; in the square
+every item moves. Switching to the square keeps the items where they are; switching back puts the
+target at the top again and each other item on the circle at its angle from the target, as seen from
+the display centre. After a drag, and in the square, the spacing control is off until Equidistant or
+a new set size. Equidistant returns to the circle preset, and Even colours spreads the colours evenly
+around the wheel again, as does a new set size.
+
+Because `s` is a rate per unit of distance, its value depends on how distance is measured: compare
+`s` between conditions of one experiment, not between studies with other layouts or distance
+measures. bmm takes whatever distances the data contain.
 
 ## Explore
 
-```{=html}
-<div class="ex-widget" id="imm-widget"></div>
-<script type="module" src="../js/pages/imm.js"></script>
-```
+The Predicted error distribution panel shows the density of the response error. Peaks sit at the
+target (0°) and at each non-target's colour (the numbered triangles), and the bars below it show how
+the weight is split between the target (T), each non-target and guessing (G). The shaded band is
+±20° around the target, the window the Across set size panel counts. Move
+item 2 closer to the target on the display, or its colour closer to the target's colour, and watch
+which peak grows: distance changes the weight, colour changes where that weight lands.
+
+Slider ranges come from bmm's default priors. bmm estimates `c`, `a`, `s` and `kappa` on the log
+scale; the priors are normal(0, 1) for log `c`, log `a` and log `s` and normal(2, 1) for log `kappa`.
+Each slider spans the prior mean ± 3 SD on that scale and moves evenly in log units, while the
+number fields show natural units: `c`, `a` and `s` run from $e^{-3} = 0.05$ to $e^{3} = 20.1$, and
+`kappa` from $e^{-1} = 0.37$ to $e^{5} = 148$. They start at the prior means, $e^0 = 1$ for `c`, `a`
+and `s` and $e^2 = 7.39$ for `kappa`; the dashed curves and the "prior" bar keep these values. `b`
+has no prior because bmm fixes it at 1 (the "fixed to 0" in `?imm` is log `b`); its slider runs from
+0 to 5 to show what it does. Typed values outside the slider ranges are used as long as they are 0 or
+more and `c`, `a` and `b` are not all 0. Reset returns everything to the start.
 
 ## Across task settings
 
+The distances $d_i$ enter the weights $p_i$, and through them the likelihood (the probability the
+model assigns to the observed errors), so the IMM predicts a set-size effect with every parameter
+held fixed. Each added item adds $c\,e^{-s d_i} + a$ to the denominator of every weight. With the
+items equidistant, the nearest neighbour sits at 2π divided by the set size, so every new item also
+moves the neighbours closer to the cued location and $c\,e^{-s d}$ grows for them. The target's share of the total falls, and responses move to the
+non-targets. <span id="imm-across-now"></span> These numbers follow the controls.
+
+The three-parameter mixture model (`mixture3p`), bmm's other model for these data, has parameters
+for the proportions of target and non-target responses themselves rather than for activations. With its parameters held fixed it predicts the same proportions at every set
+size, so a set-size effect has to enter it through the parameters. This page shows the full IMM,
+`imm(version = "full")`. The two reduced versions are named after the parameters they keep:
+`version = "bsc"` drops `a` (the full model with `a` = 0), and `version = "abc"` drops `s` and the
+distances, so the non-targets get only `a`, as in the full model when `s` is large.
+
 ## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="imm-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="imm-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/imm.js"></script>
+```
+
+The code updates with the controls. `dimm()` returns the density for one trial with the colours
+`mu` and distances `dist` in radians, the target first. `imm()` defines the model for a data set in
+which each row is a trial: `nt_features` names the columns with the non-targets' colours,
+`nt_distances` the columns with their distances. `bmf()` writes the formula and `bmm()` estimates
+the parameters; `my_data` stands for your own data, and fitting runs Stan through brms. See the
+[IMM article](https://venpopov.com/bmm/articles/bmm_imm.html) and the reference pages for
+[`imm()`](https://venpopov.com/bmm/reference/imm.html) and
+[`dimm()`](https://venpopov.com/bmm/reference/IMMdist.html).
