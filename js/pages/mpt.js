@@ -1,4 +1,4 @@
-// Page script for models/mpt.qmd: the span tree (item memory Pm, binding Pb, guessing set by the response
+// Page script for models/mpt.qmd: the span tree (item memory Pi, binding Pb, guessing set by the response
 // set), drawn from its branch list, and its comparison with the M3 simple rule.
 import { mptProbs, mptCovariates, mptNodes, branchString } from "../models/mpt.js";
 import { SPAN_TREE, spanTreeToM3 } from "../models/mpt-span-tree.js";
@@ -6,16 +6,16 @@ import { m3Probs, ssActs } from "../models/m3.js";
 import { bindParams, readParams, setParams, fmt, LOGIT } from "../lib/widget.js";
 import { barPlot, linePlot, el, clear } from "../lib/plot.js";
 
-// bmm's mpt() puts Pm and Pb on the logit scale with a logistic(0, 1) prior, SD pi / sqrt(3): the
+// bmm's mpt() puts Pi and Pb on the logit scale with a logistic(0, 1) prior, SD pi / sqrt(3): the
 // sliders span mean +- 3 SD (+-5.44) and start at the prior mean, 0.5.
 const BOUNDS = { min: -5.44, max: 5.44, step: 0.04, scale: LOGIT };
-const PRIOR_MEANS = { Pm: 0.5, Pb: 0.5 };
+const PRIOR_MEANS = { Pi: 0.5, Pb: 0.5 };
 const MAX = { set_size: 9, n_npl: 12 };
 const START_COUNTS = { set_size: 6, n_other: 4, n_npl: 5 };
 const COLOR = { corr: "#0072B2", other: "#D55E00", npl: "#595959", both: "#CC79A7" };
 const LABEL = { corr: "correct", other: "other list", npl: "lure" };
 // What a trial is like at each inner node of the tree, by the node's path of factors.
-const STATE = { "": "trial", "/Pm": "in memory", "/1-Pm": "not in memory", "/Pm/1-Pb": "position lost" };
+const STATE = { "": "trial", "/Pi": "in memory", "/1-Pi": "not in memory", "/Pi/1-Pb": "position lost" };
 // Edge labels: parameters by name, guessing rates as the fraction of candidates they are.
 function edgeLabel(f, p) {
   const N = 1 + p.n_other + p.n_npl;
@@ -26,11 +26,11 @@ const sig = v => String(+v.toPrecision(3));
 
 const $ = id => document.getElementById(id);
 const pairs = bindParams({
-  Pm: ["mpt-pm", "mpt-pm-num"], Pb: ["mpt-pb", "mpt-pb-num"],
+  Pi: ["mpt-pi", "mpt-pi-num"], Pb: ["mpt-pb", "mpt-pb-num"],
   set_size: ["mpt-set-size", "mpt-set-size-num"], n_other: ["mpt-n-other", "mpt-n-other-num"], n_npl: ["mpt-n-npl", "mpt-n-npl-num"]
 }, draw);
 
-const values = p => ({ Pm: p.Pm, Pb: p.Pb, ...mptCovariates(SPAN_TREE, p) });
+const values = p => ({ Pi: p.Pi, Pb: p.Pb, ...mptCovariates(SPAN_TREE, p) });
 const probs = p => mptProbs(SPAN_TREE, values(p));
 const m3Simple = (ac, p) => m3Probs(ssActs({ ...ac, b: 0.1 }), [1, p.n_other, p.n_npl], "simple");
 const inRange = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
@@ -43,8 +43,8 @@ function problems(p) {
   if (!inRange(p.n_npl, 0, MAX.n_npl)) counts.push(["n_npl", `n_npl 0–${MAX.n_npl}`]);
   const out = counts.length ? [[counts.map(q => q[0]), "mpt-n-total", `Out of range: ${counts.map(q => q[1]).join(", ")}.`]] : [];
   // bmm's logit link needs probabilities strictly between 0 and 1, and dmpt() refuses 0 and 1.
-  const bad = ["Pm", "Pb"].filter(k => !(p[k] > 0 && p[k] < 1));
-  if (bad.length) out.push([bad, "mpt-range-hint", "Pm and Pb must be numbers strictly between 0 and 1."]);
+  const bad = ["Pi", "Pb"].filter(k => !(p[k] > 0 && p[k] < 1));
+  if (bad.length) out.push([bad, "mpt-range-hint", "Pi and Pb must be numbers strictly between 0 and 1."]);
   return out;
 }
 
@@ -111,7 +111,7 @@ function drawBars(cur, ref) {
 }
 
 // P(correct) along three ways of changing the response set from the current composition (as on the M3
-// page): lures only, other list items only, or both by the same step. Solid: the tree with Pm and Pb
+// page): lures only, other list items only, or both by the same step. Solid: the tree with Pi and Pb
 // fixed. Dotted: M3's simple rule with a and c fixed at the values that match the tree here.
 function compositions(p) {
   const lo = -Math.min(p.n_other, p.n_npl), hi = Math.min(p.set_size - 1 - p.n_other, MAX.n_npl - p.n_npl);
@@ -158,7 +158,7 @@ function drawCode(p, pr) {
   const rate = { gl_corr: `1/${1 + p.n_other}`, gl_other: `${p.n_other}/${1 + p.n_other}`, g_corr: `1/${N}`, g_other: `${p.n_other}/${N}`, g_npl: `${p.n_npl}/${N}` };
   const pad = Math.max(...SPAN_TREE.categories.map(c => c.length));
   const empty = [p.n_other === 0 && "other", p.n_npl === 0 && "npl"].filter(Boolean);
-  const fit = "fit <- bmm(formula = bmf(Pm ~ 1, Pb ~ 1), data = my_data, model = model)";
+  const fit = "fit <- bmm(formula = bmf(Pi ~ 1, Pb ~ 1), data = my_data, model = model)";
   // R code: plain ASCII digits and minus, so the snippet pastes into R unchanged.
   $("mpt-code").textContent =
 `library(bmm)
@@ -171,14 +171,21 @@ model <- mpt(span, covariates = c(${Object.keys(SPAN_TREE.covariates).map(k => `
 rates <- c(${Object.entries(rate).map(([k, v]) => `${k} = ${v}`).join(", ")})
 
 # log likelihood of response counts per category; here 100 trials split as predicted.
-# pars are probabilities; bmm() estimates logit(Pm) and logit(Pb).
-dmpt(x = c(${expectedCounts(pr).join(", ")}), pars = c(Pm = ${p.Pm}, Pb = ${p.Pb}), mpt_model = model, covariates = rates)
+# pars are probabilities; bmm() estimates logit(Pi) and logit(Pb).
+dmpt(x = c(${expectedCounts(pr).join(", ")}), pars = c(Pi = ${p.Pi}, Pb = ${p.Pb}), mpt_model = model, covariates = rates)
 
 # fit: one row per participant and condition, columns corr, other, npl with the counts
 # and the five rates as columns
 ${empty.length
-  ? `# bmm() stops on this design: a category that cannot occur in any row of the data
-# (here ${empty.join(", ")}) is not identified. Fit data in which every category can occur.
+  // What one such response set tells about the parameters: at n_other = 0 Pb drops out of every
+  // branch, at n_npl = 0 Pi and Pb enter corr and other only as the product Pi * Pb.
+  ? `# bmm() stops on data with rows like this one: ${empty.join(" and ")} cannot occur here (branch
+# probability 0), and bmm() needs every branch above 0 in every row. Such rows take a second
+# tree that has no branch for ${empty.join(" and ")} and lists ${empty.length > 1 ? "them" : "it"} under mpt_tree(impossible = )
+# (mpt_tree() refuses a category given both), chosen per row with mpt(tree_id = ).
+# With this response set alone, ${p.n_other === 0 && p.n_npl === 0
+  ? "every response is correct, so neither Pi nor Pb is identified"
+  : p.n_other === 0 ? "the data identify Pi but not Pb" : "the data identify only the product Pi * Pb"}.
 # ${fit}`
   : fit}`;
 }
@@ -195,7 +202,7 @@ function draw() {
   }
   for (const id of ["mpt-widget", "mpt-code", "mpt-across-now"]) $(id).classList.toggle("ex-stale", bad.length > 0);
   $("mpt-n-total").textContent = `N = 1 correct + ${p.n_other} other + ${p.n_npl} lures = ${1 + p.n_other + p.n_npl}`;
-  $("mpt-range-hint").textContent = "Sliders move on the logit scale; boxes show Pm and Pb.";
+  $("mpt-range-hint").textContent = "Sliders move on the logit scale; boxes show Pi and Pb.";
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
   if (bad.length) return;
   const cur = probs(p);
@@ -208,6 +215,6 @@ function draw() {
 
 $("mpt-reset").addEventListener("click", () => { setParams(pairs, { ...PRIOR_MEANS, ...START_COUNTS }); draw(); });
 $("mpt-copy").addEventListener("click", () => navigator.clipboard?.writeText($("mpt-code").textContent));
-for (const k of ["Pm", "Pb"]) pairs[k].setBounds(BOUNDS);
+for (const k of ["Pi", "Pb"]) pairs[k].setBounds(BOUNDS);
 setParams(pairs, { ...PRIOR_MEANS, ...START_COUNTS });
 draw();

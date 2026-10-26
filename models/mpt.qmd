@@ -33,9 +33,9 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="mpt-pm">Pm, item in memory</label>
-      <input type="range" id="mpt-pm">
-      <input type="number" id="mpt-pm-num" aria-label="Pm">
+      <label for="mpt-pi">Pi, item in memory</label>
+      <input type="range" id="mpt-pi">
+      <input type="number" id="mpt-pi-num" aria-label="Pi">
       <label for="mpt-pb">Pb, position retrieved, given the item</label>
       <input type="range" id="mpt-pb">
       <input type="number" id="mpt-pb-num" aria-label="Pb">
@@ -66,22 +66,33 @@ toc: false
 
 A multinomial processing tree (MPT; [Batchelder & Riefer, 1999](https://doi.org/10.3758/BF03210812))
 describes a response as the end of a path through discrete states. This tree is written for cued
-recall of a list item from a set of candidates, the task of the [M3 simple-span page](m3.qmd), and follows the binding model of
-[Oberauer (2019)](https://doi.org/10.5334/joc.86), with item memory tested first. With probability
-`Pm` the cued item is in memory. Given that, with probability `Pb` its position is retrieved too, and
-the response is correct. An item in memory without its position leaves a guess among the
-$1 + n_\text{other}$ list items on the screen, the correct one among them; an item not in memory leaves a guess among all $N$
-candidates. With $n_\text{other}$ other list items and $n_\text{npl}$ lures, $N = 1 + n_\text{other} + n_\text{npl}$:
+recall of a list item from a set of candidates, the task of the [M3 simple-span page](m3.qmd). With
+probability `Pi` the cued item is in memory. Given that, with probability `Pb` its position is
+retrieved too, and the response is correct. It uses the two memory states of the binding model of
+[Oberauer (2019)](https://doi.org/10.5334/joc.86) in the reverse order. In Oberauer's tree, which
+the [MPT article](https://venpopov.com/bmm/articles/bmm_mpt.html) uses to introduce covariates, the
+binding is tested first: its `Pb` is the probability of retrieving the binding on any trial, and its
+`Pi` the probability of item memory on trials where the binding was not retrieved. Here `Pi` holds
+for every trial and `Pb` only for trials with the item in memory, the order of the article's
+real-data example. With that tree's guessing rates set from the same response set, `GcorrPi`
+$= 1/(1 + n_\text{other})$, `GcorrNoPi` $= 1/N$ and `GotherNoPi`
+$= n_\text{other}/(n_\text{other} + n_\text{npl})$ (the share of list items among the wrong
+candidates; with no wrong candidate on the screen `GcorrNoPi` is 1 and `GotherNoPi` multiplies
+$1 - 1 = 0$, so any value in [0, 1] will do), the two trees give the same likelihood under a change
+of parameters: that tree's `Pb` is $P_i P_b$, and its `Pi` is $P_i (1 - P_b) / (1 - P_i P_b)$. An
+item in memory without its position leaves a guess among the $1 + n_\text{other}$ list items on the
+screen, the correct one among them; an item not in memory leaves a guess among all $N$ candidates. With $n_\text{other}$
+other list items and $n_\text{npl}$ lures, $N = 1 + n_\text{other} + n_\text{npl}$:
 
 $$
 \begin{aligned}
-P(\text{corr}) &= P_m P_b + P_m (1 - P_b) \tfrac{1}{1 + n_\text{other}} + (1 - P_m) \tfrac{1}{N} \\
-P(\text{other}) &= P_m (1 - P_b) \tfrac{n_\text{other}}{1 + n_\text{other}} + (1 - P_m) \tfrac{n_\text{other}}{N} \\
-P(\text{npl}) &= (1 - P_m) \tfrac{n_\text{npl}}{N}
+P(\text{corr}) &= P_i P_b + P_i (1 - P_b) \tfrac{1}{1 + n_\text{other}} + (1 - P_i) \tfrac{1}{N} \\
+P(\text{other}) &= P_i (1 - P_b) \tfrac{n_\text{other}}{1 + n_\text{other}} + (1 - P_i) \tfrac{n_\text{other}}{N} \\
+P(\text{npl}) &= (1 - P_i) \tfrac{n_\text{npl}}{N}
 \end{aligned}
 $$
 
-`Pm` and `Pb` are estimated. The five guessing rates, the fractions in these formulas, are fixed by
+`Pi` and `Pb` are estimated. The five guessing rates, the fractions in these formulas, are fixed by
 the response set: `gl_corr` $= 1/(1 + n_\text{other})$ and `gl_other` $= n_\text{other}/(1 + n_\text{other})$
 for the guess among list items, `g_corr` $= 1/N$, `g_other` $= n_\text{other}/N$ and `g_npl`
 $= n_\text{npl}/N$ for the guess among all candidates. They enter bmm's `mpt()` as covariates, data
@@ -101,11 +112,11 @@ The tree shows each state and each branch with its current probability: a parame
 rate written as the share of the candidates guessed among (1/5: the correct letter among five list
 letters). An edge is drawn as wide
 as the probability that a trial passes along it, and each leaf shows the probability of that path;
-the paths ending in one category add up to its bar. Raising `Pm` moves weight from the guess among all
+the paths ending in one category add up to its bar. Raising `Pi` moves weight from the guess among all
 candidates to the list; raising `Pb` moves it from the guess among list items to a correct response.
 
-bmm estimates `Pm` and `Pb` on the logit scale with a logistic(0, 1) prior, whose SD is π/√3 ≈ 1.81.
-Each slider spans the prior mean ± 3 SD on that scale, so `Pm` and `Pb` run from 0.004 to 0.996 and start at the prior
+bmm estimates `Pi` and `Pb` on the logit scale with a logistic(0, 1) prior, whose SD is π/√3 ≈ 1.81.
+Each slider spans the prior mean ± 3 SD on that scale, so `Pi` and `Pb` run from 0.004 to 0.996 and start at the prior
 mean, 0.5 (dashed bars).
 
 ## Across task settings
@@ -113,7 +124,7 @@ mean, 0.5 (dashed bars).
 The guessing rates follow from the counts, so the tree predicts the response-set effect without a new
 parameter, and it predicts a floor: a trial on which the position is retrieved is correct whatever
 else is on the screen. Lures enter only through the guess among all candidates, so adding lures moves
-P(correct) toward $P_m P_b + P_m (1 - P_b) / (1 + n_\text{other})$, not toward 0.
+P(correct) toward $P_i P_b + P_i (1 - P_b) / (1 + n_\text{other})$, not toward 0.
 
 The [M3](m3.qmd) describes the same task with activations instead of states: every candidate gets
 background activation `b`, list items add general activation `a`, the cued item adds context
@@ -123,10 +134,10 @@ one response set. With $b = 0.1$ and $S = (b + a + c) + n_\text{other} (b + a) +
 activation,
 
 $$
-P_m = \frac{(1 + n_\text{other})\, a + c}{S}, \qquad P_b = \frac{c}{(1 + n_\text{other})\, a + c}.
+P_i = \frac{(1 + n_\text{other})\, a + c}{S}, \qquad P_b = \frac{c}{(1 + n_\text{other})\, a + c}.
 $$
 
-This mapping depends on the counts. Holding `Pm` and `Pb` fixed across response sets (solid lines) is
+This mapping depends on the counts. Holding `Pi` and `Pb` fixed across response sets (solid lines) is
 therefore a different prediction from holding `a` and `c` fixed (dotted lines): the lines meet at the
 circle and part away from it.
 <span id="mpt-across-now"></span> These numbers follow the controls.
@@ -143,7 +154,7 @@ circle and part away from it.
 
 The code updates with the controls. `mpt_tree()` writes the tree as one branch expression per response
 category, `mpt()` turns it into a model and declares the guessing rates as covariates, `dmpt()` returns
-the log probability of a set of response counts, and `bmm()` estimates `Pm` and `Pb` from data;
+the log probability of a set of response counts, and `bmm()` estimates `Pi` and `Pb` from data;
 `my_data` stands for your own data, with the five rates as columns, and fitting runs Stan through
 brms. See the [MPT article](https://venpopov.com/bmm/articles/bmm_mpt.html), which fits this kind of
 tree to the data of the M3 article, and the reference pages for

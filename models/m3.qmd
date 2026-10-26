@@ -86,8 +86,8 @@ participant can give. Each candidate has an activation, how strongly it comes to
 with the same sources of activation form a category. In a simple-span task (bmm's version `ss`) there
 are three categories: the item at the cued position (`corr`), the other list items (`other`), and
 candidates that were not on the list (`npl`, not-presented lures). A complex-span task (version `cs`)
-adds distractors, items processed between the list items, in two more categories: distractors close
-to the cued position (`dist_context`) and the other distractors (`dist_other`). The activations are
+adds distractors, items processed between the list items, in two more categories: distractors in or
+close to the cued position (`dist_context`) and the other distractors (`dist_other`). The activations are
 
 $$
 \begin{aligned}
@@ -129,16 +129,25 @@ Set size is the number of letters studied; `n_other` of the other list letters a
 so `n_other` is at most set size − 1. N is the total number of candidates.
 
 In the complex-span version a distractor letter follows each list letter (dashed tiles); it is read
-aloud and not to be remembered. The distractors just before and just after the cued letter are close
-to it in context (green), the others are not (purple), and `n_dist_context` and `n_dist_other` of
-them are offered at test. Set size goes up to 6 and lures up to 9 there, so that every candidate fits
-on the screen.
+aloud and not to be remembered. Which distractors count as close to the cued position is left to the
+design: `m3()` takes only the number of candidates in each category, however the design assigned
+them. The assignment here is this page's choice. It cues the third letter (the last one in a shorter
+list) and counts the distractor just after it and the one just before it as close in context (green),
+the others as not (purple). At set size 1 the cued letter is the first, with no distractor before it,
+so only one distractor is close. `n_dist_context` of the close and `n_dist_other` of the other
+distractors are offered at test. Set size goes up to 6 and lures up to 9 there, so that every
+candidate fits on the screen.
 
 ## Explore
 
-Each bar is the probability of a response in that category; the bars sum to 1. Raising `a` moves
-responses from lures to the list, raising `c` from other list items to the correct one, raising `f`
-draws responses to the distractors. Set size alone does not move the bars (see below). Reset returns the
+Each bar is the probability of a response in that category; the bars sum to 1. Raising `a` lifts every
+list item and, by $f \cdot a$, every distractor, so the lures lose responses. Raising `c` lifts the
+correct item: P(correct) rises, and other list items, lures and far distractors lose. In complex span
+the near distractors gain $f \cdot c$ as well, and their share can rise or fall. Raising `f` moves the
+near distractors' activation from a lure's (`b`, at `f` = 0) toward the correct item's (`b + a + c`, at
+`f` = 1), and the far distractors' toward another list item's (`b + a`). With positive `a` and `c` the
+distractors together then draw more responses, though one distractor category alone can lose some to
+the other. Set size alone does not move the bars (see below). Reset returns the
 parameters to the current rule's prior means and the task settings to their starting values.
 
 Slider ranges come from bmm's default priors. The simple rule estimates log `a` with

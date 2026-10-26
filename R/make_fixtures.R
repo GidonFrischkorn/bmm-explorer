@@ -8,9 +8,19 @@ dir.create(out, showWarnings = FALSE, recursive = TRUE)
 suppressPackageStartupMessages(library(bmm))
 version <- as.character(packageVersion("bmm"))
 has <- function(fn) exists(fn, asNamespace("bmm"), inherits = FALSE)
+# A function bmm ships from version `since` on. Its fixture is skipped only for an older bmm; a newer bmm
+# without it stops the script, so a lost or renamed function cannot pass as a skipped fixture.
+has_since <- function(fn, since) {
+  if (has(fn)) return(TRUE)
+  if (package_version(version) >= since) stop(sprintf("bmm %s has no %s(), which bmm ships from %s on", version, fn, since))
+  FALSE
+}
+# 17 significant digits: a double reads back as the value bmm computed. digits = NA keeps 15, which moves
+# values by up to 5e-15 relative, about 22 units in the last place near 1 (sqrt(32), a branch cut of
+# pnorm(), lands below the cut).
 write_fx <- function(name, cells, extra = list()) {
   jsonlite::write_json(c(list(bmm_version = version, generated = format(Sys.time(), "%Y-%m-%d")), extra, list(cells = cells)),
-                       file.path(out, paste0(name, ".json")), digits = NA, auto_unbox = TRUE)
+                       file.path(out, paste0(name, ".json")), digits = I(17), auto_unbox = TRUE)
   cat(sprintf("%-10s %3d cells\n", name, length(cells)))
 }
 x <- seq(-pi, pi, length.out = 61)
@@ -39,7 +49,7 @@ write_fx("circular", cells)
 cells <- list()
 # The gaussian rule needs bmm's quadrature rule (.m3_gauss_rule(), from bmm 1.4.1 on); the page reads it
 # from nodes.json, so the explorer integrates on bmm's own nodes.
-has_gauss <- has(".m3_gauss_rule")
+has_gauss <- has_since(".m3_gauss_rule", "1.4.1")
 rules <- c("simple", "softmax", if (has_gauss) "gaussian")
 if (has_gauss) {
   gh <- bmm:::.m3_gauss_rule()
@@ -96,26 +106,35 @@ write_fx("m3", cells)
 # --- mpt ---------------------------------------------------------------------
 # The span tree of the MPT page (js/models/mpt-span-tree.js holds the same branches; the test compares the
 # strings). Guessing rates follow from the response set and enter as covariates. dmpt() needs bmm >= 1.4.1;
-# without it no mpt.json is written and the test skips.
-if (has("dmpt")) {
+# an older bmm writes no mpt.json, and the test skips it.
+if (has_since("dmpt", "1.4.1")) {
   branches <- list(
-    corr = "Pm * Pb + Pm * (1 - Pb) * gl_corr + (1 - Pm) * g_corr",
-    other = "Pm * (1 - Pb) * gl_other + (1 - Pm) * g_other",
-    npl = "(1 - Pm) * g_npl")
+    corr = "Pi * Pb + Pi * (1 - Pb) * gl_corr + (1 - Pi) * g_corr",
+    other = "Pi * (1 - Pb) * gl_other + (1 - Pi) * g_other",
+    npl = "(1 - Pi) * g_npl")
   mod <- mpt(mpt_tree("span", branches), covariates = c("gl_corr", "gl_other", "g_corr", "g_other", "g_npl"))
   # 100 trials split as predicted, rounded so the counts sum to 100 (the page's dmpt() call does the same)
   split100 <- function(p) { k <- floor(100 * p); r <- order(-(100 * p - k)); i <- r[seq_len(100 - sum(k))]; k[i] <- k[i] + 1; k }
   p_lv <- signif(plogis(c(-5.44, 0, 5.44)), 3)
   cells <- list()
-  for (n in list(c(4, 5), c(0, 0), c(8, 12), c(0, 6), c(3, 0))) for (pm in p_lv) for (pb in p_lv) {
+  for (n in list(c(4, 5), c(0, 0), c(8, 12), c(0, 6), c(3, 0))) for (p_i in p_lv) for (p_b in p_lv) {
     N <- 1 + sum(n)
     cv <- c(gl_corr = 1 / (1 + n[1]), gl_other = n[1] / (1 + n[1]), g_corr = 1 / N, g_other = n[1] / N, g_npl = n[2] / N)
-    probs <- bmm:::.mpt_probability_vector(c(Pm = pm, Pb = pb), mod, covariates = cv)
+    probs <- bmm:::.mpt_probability_vector(c(Pi = p_i, Pb = p_b), mod, covariates = cv)
     x <- split100(unname(probs))
-    cells[[length(cells) + 1]] <- list(fn = "mpt_span", args = list(Pm = pm, Pb = pb, n_other = n[1], n_npl = n[2]),
+    cells[[length(cells) + 1]] <- list(fn = "mpt_span", args = list(Pi = p_i, Pb = p_b, n_other = n[1], n_npl = n[2]),
       probs = unname(probs), counts = x,
-      logd = dmpt(x, pars = c(Pm = pm, Pb = pb), mpt_model = mod, covariates = cv))
+      logd = dmpt(x, pars = c(Pi = p_i, Pb = p_b), mpt_model = mod, covariates = cv))
   }
   write_fx("mpt", cells, list(branches = branches))
 } else cat("mpt        skipped: this bmm has no dmpt()\n")
+
+# --- math --------------------------------------------------------------------
+# logPnorm() in js/lib/math.js is R's pnorm(x, log.p = TRUE), which bmm's gaussian M3 rule calls. Points on
+# both sides of the branch cuts of R's algorithm (|x| = 0.67448975 and sqrt(32)), at 0 and +-1e-17, out to
+# the far lower tail and to the upper tail where log Phi underflows to 0.
+x <- c(-1e5, -1e3, -200, -50, -38.5, -37.5193, -20, -10, -8, -5.656854249492380195, -5.66, -5.65, -3, -1,
+       -0.67448975, -0.6745, -0.674, -0.3, -1e-17, 0, 1e-17, 0.3, 0.674, 0.67448975, 0.6745, 1, 3, 5.65,
+       5.656854249492380195, 5.66, 8, 8.2924, 10, 20, 37, 38.5, 40, 1e3)
+write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd = pnorm(x, log.p = TRUE))))
 cat("bmm", version, "->", out, "\n")

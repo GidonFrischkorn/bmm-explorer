@@ -56,8 +56,11 @@ const rule = () => ruleInputs.find(r => r.checked).value;
 const version = () => versionInputs.find(r => r.checked).value;
 const priorMeans = r => ({ a: PRIOR[r].scale.fromRange(PRIOR[r].a[0]), c: PRIOR[r].scale.fromRange(PRIOR[r].c[0]), f: F_START });
 
-// Each letter is followed by a distractor in the complex-span task. The distractors right before and
-// right after the cued letter are close to it in context (dist_context); the rest are dist_other.
+// Each letter is followed by a distractor in the complex-span task. bmm takes only the counts per
+// category and leaves to the design which distractors are close to the cued position; this page cues
+// the third letter (the last of a shorter list) and counts the distractor right after it and the one
+// right before it (none when the first letter is cued, at set size 1) as dist_context, the rest as
+// dist_other.
 const cuedAt = setSize => Math.min(2, setSize - 1);
 const nearCue = setSize => (cuedAt(setSize) > 0 ? 2 : 1);
 
@@ -65,13 +68,16 @@ const numOptions = (p, v) => (v === "cs"
   ? [1, p.n_dist_context, p.n_other, p.n_dist_other, p.n_npl] : [1, p.n_other, p.n_npl]);
 const totalN = (p, v) => numOptions(p, v).reduce((s, n) => s + n, 0);
 
-// null where the simple rule would get a negative or zero total activation (only reachable by typing).
+// null where the simple rule would get a negative or zero total activation, or where the computation
+// overflows (both only reachable by typing). An overflowed total is Infinity and turns every probability
+// into a finite 0, so finiteness alone does not catch it; the sum does. The tolerance leaves room for
+// the gaussian rule, whose quadrature sums to 1 only approximately.
 function probs(p, v, choiceRule) {
   const b = defaultB(choiceRule);
   const acts = v === "cs" ? csActs({ ...p, b }) : ssActs({ ...p, b });
   if (choiceRule === "simple" && acts.some(A => A < 0)) return null;
   const pr = m3Probs(acts, numOptions(p, v), choiceRule, GH);
-  return pr.every(Number.isFinite) ? pr : null;
+  return pr.every(Number.isFinite) && Math.abs(pr.reduce((s, q) => s + q, 0) - 1) < 1e-3 ? pr : null;
 }
 
 const inRange = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
@@ -95,10 +101,22 @@ function problems(p, v, choiceRule) {
   if (ac.length) {
     out.push([ac, "m3-range-hint", (choiceRule === "simple" ? "Under the simple rule a and c must be numbers ≥ 0" : "a and c must be numbers") +
       (v === "cs" ? ", f a number from 0 to 1." : ".")]);
-  } else if (!counts.length && !probs(p, v, choiceRule)) {
-    out.push([["a", "c"], "m3-range-hint", "No finite prediction for these a and c."]);
   }
   return out;
+}
+
+// Every probability one redraw shows, or null if any is invalid. The across panel evaluates response
+// sets other than the current one, and a typed activation can overflow there only (softmax, simple span
+// or complex span with f up to the slider's 0.996, a = 708, c = 0, set size 6, n_other = 0: valid now,
+// overflowed from n_other = 5 on; at the prior mean c = 3 the current set overflows too), so the check
+// covers them all before anything is drawn.
+function predict(p, v, choiceRule) {
+  const ref = priorMeans(choiceRule), cur = probs(p, v, choiceRule), refCur = probs({ ...p, ...ref }, v, choiceRule);
+  const series = [{ ...p, ...ref }, p].flatMap((q, j) => compositions(q, v).map(comp => ({
+    x: comp.pts.map(s => totalN(s, v)), y: comp.pts.map(s => probs(s, v, choiceRule)?.[0]),
+    color: comp.color, dashed: j === 0
+  })));
+  return cur && refCur && series.every(s => s.y.every(Number.isFinite)) ? { cur, refCur, series } : null;
 }
 
 // Counts cannot exceed the candidates there are: a smaller set size pulls n_other and the distractor
@@ -191,11 +209,7 @@ function compositions(p, v) {
   return [lures, others, { color: COLOR.both, pts: range(hi - lo, i => ({ ...p, n_other: p.n_other + lo + i, n_npl: p.n_npl + lo + i })) }];
 }
 
-function drawAcross(p, ref, v, choiceRule, cur) {
-  const series = [{ ...p, ...ref }, p].flatMap((q, j) => compositions(q, v).map(comp => ({
-    x: comp.pts.map(s => totalN(s, v)), y: comp.pts.map(s => probs(s, v, choiceRule)[0]),
-    color: comp.color, dashed: j === 0
-  })));
+function drawAcross(p, v, choiceRule, { cur, series }) {
   const { sx, sy } = linePlot($("m3-across"), {
     W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, xlim: [1, 21], ylim: [0, 1],
     xticks: [1, 5, 9, 13, 17, 21], yticks: [0, 0.25, 0.5, 0.75, 1], xlab: "Response-set size N", ylab: "P(correct)", series
@@ -262,6 +276,19 @@ function draw() {
   const v = version(), r = rule();
   capCounts(v);
   const p = readParams(pairs), bad = problems(p, v, r);
+  const pred = bad.length ? null : predict(p, v, r);
+  // Only a or c typed far outside the slider range overflows or underflows; the counts decide in which
+  // response set. The one outside its range is the one to change. The slack covers slider ends stored at
+  // three significant digits (e^3 shows as 20.1).
+  if (!bad.length && !pred) {
+    const off = ["a", "c"].filter(k => {
+      const [m, sd] = PRIOR[r][k], x = PRIOR[r].scale.toRange(p[k]);
+      return !(Math.abs(x - m) <= 3 * sd + 1e-2);
+    });
+    const blame = off.length ? off : ["a", "c"];
+    bad.push([blame, "m3-range-hint",
+      `With ${blame.join(" and ")} this far outside the slider range, some response set shown has no finite prediction.`]);
+  }
   // Out-of-range input flags its box and dims every output, so nothing reads as the result for it.
   const flagged = new Set(bad.flatMap(([fields]) => fields));
   for (const [k, pair] of Object.entries(pairs)) {
@@ -275,11 +302,10 @@ function draw() {
   $("m3-range-hint").textContent = RULE_HINT[r] + (GH ? "" : " The gaussian rule is off: bmm's quadrature nodes did not load.");
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
   if (bad.length) return;
-  const ref = priorMeans(r), cur = probs(p, v, r);
   drawTask(p, v);
-  drawBars(cur, probs({ ...p, ...ref }, v, r), v);
-  drawAcross(p, ref, v, r, cur);
-  drawCode(p, v, r, cur);
+  drawBars(pred.cur, pred.refCur, v);
+  drawAcross(p, v, r, pred);
+  drawCode(p, v, r, pred.cur);
   $("m3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

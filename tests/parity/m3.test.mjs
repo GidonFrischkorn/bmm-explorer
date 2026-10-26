@@ -1,9 +1,9 @@
 import { test } from "node:test";
-import { loadFixture, loadFixtureIfPresent, assertClose } from "./helpers.mjs";
+import { loadFixture, loadFixtureSince, assertClose } from "./helpers.mjs";
 import { m3Probs, ssActs, csActs } from "../../js/models/m3.js";
 
 const fx = loadFixture("m3");
-const gh = loadFixtureIfPresent("nodes")?.cells.find(c => c.fn === ".m3_gauss_rule");
+const gh = loadFixtureSince("nodes")?.cells.find(c => c.fn === ".m3_gauss_rule");
 for (const cell of fx.cells) {
   test(`${cell.fn} ${JSON.stringify(cell.args)} matches bmm ${fx.bmm_version}`, () => {
     const { args } = cell;

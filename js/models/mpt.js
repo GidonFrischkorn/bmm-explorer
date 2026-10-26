@@ -1,6 +1,6 @@
 // Multinomial processing trees as bmm's mpt() evaluates them (.mpt_probability_vector in R/distributions.R):
 // a category's probability is the sum of its branches, a branch the product of its factors. A tree is
-// data: { categories, parameters, covariates, branches: [{ cat, path: ["Pm", "1-Pb", "gl_corr"] }] },
+// data: { categories, parameters, covariates, branches: [{ cat, path: ["Pi", "1-Pb", "gl_corr"] }] },
 // where a factor names a parameter or covariate and "1-" takes its complement. Covariates are functions
 // of the task settings (the guessing rates of a response set); bmm takes them as data columns.
 // Held to bmm by tests/parity/mpt.test.mjs.
@@ -22,7 +22,7 @@ export const mptCovariates = (tree, settings) =>
 
 export const dmpt = (x, tree, values) => logMultinom(x, mptProbs(tree, values));
 
-// One category's branch expression as mpt_tree() takes it, e.g. "Pm * (1 - Pb) * gl_corr + ...".
+// One category's branch expression as mpt_tree() takes it, e.g. "Pi * (1 - Pb) * gl_corr + ...".
 export const branchString = (tree, cat) => tree.branches.filter(b => b.cat === cat)
   .map(b => b.path.map(f => (f.startsWith("1-") ? `(1 - ${f.slice(2)})` : f)).join(" * ")).join(" + ");
 
