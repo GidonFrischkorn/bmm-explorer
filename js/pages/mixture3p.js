@@ -74,12 +74,12 @@ function components(mu, p) {
 
 function drawDensity(mu, p) {
   const total = q => dmixture3p(CIRC_X, { mu, ...q }).map(Math.exp);
-  const c = components(mu, p), zero = CIRC_X.map(() => 0);
+  const c = components(mu, p);
   circularPlot($("mix3-density"), {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Density (per radian)",
     series: [{ y: total(START), color: WEIGHT_COLOR.target, dashed: true }, { y: total(p), color: WEIGHT_COLOR.target }],
     areas: [
-      { lo: zero, hi: c.base, color: WEIGHT_COLOR.guess, opacity: 0.3 },
+      { lo: CIRC_X.map(() => 0), hi: c.base, color: WEIGHT_COLOR.guess, opacity: 0.3 },
       { lo: c.base, hi: c.top1, color: WEIGHT_COLOR.nt, opacity: 0.3 },
       { lo: c.top1, hi: c.top2, color: WEIGHT_COLOR.target, opacity: 0.3 }],
     marks: mu.map((m, i) => ({ at: m, color: hue(m), label: i + 1 }))

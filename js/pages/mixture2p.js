@@ -51,10 +51,9 @@ function drawWeights(p) {
 
 function drawCode(p) {
   // R code: plain ASCII digits and minus, so the snippet pastes into R unchanged.
-  const logit = p.p_mem === 0 ? -Infinity : p.p_mem === 1 ? Infinity : Math.log(p.p_mem / (1 - p.p_mem));
   $("mix2-code").textContent =
 `library(bmm)
-# density over the response error (radians); mu is fixed at 0 in bmm
+# density over the response error (radians); bmm fixes mu1, the location, at 0 unless the formula includes mu1
 x <- seq(-pi, pi, length.out = 361)
 d <- dmixture2p(x, mu = 0, kappa = ${p.kappa}, p_mem = ${p.p_mem})
 plot(x * 180 / pi, d, type = "l", xlab = "response error (degrees)", ylab = "density")
@@ -63,7 +62,7 @@ plot(x * 180 / pi, d, type = "l", xlab = "response error (degrees)", ylab = "den
 model <- mixture2p(resp_error = "resp_error")
 fit <- bmm(formula = bmf(thetat ~ 1, kappa ~ 1), data = my_data, model = model)
 # bmm estimates thetat (p_mem) on the logit scale and kappa on the log scale. The values above are
-# thetat = qlogis(${p.p_mem}) = ${inf(logit)} and log(kappa) = ${p.kappa > 0 ? Math.log(p.kappa).toFixed(2) : "-Inf"}.`;
+# thetat = qlogis(${p.p_mem}) = ${inf(Math.log(p.p_mem / (1 - p.p_mem)))} and log(kappa) = ${p.kappa > 0 ? Math.log(p.kappa).toFixed(2) : "-Inf"}.`;
 }
 
 function draw() {

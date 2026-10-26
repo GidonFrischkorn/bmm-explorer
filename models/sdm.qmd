@@ -3,6 +3,7 @@ title: "Signal discrimination model"
 subtitle: "Continuous reproduction: memory strength and precision, with no separate guessing parameter"
 model: sdm
 set-size-formula: "c ~ 0 + set_size"
+set-size-fixed: "The likelihood of `sdm` has no set-size variable: the density uses the response error and nothing else about the trial. The memory strength `c` and the precision `kappa` are set by the parameters alone, whatever the number of items on the display."
 page-layout: full
 toc: false
 ---
@@ -82,7 +83,8 @@ f(x) = \frac{1}{Z} \exp\!\left( c \sqrt{\frac{\kappa}{2\pi}}\; e^{\kappa(\cos(x 
 \qquad Z = \int_{-\pi}^{\pi} \exp\!\left( c \sqrt{\frac{\kappa}{2\pi}}\; e^{\kappa(\cos(x - \mu) - 1)} \right) dx
 $$
 
-In the formula $\mu$ is the location of the distribution, fixed at 0 in bmm. The `bessel`
+In the equation $\mu$ is the location of the distribution, which bmm fixes at 0 unless `mu` is added
+to the model formula in `bmf()`. The `bessel`
 parametrization is the original one: the activation is
 $c\, e^{\kappa \cos(x - \mu)} / (2\pi I_0(\kappa))$, with $I_0$ the modified Bessel function of order 0.
 At `c` = 0 nothing is recalled and every error is equally likely, so guessing is not a separate
@@ -113,13 +115,16 @@ bmm's integral to better than 10⁻⁹ on the log density in every test of this 
 
 The `c` slider runs from 0 to 20 and the `kappa` slider from 0.1 to 50, moving evenly in log units for
 `kappa`; the number fields show natural units. These ranges are this page's choice, as the article
-names none. bmm's default priors are student_t(5, 2, 0.75) on log `c` and student_t(5, 1.75, 0.75) on
-log `kappa`; the starting values, which the dashed curves keep, are their centres, $e^{2} = 7.39$
-and $e^{1.75} = 5.75$. Typed values outside the sliders' ranges are used as long as the density can
-be computed. The radio buttons switch the parametrization. The two give the same family of densities
-with different values of `c`, so switching converts `c`, rounded to three digits in the number field, and the curve stays where
-it is; bmm converts with `c_sqrtexp2bessel()` and `c_bessel2sqrtexp()`. Reset returns everything to
-the starting values.
+names none. bmm estimates `c` on the log scale too, but its slider moves in natural units, because a
+log scale has no place for `c` = 0, the limit at which every error is equally likely. bmm's default
+priors are student_t(5, 2, 0.75) on log `c` and student_t(5, 1.75, 0.75) on log `kappa`; the starting
+values, which the dashed curves keep, are their centres, $e^{2} = 7.39$ and $e^{1.75} = 5.75$. Typed
+values outside the sliders' ranges are used as long as the density can be computed, and the hint under
+the sliders says when a value lies beyond its slider. The radio buttons switch the parametrization.
+The two give the same family of densities with different values of `c`, so switching converts `c`,
+rounded to three digits in the number field, and the curve stays where it is. At `kappa` = 0 the
+density is uniform for every `c` in both, so switching leaves `c` as it is. bmm converts with
+`c_sqrtexp2bessel()` and `c_bessel2sqrtexp()`. Reset returns everything to the starting values.
 
 ## Across task settings
 
@@ -143,5 +148,5 @@ and `bmm()` estimates the parameters; `my_data` stands for your own data, and fi
 through brms. See the [SDM article](https://venpopov.com/bmm/articles/bmm_sdm_simple.html) and the
 reference pages for [`sdm()`](https://venpopov.com/bmm/reference/sdm.html) and
 [`dsdm()`](https://venpopov.com/bmm/reference/SDMdist.html). bmm cites the model as Oberauer, K.
-(2023). Measurement models for visual working memory: A factorial model comparison.
-*Psychological Review, 130*(3), 841–852. <https://doi.org/10.1037/rev0000328>
+(2023). Measurement models for visual working memory—A factorial model comparison.
+*Psychological Review, 130*(3), 841-852. <https://doi.org/10.1037/rev0000328>

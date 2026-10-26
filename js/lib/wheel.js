@@ -2,6 +2,7 @@
 // optionally, draggable non-target colours. Shared by the pages that show where the non-targets sit.
 import { el, clear } from "./plot.js";
 import { DEG, wrap } from "./circular-plot.js";
+import { fmt } from "./widget.js";
 
 export const TAU = 2 * Math.PI;
 // Colour at angle mu (radians from the target) on the wheel; the density marks use the same colours.
@@ -17,6 +18,9 @@ export function colourWheel(svg, onColour) {
   let focus = null;
 
   function draw(mu, note) {
+    // A redraw started outside the wheel (a button, a slider) must not pull focus back to a dot:
+    // browsers that do not focus a clicked button or range fire no focusin to clear the memory.
+    const refocus = focus !== null && svg.contains(document.activeElement);
     clear(svg);
     svg.setAttribute("viewBox", `0 0 ${G.W} ${G.H}`);
     el("text", { x: G.cx, y: 18, "text-anchor": "middle", class: "task-note" }, svg).textContent = "colour wheel; target at 0";
@@ -34,36 +38,52 @@ export function colourWheel(svg, onColour) {
         dot.setAttribute("class", "ex-drag");
         dot.setAttribute("tabindex", 0);
         dot.setAttribute("role", "slider");
-        dot.setAttribute("aria-label", `colour of item ${i + 1}, radians from the target`);
+        dot.setAttribute("aria-label", `colour of item ${i + 1}`);
+        // Without limits a slider is read as 0 to 100; the value stays in radians because the arrow
+        // keys step from it, and the spoken text gives degrees.
+        dot.setAttribute("aria-valuemin", r2(-Math.PI));
+        dot.setAttribute("aria-valuemax", r2(Math.PI));
         dot.setAttribute("aria-valuenow", m);
+        dot.setAttribute("aria-valuetext", `${fmt(m * DEG, 0)} degrees from the target`);
       }
     });
     el("text", { x: G.cx, y: G.H - 6, "text-anchor": "middle", class: "task-note" }, svg).textContent = note;
-    if (focus !== null) svg.querySelector(`[data-item="${focus}"]`)?.focus();
+    if (refocus) svg.querySelector(`[data-item="${focus}"]`)?.focus({ preventScroll: true });
   }
 
   const itemOf = e => (e.target.dataset?.item === undefined ? null : +e.target.dataset.item);
+  // Stale outputs keep the old colours on screen; moving them would edit a wheel that is not drawn.
+  const stale = () => svg.closest(".ex-stale") !== null;
   let drag = null;
   svg.addEventListener("pointerdown", e => {
-    drag = itemOf(e);
+    drag = stale() ? null : itemOf(e);
     if (drag === null) return;
-    svg.setPointerCapture(e.pointerId);
+    // Cancelling pointerdown also cancels the mousedown that would focus the dot, so focus it here
+    // and remember it: the redraws during the drag then keep the arrow keys on the moved dot.
+    focus = drag;
+    e.target.focus({ preventScroll: true });
     e.preventDefault();
+    svg.setPointerCapture(e.pointerId);
   });
+  // The svg box is letterboxed by its max-height, so the pointer goes through the svg's own
+  // transform rather than a width ratio. A hover without a button is never a drag, whichever event
+  // ended the last one.
   svg.addEventListener("pointermove", e => {
-    if (drag === null) return;
-    const b = svg.getBoundingClientRect(), k = G.W / b.width;
-    onColour(drag, r2(wrap(Math.atan2(((e.clientX - b.left) * k - G.cx) / G.R, -((e.clientY - b.top) * k - G.cy) / G.R))));
+    if (drag === null || e.buttons === 0) return;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+    onColour(drag, r2(wrap(Math.atan2(p.x - G.cx, G.cy - p.y))));
   });
-  svg.addEventListener("pointerup", () => { drag = null; });
+  for (const t of ["pointerup", "pointercancel", "lostpointercapture"]) svg.addEventListener(t, () => { drag = null; });
   const KEYS = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
   svg.addEventListener("keydown", e => {
     const i = itemOf(e);
     if (i === null || !KEYS[e.key]) return;
+    // A stale wheel still swallows the arrow keys, so the page does not scroll under a focused dot.
     e.preventDefault();
+    if (stale()) return;
     focus = i;
     onColour(i, r2(wrap(+e.target.getAttribute("aria-valuenow") + 0.05 * KEYS[e.key])));
   });
-  document.addEventListener("focusin", e => { if (!svg.contains(e.target)) focus = null; });
+  for (const t of ["pointerdown", "focusin"]) document.addEventListener(t, e => { if (!svg.contains(e.target)) focus = null; }, true);
   return draw;
 }

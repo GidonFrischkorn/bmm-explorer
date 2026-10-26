@@ -3,6 +3,7 @@ title: "Three-parameter mixture model"
 subtitle: "Continuous reproduction: responses centred on the target, on a non-target, or guesses"
 model: mixture3p
 set-size-formula: "thetat ~ 0 + set_size"
+set-size-fixed: "Set size 1 aside, `kappa` and the three weights (`p_mem` for the target, `p_nt` for all non-targets together, and guessing) are set by the parameters alone, whatever the number of items on the display."
 page-layout: full
 toc: false
 ---
@@ -13,7 +14,7 @@ toc: false
     <div class="ex-task-pair ex-task-pair-2">
       <div>
         <div class="ex-panel-title">The task</div>
-        <svg id="mix3-wheel" role="img" aria-label="The colour wheel with the target's colour at the top and the non-targets' colours around it"></svg>
+        <svg id="mix3-wheel" aria-label="The colour wheel with the target's colour at the top and the non-targets' colours around it"></svg>
       </div>
       <section aria-label="Task settings">
         <div class="ex-panel-title">Task settings</div>
@@ -27,7 +28,7 @@ toc: false
           <button type="button" class="btn btn-sm btn-outline-secondary" id="mix3-spread">Even colours</button>
         </div>
         <p class="ex-note">Set size and the non-targets' colours enter the density as the number and the
-        places of the non-target peaks. They do not change how much weight the non-targets get.</p>
+        places of the non-target peaks. They do not change how much weight the non-targets get together.</p>
       </section>
     </div>
   </section>
@@ -131,15 +132,17 @@ everything to the starting values.
 
 ## Across task settings
 
-{{< include _silent-on-set-size.qmd >}}
+Set size enters the likelihood of `mixture3p` as the number of non-target peaks, and the
+non-targets' colours set where those peaks sit. The non-targets share `p_nt` equally: one of the
+$n - 1$ non-targets gets $p_\text{nt} / (n - 1)$ (bmm adds $\log(1 / (n - 1))$ to `thetant` for each
+non-target), so a larger set size gives more non-target peaks, each lower than before, while all
+of them together keep `p_nt`, as the target keeps `p_mem` and guessing the rest. Set size 1,
+which `mixture3p()` accepts, has no non-target: bmm sets every non-target term to $-100$, the softmax
+renormalises, and `p_nt` is split between the target and guessing in proportion to their own weights
+(at `thetat` = `thetant` = 0, 0.5 each instead of a third each). The set-size control on this page
+runs from 2 to 8. The Across set size panel draws the weights against set size. <span id="mix3-across-now"></span>
 
-The number of items does enter the shape of the density, though not the weights. Each non-target adds
-a peak, so a larger set size gives more non-target peaks, each lower than before. The weight does not change: the non-targets
-share `p_nt` equally, so one of the $n - 1$ non-targets gets $p_\text{nt} / (n - 1)$ and all of them
-together get `p_nt` at every set size, as does the target with `p_mem` and guessing with the rest.
-The Across set size panel draws these weights against set size. <span id="mix3-across-now"></span>
-A shift of weight from the target to the non-targets as the display grows is something a fit can
-find in `thetat` and `thetant`; the model itself does not predict it.
+{{< include _silent-on-set-size.qmd >}}
 
 ## In bmm
 

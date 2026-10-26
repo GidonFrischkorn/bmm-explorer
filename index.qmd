@@ -23,7 +23,8 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
 - [Two-parameter mixture model (`mixture2p`)](models/mixture2p.qmd): responses centred on the target,
   or guesses. No task setting enters the likelihood.
 - [Three-parameter mixture model (`mixture3p`)](models/mixture3p.qmd): adds responses to the
-  non-targets. Their colours enter the density; their number changes the peaks, not the weights.
+  non-targets. Their colours and their number enter the density; from set size 2 on, more
+  non-targets split the same weight.
 - [Signal discrimination model (`sdm`)](models/sdm.qmd): one distribution with a memory strength and a
   precision, and no separate guessing parameter. No task setting enters the likelihood.
 

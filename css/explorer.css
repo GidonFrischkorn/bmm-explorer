@@ -89,6 +89,12 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 /* Pages whose task has no settings: the wheel and a note instead of the display, settings and buttons. */
 .ex-task-pair.ex-task-pair-2 { grid-template-columns: minmax(150px, 0.8fr) 2fr; }
+/* Narrow screens: the note goes below the wheel, so the wheel gets the full row; a width cap instead
+   of the height cap keeps its box the size of the drawing. */
+@media (max-width: 640px) {
+  .ex-task-pair.ex-task-pair-2 { grid-template-columns: 1fr; }
+  .ex-dash .ex-task-pair-2 svg { max-height: none; max-width: 20rem; }
+}
 .ex-note { font-size: 0.9em; color: #5a6470; margin: 0.2rem 0; }
 .ex-readout { font-size: 0.85em; margin-top: 0.4rem; }
 /* A radio row in the narrow parameters panel wraps between options, not inside them. */

@@ -181,7 +181,7 @@ non-targets. <span id="imm-across-now"></span> These numbers follow the controls
 
 The three-parameter mixture model (`mixture3p`), bmm's other model for these data, has parameters
 for the proportions of target and non-target responses themselves rather than for activations. With its parameters held fixed it predicts the same proportions at every set
-size, so a set-size effect has to enter it through the parameters. This page shows the full IMM,
+size from 2 on, so a set-size effect has to enter it through the parameters. This page shows the full IMM,
 `imm(version = "full")`. The two reduced versions are named after the parameters they keep:
 `version = "bsc"` drops `a` (the full model with `a` = 0), and `version = "abc"` drops `s` and the
 distances, so the non-targets get only `a`, as in the full model when `s` is large.

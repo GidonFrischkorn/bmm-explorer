@@ -3,6 +3,7 @@ title: "Two-parameter mixture model"
 subtitle: "Continuous reproduction: responses centred on the target, or guesses"
 model: mixture2p
 set-size-formula: "thetat ~ 0 + set_size"
+set-size-fixed: "The likelihood of `mixture2p` has no set-size variable: the density uses the response error and nothing else about the trial. How precisely the target is recalled (`kappa`) and how much of the distribution goes to guessing (`1 - p_mem`) are set by the parameters alone, whatever the number of items on the display."
 page-layout: full
 toc: false
 ---
@@ -81,8 +82,9 @@ $\kappa$. In bmm's model formulas `p_mem` is called `thetat` and is estimated on
 
 `p_mem` sets how much of the distribution sits in the peak and how much in the flat floor, and
 `kappa` sets how narrow the peak is. The two do not trade off: changing `kappa` moves no weight, and
-changing `p_mem` leaves the width of the peak alone. The location `mu` is fixed at 0 in bmm, so a
-systematic bias in the responses is not part of this model.
+changing `p_mem` leaves the width of the peak alone. bmm fixes the location of the memory
+component, `mu1` in its formulas, at 0 by default; a systematic bias in the responses can be
+estimated by adding `mu1 ~ 1` to the formula.
 
 ## The task
 
