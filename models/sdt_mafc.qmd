@@ -1,0 +1,144 @@
+---
+title: "Signal detection theory, m-alternative forced choice"
+subtitle: "Pick the one of m alternatives that holds the signal: accuracy as a function of sensitivity and m"
+model: sdt_mafc
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="sdtmafc-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-panel-title">The task: which of the m alternatives holds the signal?</div>
+    <div class="sdt-task-pair">
+      <svg id="sdtmafc-tiles" role="img" aria-label="One trial: m alternatives, one of them holding the signal"></svg>
+      <svg id="sdtmafc-latent" role="img" aria-label="Evidence densities of the signal alternative, of one distractor and of the strongest of the m minus 1 distractors"></svg>
+    </div>
+    <div class="ex-legend">
+      Evidence of the <span class="orange">signal</span> alternative and of one <span class="grey">distractor</span>
+      (dashed). Solid grey: the strongest of the m − 1 distractors, which the signal has to beat. Orange tile: the signal.
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-controls ex-inline">
+      <label for="sdtmafc-m" title="alternatives per trial">m</label>
+      <input type="range" id="sdtmafc-m" min="2" max="10" step="1">
+      <input type="number" id="sdtmafc-m-num" min="2" max="10" step="1" aria-label="m">
+      <div class="ex-hint" id="sdtmafc-m-hint"></div>
+    </div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title ex-title-row">Parameters
+      <label class="ex-select">dist
+        <select id="sdtmafc-dist">
+          <option value="normal">normal</option>
+          <option value="logistic">logistic</option>
+          <option value="gumbel_min">gumbel_min</option>
+          <option value="gumbel_max">gumbel_max</option>
+        </select>
+      </label>
+    </div>
+    <div class="ex-controls">
+      <label for="sdtmafc-d">d, sensitivity</label>
+      <input type="range" id="sdtmafc-d">
+      <input type="number" id="sdtmafc-d-num" aria-label="d">
+      <div class="ex-hint" id="sdtmafc-range-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtmafc-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="P(correct) by d">
+    <div class="ex-panel-title">P(correct) by d, at this m</div>
+    <svg id="sdtmafc-byd" role="img" aria-label="Predicted probability correct against d at the current number of alternatives"></svg>
+    <div class="ex-legend">Circle: the current d. Dotted: chance, 1/m. Dashed: bmm's prior mean of d.</div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="P(correct) across m">
+    <div class="ex-panel-title">P(correct) across m, d fixed</div>
+    <svg id="sdtmafc-across" role="img" aria-label="Predicted probability correct against the number of alternatives, for the chosen distribution and for the other three matched at the current m"></svg>
+    <div class="ex-legend" id="sdtmafc-across-legend"></div>
+  </section>
+</div>
+```
+
+## What the model says
+
+In an m-alternative forced-choice task (m-AFC) one of `m` alternatives holds the signal, and the observer
+picks the alternative with the strongest evidence ([DeCarlo, 2012](https://doi.org/10.1016/j.jmp.2012.02.004)).
+The signal alternative draws its evidence from a distribution located at `d`, each of the `m` − 1 distractors
+from the same distribution located at 0, all with scale 1 (for the normal distribution, SD 1). `dist` names
+the shape, as on the [yes/no page](sdt_yn.qmd): `normal`, `logistic`, or one of the two skewed Gumbel
+distributions. The response is correct when the signal's evidence exceeds that of every distractor. With $f$
+the density and $F$ the cumulative distribution function of that distribution at location 0 and scale 1,
+
+$$
+P(\text{correct}) = \int f(x - d)\, F(x)^{m - 1}\, dx .
+$$
+
+Read from the inside: $f(x - d)$ is the density of the signal's evidence at $x$, and $F(x)^{m - 1}$ the chance
+that all `m` − 1 distractors fall below $x$; the integral adds this up over every $x$. `d` is the only
+parameter: m-AFC has no criterion and no response bias. Under normal noise at `m` = 2 the integral is
+$\Phi(d/\sqrt{2})$, with $\Phi$ the standard normal distribution function; both Gumbel distributions also give
+closed forms. For normal noise at `m` > 2 and for logistic noise bmm sums the integral over fixed points
+(numerical quadrature), and this page uses the same points, so its numbers are bmm's. A row of data holds the
+number of correct responses out of `n_trials` trials, which is binomial with probability P(correct). `d` is on
+the scale of the `d` of the [yes/no model](sdt_yn.qmd): at `m` = 2 under normal noise, P(correct) equals the
+area under the yes/no ROC curve of the same `d`.
+
+## The task
+
+One trial presents `m` alternatives, intervals, locations or items, and one of them holds the signal: in
+forced-choice recognition, the studied item among `m` − 1 new ones. The participant picks one. bmm fits counts:
+each row of the data holds `n_correct` correct responses out of `n_trials`. The number of alternatives `m` is
+the task setting that enters the likelihood: it fixes how many distractors, `m` − 1, the signal has to beat.
+`sdt_mafc()` takes it as a number, or as the name of a data column when it varies between rows.
+
+## Explore
+
+In the task panel, the tiles show one trial with the current `m`; the orange tile holds the signal, which the
+observer does not know. Next to them are the evidence densities: the signal alternative's (orange), one
+distractor's (dashed grey), and the density of the strongest of the `m` − 1 distractors (solid grey), which is
+what the signal has to beat. The strongest of several draws tends to be high, so that density sits to the right
+of a single distractor's and moves further right as `m` grows, and accuracy falls. Raising `d` moves the signal
+density to the right. The panel "P(correct) by d, at this m" shows accuracy for every `d` at the current `m`:
+chance, 1/`m`, at `d` = 0, and below chance for negative `d`, where the signal sits below the distractors.
+
+The `d` slider spans bmm's default prior, normal(1, 1) (mean 1, SD 1), from mean − 3 SD to mean + 3 SD (−2 to 4),
+and starts at the prior mean, 1 (dashed line). `m` runs from 2 to 10.
+
+## Across task settings
+
+`m` is the design variable of this model: with `d` fixed, accuracy falls as `m` grows, because the signal has
+to beat the strongest of more distractors. How fast it falls depends on the evidence distribution. At one `m`,
+each distribution can reproduce any accuracy, because each has its own `d` to adjust, so data from a single `m`
+cannot tell the distributions apart. In the panel "P(correct) across m", each of the other three distributions
+gets the `d` that gives the current accuracy at the current `m`; the legend lists these values. They differ
+because the distributions differ in spread and in shape: `gumbel_min` and `gumbel_max` have the same spread, and
+at `m` = 2 the same `d` gives both the same accuracy, but they are skewed in opposite directions, and from `m` = 3
+on they need different values of `d` for one accuracy (except at `d` = 0, chance). The dotted lines meet at the
+circle and separate at other values of `m`; how far depends on `d` and `m` (the sentence below gives the
+numbers), and where they stay close they can lie on top of each other. Several values of `m` in one data set,
+passed to `sdt_mafc()` as a column, are what lets the data decide between the distributions.
+<span id="sdtmafc-across-now"></span>
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="sdtmafc-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtmafc-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/sdt_mafc.js"></script>
+```
+
+The code updates with the controls. `sdt_mafc()` names the data columns, the number of alternatives and the
+evidence distribution, `dsdt_mafc()` returns the log likelihood of a count of correct responses, and `bmm()`
+estimates `d` from data; `my_data` stands for your own data, and fitting runs Stan through brms. See the
+[signal detection article](https://venpopov.com/bmm/articles/bmm_sdt.html) and the reference pages for
+[`sdt_mafc()`](https://venpopov.com/bmm/reference/sdt_mafc.html) and
+[`dsdt_mafc()`](https://venpopov.com/bmm/reference/sdt_mafc_dist.html).

@@ -72,12 +72,56 @@ export function logPnorm(x) {
   return x > 0 ? Math.log1p(-Math.exp(-xsq * xsq / 2) * Math.exp(-del / 2) * temp) : logTail;
 }
 
+// R's qnorm(p): Wichura's AS 241 (PPND16), the algorithm of nmath/qnorm.c, with its rational approximations in
+// the same Horner order. The coefficients are the published ones, as GSL 2.6 also ships them.
+const QN_A = [3.387132872796366608, 133.14166789178437745, 1971.5909503065514427, 13731.693765509461125,
+  45921.953931549871457, 67265.770927008700853, 33430.575583588128105, 2509.0809287301226727];
+const QN_B = [1, 42.313330701600911252, 687.1870074920579083, 5394.1960214247511077, 21213.794301586595867,
+  39307.89580009271061, 28729.085735721942674, 5226.495278852854561];
+const QN_C = [1.42343711074968357734, 4.6303378461565452959, 5.7694972214606914055, 3.64784832476320460504,
+  1.27045825245236838258, 0.24178072517745061177, 0.0227238449892691845833, 7.7454501427834140764e-4];
+const QN_D = [1, 2.05319162663775882187, 1.6763848301838038494, 0.68976733498510000455, 0.14810397642748007459,
+  0.0151986665636164571966, 5.475938084995344946e-4, 1.05075007164441684324e-9];
+const QN_E = [6.6579046435011037772, 5.4637849111641143699, 1.7848265399172913358, 0.29656057182850489123,
+  0.026532189526576123093, 0.0012426609473880784386, 2.71155556874348757815e-5, 2.01033439929228813265e-7];
+const QN_F = [1, 0.59983220655588793769, 0.13692988092273580531, 0.0148753612908506148525,
+  7.868691311456132591e-4, 1.8463183175100546818e-5, 1.4215117583164458887e-7, 2.04426310338993978564e-15];
+const ratio = (a, b, x) => {
+  let u = a[7], v = b[7];
+  for (let i = 6; i >= 0; i--) { u = u * x + a[i]; v = v * x + b[i]; }
+  return u / v;
+};
+
+export function qnorm(p) {
+  if (Number.isNaN(p) || p < 0 || p > 1) return NaN;
+  if (p === 0) return -Infinity;
+  if (p === 1) return Infinity;
+  const q = p - 0.5;
+  if (Math.abs(q) <= 0.425) return q * ratio(QN_A, QN_B, 0.180625 - q * q);
+  // r = sqrt(-log(min(p, 1 - p))): the tails, split at min(p, 1 - p) = exp(-25)
+  const r = Math.sqrt(-Math.log(q > 0 ? 1 - p : p));
+  const val = r <= 5 ? ratio(QN_C, QN_D, r - 1.6) : ratio(QN_E, QN_F, r - 5);
+  return q < 0 ? -val : val;
+}
+
+// log(1 + exp(x)) with R's branches (nmath log1pexp), which plogis(log.p = TRUE) is built on.
+export const log1pExp = x => (x <= 18 ? Math.log1p(Math.exp(x)) : x > 33.3 ? x : x + Math.exp(-x));
+// log(1 - exp(x)) and log(exp(a) - exp(b)) for x, b - a <= 0, as bmm's log1m_exp() and log_diff_exp().
+export const log1mExp = x => (x > -Math.LN2 ? Math.log(-Math.expm1(x)) : Math.log1p(-Math.exp(x)));
+export const logDiffExp = (a, b) => a + log1mExp(b - a);
+
+// log(k!) for a count k, summed: within 1.3e-15 of R's lgamma(k + 1) relative at k = 1000.
+export function logFactorial(k) {
+  let s = 0;
+  for (let i = 2; i <= k; i++) s += Math.log(i);
+  return s;
+}
+
 // Multinomial log probability of counts x under probs, as dmultinom(log = TRUE) returns it (dm3, dmpt).
 // dmultinom() divides probs by their sum first, which matters where they come from a quadrature.
 export function logMultinom(x, probs) {
-  const lfact = k => { let s = 0; for (let i = 2; i <= k; i++) s += Math.log(i); return s; };
   const total = probs.reduce((s, v) => s + v, 0);
-  return lfact(x.reduce((p, q) => p + q, 0)) - x.reduce((s, k) => s + lfact(k), 0) +
+  return logFactorial(x.reduce((p, q) => p + q, 0)) - x.reduce((s, k) => s + logFactorial(k), 0) +
     x.reduce((s, k, i) => s + (k > 0 ? k * Math.log(probs[i] / total) : 0), 0);
 }
 
@@ -100,8 +144,5 @@ export function lgamma(x) {
   return (x - 0.5) * Math.log(x) - x + 0.5 * LOG2PI + series - shift;
 }
 
-// log(1 - exp(x)) for x < 0, switching at -log 2 as bmm's log1m_exp() does.
-export const log1mExp = x => (x > -Math.LN2 ? Math.log(-Math.expm1(x)) : Math.log1p(-Math.exp(x)));
-
-// plogis(x, log.p = TRUE): -log(1 + exp(-x)); far in the lower tail R returns x itself.
-export const logPlogis = x => (x < -33.3 ? x : -Math.log1p(Math.exp(-x)));
+// plogis(x, log.p = TRUE), which R computes as -log1pexp(-x).
+export const logPlogis = x => -log1pExp(-x);

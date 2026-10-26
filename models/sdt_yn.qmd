@@ -1,0 +1,171 @@
+---
+title: "Signal detection theory, yes/no"
+subtitle: "Detection or old/new recognition: one binary response per trial, counted as hits and false alarms"
+model: sdt_yn
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="sdtyn-widget">
+  <section class="ex-panel ex-p-task" aria-label="The decision">
+    <div class="ex-panel-title">The decision: "old" when the evidence exceeds the criterion</div>
+    <svg id="sdtyn-latent" role="img" aria-label="Evidence densities of noise and signal trials on one axis, with the criterion as a vertical line; the areas to its right are the false-alarm and hit rates"></svg>
+    <div class="ex-legend">
+      Evidence on <span class="blue">noise</span> (new) and <span class="orange">signal</span> (old) trials. Shaded
+      to the right of the criterion: the false-alarm and the hit rate. Drag the criterion, or focus it and use the arrow keys.
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-hint">None: bmm counts the "old" responses on noise and on signal trials, and no feature of
+      the task enters their probabilities.</div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title ex-title-row">Parameters
+      <label class="ex-select">dist
+        <select id="sdtyn-dist">
+          <option value="normal">normal</option>
+          <option value="logistic">logistic</option>
+          <option value="gumbel_min">gumbel_min</option>
+          <option value="gumbel_max">gumbel_max</option>
+        </select>
+      </label>
+    </div>
+    <div class="ex-options" role="radiogroup" aria-label="Where the boundary is measured from">
+      <label><input type="radio" name="sdtyn-anchor" value="criterion" checked> criterion</label>
+      <label><input type="radio" name="sdtyn-anchor" value="bias"> bias</label>
+    </div>
+    <div class="ex-controls">
+      <label for="sdtyn-d">d, sensitivity</label>
+      <input type="range" id="sdtyn-d">
+      <input type="number" id="sdtyn-d-num" aria-label="d">
+      <label for="sdtyn-k" id="sdtyn-k-label">criterion, from the noise location</label>
+      <input type="range" id="sdtyn-k">
+      <input type="number" id="sdtyn-k-num" aria-label="criterion">
+      <label for="sdtyn-s">sdratio, signal scale over noise scale</label>
+      <input type="range" id="sdtyn-s">
+      <input type="number" id="sdtyn-s-num" aria-label="sdratio">
+      <div class="ex-hint" id="sdtyn-range-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtyn-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted rates">
+    <div class="ex-panel-title">Predicted P("old")</div>
+    <svg id="sdtyn-bars" role="img" aria-label="Predicted false-alarm rate on noise trials and hit rate on signal trials"></svg>
+    <div class="ex-legend">P("old") on <span class="blue">noise</span> trials (false alarms) and on
+      <span class="orange">signal</span> trials (hits). Dashed: bmm's prior means.</div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="ROC">
+    <div class="ex-panel-title">ROC: every criterion at this d and sdratio</div>
+    <svg id="sdtyn-roc" role="img" aria-label="Receiver operating characteristic: hit rate against false-alarm rate as the criterion moves, with the current criterion marked"></svg>
+    <div class="ex-legend" id="sdtyn-roc-legend"></div>
+  </section>
+</div>
+```
+
+## What the model says
+
+Signal detection theory (Green & Swets, 1966) says that each trial yields a value of evidence on one axis
+and that the observer answers "old" (or "signal") when the evidence exceeds a criterion $k$. Noise trials
+(new items) draw the evidence from a distribution located at 0 with scale 1; for the normal distribution the
+scale is the SD. Signal trials (old items) draw it from the same distribution, moved to $\delta$ and stretched
+by a factor $s$. The false-alarm rate FA is the probability of "old" on a noise trial, the area under the noise
+density to the right of $k$, and the hit rate H the same area under the signal density. With $F$ the
+cumulative distribution function of the standard distribution (location 0, scale 1) that `dist` names,
+
+$$
+\text{FA} = P(\text{"old"} \mid \text{noise}) = 1 - F(k), \qquad
+\text{H} = P(\text{"old"} \mid \text{signal}) = 1 - F\!\left(\frac{k - \delta}{s}\right).
+$$
+
+bmm calls $k$ `criterion` and $s$ `sdratio`. Its sensitivity parameter `d`, the slider on this page, sets the
+distance $\delta$ between the two locations: $\delta = d\,\sqrt{(1 + s^2)/2}$, so `d` is the distance divided
+by the root-mean-square of the two scales. With equal scales ($s = 1$) `d` and $\delta$ are the same, and `d` is
+the familiar $d'$; with unequal scales `d` is the index called $d_a$, and $\delta$ is larger than `d` when $s > 1$.
+`bias` places the same boundary $k$ but measures it from the midpoint between the two locations: `bias`
+$= k - \delta/2$. Under equal variance it is the index usually written $c$; 0 is the midpoint, and positive values
+put the boundary closer to the signal, so the observer answers "new" more often. A row of data holds the number
+of "old" responses out of `n_trials` noise or signal trials, which is binomial with probability FA or H.
+
+`dist` sets the shape of both densities: `normal`, `logistic`, `gumbel_min` or `gumbel_max`. The logistic is
+symmetric like the normal, with heavier tails. The two Gumbel (extreme-value) distributions are skewed, mirror
+images of each other, and their location 0 is the peak, not the mean. Each enters with scale 1, so under
+logistic and Gumbel noise `d` and `criterion` are in units of that scale, not of the SD (the standard logistic
+has SD $\pi/\sqrt{3} \approx 1.81$, the standard Gumbel $\pi/\sqrt{6} \approx 1.28$).
+
+## The task
+
+One trial presents one item: a studied or a new word in recognition, a display with or without the target in
+detection. The participant answers old or new, yes or no. bmm fits counts: each row of the data holds `n_old`,
+the number of "old" responses, out of `n_trials` trials, with `stimulus` coded 0 for noise and 1 for signal. No
+task setting enters the likelihood, so the Task settings panel stays empty. How many trials a row has decides
+the spread of its counts, not the probability of an "old" response.
+
+## Explore
+
+The top panel draws both evidence densities and the criterion; drag the line or move the slider. The shaded
+area under the noise density to the right of the line is the false-alarm rate, the shaded area under the signal
+density the hit rate, and the bars repeat the two numbers. With `criterion` selected, raising `d` moves the
+signal density to the right and raises the hit rate alone, and moving the criterion changes both rates
+together. `sdratio` above 1 widens the signal density, so the hit rate changes more slowly as the criterion
+moves through it. Switching to `bias` keeps the boundary where it is and gives its position from the midpoint
+between the two locations, which then appears as a dotted line; with `bias` held fixed, a change in `d` drags
+the criterion along with the midpoint.
+
+The ROC (receiver operating characteristic) panel plots the hit rate against the false-alarm rate for every
+position of the criterion, at the current `d` and `sdratio`; the circle is the current criterion and the grey
+diagonal is chance, where hits and false alarms are equally likely. With equal scales the normal and logistic
+ROCs are symmetric about the other diagonal, from the top left to the bottom right. The Gumbel ROCs are not, even
+at `sdratio` = 1: under `gumbel_min` the point farthest from the chance line moves to low false-alarm rates, as
+it does under normal noise with `sdratio` above 1, and under `gumbel_max` to high ones.
+
+The sliders span bmm's default priors, the prior mean ± 3 SD, written normal(mean, SD): `d` normal(1, 1), from
+−2 to 4; `criterion` normal(0.5, 1.5), from −4 to 5; `bias` normal(0, 1.5), from −4.5 to 4.5. bmm estimates
+`sdratio` on the log scale with a normal(0, 0.3) prior, so its slider moves in steps of log(`sdratio`), from a
+ratio of $e^{-0.9} = 0.41$ to $e^{0.9} = 2.46$, and the box shows the ratio. Unless a model formula names
+`sdratio`, bmm fixes it at 1. The dashed bars and the dashed ROC are the prior means, `d` = 1, `criterion` =
+0.5 (the same boundary as `bias` = 0 at these values) and `sdratio` = 1, so at the start values they lie under
+the solid ones.
+
+## Across task settings
+
+The yes/no model has no task setting in its likelihood, so there is no design variable to vary while the
+parameters stay fixed. What an experiment can vary between conditions is where the observer puts the criterion,
+and that is what identifies `sdratio`. One condition gives one pair of rates, one point on the ROC, and a point
+does not fix the curve. `sdt_d()`, bmm's function for the equal-variance `d` of a hit and a false-alarm rate,
+gives an observer with `sdratio` = 1, the same criterion and another `d` who produces the same two rates. Once
+`sdratio` differs from 1, that observer's ROC appears as the dotted curve, through the circle. Two rates cannot
+fix three parameters (`d`, `criterion`, `sdratio`), so `sdratio` needs conditions that share `d` and move the
+boundary. In bmm's formula syntax, `d ~ 1` keeps one `d` for all conditions and `criterion ~ 0 + condition`
+gives each condition its own criterion: that is the design for a base-rate or payoff manipulation. A criterion
+that is the same in every row lets `sdratio` trade against `d`, and `bmm()` warns for it. With `bias` in the
+formula instead, a constant `bias` moves the criterion whenever `d` changes, so conditions that differ in `d`
+also give several points on the curve; the estimate then rests on the assumption that the observer keeps the
+bias, not the criterion, constant. <span id="sdtyn-across-now"></span>
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="sdtyn-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtyn-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/sdt_yn.js"></script>
+```
+
+The code updates with the controls. `sdt_yn()` names the data columns (`response`, the count of "old"
+responses; `stimulus`; `n_trials`) and the evidence distribution,
+`dsdt_yn()` returns the log likelihood of the counts of "old" responses, and `bmm()` estimates the parameters
+from data; `my_data` stands for your own data, and fitting runs Stan through brms. `dsdt_yn()` takes `sdratio`
+as the ratio itself, while the model estimates its log. See the
+[signal detection article](https://venpopov.com/bmm/articles/bmm_sdt.html) and the reference pages for
+[`sdt_yn()`](https://venpopov.com/bmm/reference/sdt_yn.html),
+[`dsdt_yn()`](https://venpopov.com/bmm/reference/sdt_yn_dist.html) and
+[`sdt_d()`](https://venpopov.com/bmm/reference/SDTdist.html).

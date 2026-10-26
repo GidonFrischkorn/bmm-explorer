@@ -57,6 +57,11 @@ website:
           - models/mixture2p.qmd
           - models/mixture3p.qmd
           - models/sdm.qmd
+      - section: "Signal detection"
+        contents:
+          - models/sdt_yn.qmd
+          - models/sdt_mafc.qmd
+          - models/sdt_rating.qmd
       - section: "Response times"
         contents:
           - models/ezdm.qmd
