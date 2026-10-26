@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadFixture } from "./helpers.mjs";
-import { logPnorm } from "../../js/lib/math.js";
+import { logPnorm, qnorm } from "../../js/lib/math.js";
 
 // logPnorm against R's pnorm(x, log.p = TRUE), relative to |log Phi| at every point. In the lower tail
 // log Phi reaches -5e9 (x = -1e5), where an absolute 1e-10 is below one unit in the last place; in the upper
@@ -16,5 +16,17 @@ cell.x.forEach((x, i) => {
   test(`logPnorm(${x}) matches pnorm(log.p = TRUE)`, () => {
     const ref = cell.logd[i], got = logPnorm(x);
     assert.ok(Math.abs(got - ref) <= 1e-13 * Math.max(2 ** -1022, Math.abs(ref)), `logPnorm(${x}) = ${got}, R ${ref}`);
+  });
+});
+
+// qnorm against R's qnorm(p), relative to |q|, with 1e-15 absolute near p = 0.5, where q passes through 0.
+// The rational approximations are evaluated in R's order, so only a libm that rounds log() or sqrt() differently
+// moves the result: a few units in the last place, below 1e-15.
+const qcell = loadFixture("math").cells.find(c => c.fn === "qnorm");
+if (!qcell?.x?.length || qcell.x.length !== qcell.q?.length) throw new Error("math.json: no qnorm cell with matching x and q");
+qcell.x.forEach((p, i) => {
+  test(`qnorm(${p}) matches R's qnorm`, () => {
+    const ref = qcell.q[i], got = qnorm(p);
+    assert.ok(Math.abs(got - ref) <= 1e-15 * Math.max(1, Math.abs(ref)), `qnorm(${p}) = ${got}, R ${ref}`);
   });
 });

@@ -24,6 +24,10 @@ write_fx <- function(name, cells, extra = list()) {
   cat(sprintf("%-10s %3d cells\n", name, length(cells)))
 }
 x <- seq(-pi, pi, length.out = 61)
+# 100 trials split as predicted, rounded so the counts sum to 100 (the pages' d*() calls do the same)
+split100 <- function(p) { k <- floor(100 * p); r <- order(-(100 * p - k)); i <- r[seq_len(100 - sum(k))]; k[i] <- k[i] + 1; k }
+# Quadrature rules the pages read from nodes.json, collected from the m3 and sdt sections below.
+node_cells <- list()
 
 # --- circular ---------------------------------------------------------------
 cells <- list()
@@ -97,8 +101,8 @@ has_gauss <- has_since(".m3_gauss_rule", "1.4.1")
 rules <- c("simple", "softmax", if (has_gauss) "gaussian")
 if (has_gauss) {
   gh <- bmm:::.m3_gauss_rule()
-  write_fx("nodes", list(list(fn = ".m3_gauss_rule", args = list(n = length(gh$nodes)),
-                              nodes = gh$nodes, log_w = gh$log_w, log_Phi = gh$log_Phi)))
+  node_cells[[length(node_cells) + 1]] <- list(fn = ".m3_gauss_rule", args = list(n = length(gh$nodes)),
+                                               nodes = gh$nodes, log_w = gh$log_w, log_Phi = gh$log_Phi)
 }
 grid <- expand.grid(a = c(2, .5, 0), cc = c(1, 3), n_other = c(3, 5, 1), n_npl = c(4, 0, 6), rule = rules,
                     stringsAsFactors = FALSE)
@@ -157,8 +161,6 @@ if (has_since("dmpt", "1.4.1")) {
     other = "Pi * (1 - Pb) * gl_other + (1 - Pi) * g_other",
     npl = "(1 - Pi) * g_npl")
   mod <- mpt(mpt_tree("span", branches), covariates = c("gl_corr", "gl_other", "g_corr", "g_other", "g_npl"))
-  # 100 trials split as predicted, rounded so the counts sum to 100 (the page's dmpt() call does the same)
-  split100 <- function(p) { k <- floor(100 * p); r <- order(-(100 * p - k)); i <- r[seq_len(100 - sum(k))]; k[i] <- k[i] + 1; k }
   p_lv <- signif(plogis(c(-5.44, 0, 5.44)), 3)
   cells <- list()
   for (n in list(c(4, 5), c(0, 0), c(8, 12), c(0, 6), c(3, 0))) for (p_i in p_lv) for (p_b in p_lv) {
@@ -173,6 +175,97 @@ if (has_since("dmpt", "1.4.1")) {
   write_fx("mpt", cells, list(branches = branches))
 } else cat("mpt        skipped: this bmm has no dmpt()\n")
 
+# --- sdt ---------------------------------------------------------------------
+# Yes/no, m-AFC and rating SDT under all four noise distributions. The page sliders span bmm's default priors,
+# mean +- 3 SD on the link scale: d normal(1, 1) on [-2, 4], criterion normal(0.5, 1.5) on [-4, 5], bias
+# normal(0, 1.5) on [-4.5, 4.5], sdratio normal(0, 0.3) on the log scale, a ratio from exp(-0.9) to exp(0.9),
+# which the page computes at 3 significant digits (0.407, 2.46). The ROC panels sweep the criterion past those
+# ends. Vectorised cells: one call per distribution and design, its arguments as columns.
+dists <- c("normal", "gumbel_min", "gumbel_max", "logistic")
+if (has_since("dsdt_yn", "1.4.1")) {
+  cells <- list()
+  s_lv <- c(.407, .5, 1, 2, 2.46)
+  for (dist in dists) {
+    g <- expand.grid(stimulus = 0:1, criterion = c(-6, -4, -1, .5, 2, 5, 8), sdratio = s_lv, d = c(-2, 0, 1, 2.5, 4, 5))
+    yn <- function(n_old, n_trials) dsdt_yn(n_old, n_trials, g$stimulus, g$d, criterion = g$criterion,
+                                            sdratio = g$sdratio, dist = dist, log = TRUE)
+    # one "old" response in one trial: log P("old"), the hit rate on signal rows and the false-alarm rate on noise
+    cells[[length(cells) + 1]] <- list(fn = "dsdt_yn", args = c(as.list(g), list(dist = dist)),
+      log_p_old = yn(1, 1), log_p_new = yn(0, 1), logd_37 = yn(37, 100))
+    # the same boundary given as bias, measured from the midpoint between the two means
+    g <- expand.grid(stimulus = 0:1, bias = c(-4.5, 0, 1, 4.5), sdratio = c(.407, 1, 2.46), d = c(-2, 1, 4))
+    cells[[length(cells) + 1]] <- list(fn = "dsdt_yn_bias", args = c(as.list(g), list(dist = dist)),
+      log_p_old = dsdt_yn(1, 1, g$stimulus, g$d, bias = g$bias, sdratio = g$sdratio, dist = dist, log = TRUE))
+    # A typed criterion of +-1000 sends log P("old") or log P("new") to -Inf under both Gumbel distributions
+    # (exp() of the standardised criterion underflows or overflows); all old and all new responses then take
+    # the zero-count branch, where the -Inf term contributes nothing.
+    g <- expand.grid(stimulus = 0:1, criterion = c(-1000, 1000), sdratio = c(.407, 2.46), d = 1)
+    cells[[length(cells) + 1]] <- list(fn = "dsdt_yn_tail", args = c(as.list(g), list(dist = dist)),
+      log_p_old = yn(1, 1), log_p_new = yn(0, 1), logd_0 = yn(0, 10), logd_10 = yn(10, 10))
+    # the equal-variance d, criterion and bias that one (hit, false-alarm) pair implies
+    g <- expand.grid(fa_rate = c(1e-12, 1e-4, .2, .5, .9, 1 - 1e-12), hit_rate = c(1e-12, .05, .5, .8, .999, 1 - 1e-12))
+    cells[[length(cells) + 1]] <- list(fn = "sdt_d", args = c(as.list(g), list(dist = dist)),
+      d = sdt_d(g$hit_rate, g$fa_rate, dist), criterion = sdt_criterion(g$hit_rate, g$fa_rate, dist),
+      bias = sdt_bias(g$hit_rate, g$fa_rate, dist))
+    # m-AFC: log P(correct), log P(error) and 100 trials at the rounded expected count. The page draws, for every
+    # m, the d at which each other distribution gives the same P(correct); over the sliders (d -2 to 4, m 2 to 10)
+    # that matched d runs from -7.45 to 8.00, so the grid spans -8 to 8.5. A d typed beyond the sliders is matched
+    # too, but is not covered here.
+    g <- expand.grid(m = 2:10, d = c(-8, -6, -4.5, -3, -2, -1, 0, .5, 1, 1.5, 2.5, 4, 5, 7, 8.5))
+    lp <- dsdt_mafc(1, 1, g$m, g$d, dist = dist, log = TRUE)
+    k <- round(100 * exp(lp))
+    cells[[length(cells) + 1]] <- list(fn = "dsdt_mafc", args = c(as.list(g), list(dist = dist, n_correct = k)),
+      log_pc = lp, log_1m_pc = dsdt_mafc(0, 1, g$m, g$d, dist = dist, log = TRUE),
+      logd = dsdt_mafc(k, 100, g$m, g$d, dist = dist, log = TRUE))
+  }
+  # Rating: K - 1 thresholds measured from the noise location. The page starts at the thresholds bmm's default
+  # threshold_type ("parsimonious") places at its prior means (criterion 0.5, spacing 0); the corners at K = 3
+  # and 8 add thresholds spread over the whole slider range and thresholds one slider step (0.05) apart.
+  start_thr <- function(K) bmm:::.sdt_make_thresholds(.5, K, "parsimonious", spacing = 0)
+  rating_cell <- function(K, thr, dist) {
+    g <- expand.grid(stimulus = 0:1, sdratio = c(.407, 1, 2.46), d = c(-2, 1, 4))
+    # one response in category j: the density is the probability of category j
+    lp <- sapply(seq_len(K), function(j) {
+      cnt <- matrix(0, nrow(g), K); cnt[, j] <- 1
+      dsdt_rating(cnt, g$stimulus, g$d, thr, g$sdratio, dist = dist, log = TRUE)
+    })
+    # bmm gives NA, not -Inf, for a category whose bounds both underflow (log1m_exp()'s ifelse() turns the NaN of
+    # -Inf - -Inf into NA, which the is.nan() guard in .sdt_category_log_probs() misses); it has no mass, so no count
+    counts <- t(apply(exp(lp), 1, function(p) split100(ifelse(is.na(p), 0, p))))
+    list(fn = "dsdt_rating", args = c(list(thresholds = thr, dist = dist), as.list(g),
+                                      list(counts = lapply(seq_len(nrow(g)), function(i) counts[i, ]))),
+      logp = as.vector(t(lp)), logd = dsdt_rating(counts, g$stimulus, g$d, thr, g$sdratio, dist = dist, log = TRUE))
+  }
+  for (K in 3:8) for (dist in dists) cells[[length(cells) + 1]] <- rating_cell(K, start_thr(K), dist)
+  for (K in c(3, 8)) for (dist in dists) {
+    cells[[length(cells) + 1]] <- rating_cell(K, seq(-4, 5, length.out = K - 1), dist)
+    cells[[length(cells) + 1]] <- rating_cell(K, seq(1, by = .05, length.out = K - 1), dist)
+  }
+  # Thresholds typed far into the tails: under both Gumbel distributions the outer categories have both bounds
+  # underflow (log cdf or log survival -Inf at both ends), the -Inf branch of the port's category log P.
+  for (dist in dists) cells[[length(cells) + 1]] <- rating_cell(6, c(-1000, -800, 0, 800, 1000), dist)
+  # The page's "In bmm" code gives its thresholds as threshold_type = "log_distance": the criterion (the middle
+  # threshold for even K, the centre of the middle category for odd K) and the log widths of the K - 2 intervals.
+  # The mapping is this script's; bmm's builder must return the thresholds from it.
+  for (K in 3:8) for (thr in list(start_thr(K), seq(-4, 5, length.out = K - 1))) {
+    lo <- (K - 1) %/% 2
+    criterion <- if (K %% 2 == 0) thr[K / 2] else (thr[lo] + thr[lo + 1]) / 2
+    deltas <- log(diff(thr))
+    rebuilt <- bmm:::.sdt_make_thresholds(criterion, K, "log_distance", deltas = deltas)
+    stopifnot(isTRUE(all.equal(rebuilt, thr, tolerance = 1e-12)))
+    cells[[length(cells) + 1]] <- list(fn = "thresholds_log_distance", args = list(n_ratings = K, thresholds = thr),
+      criterion = criterion, deltas = I(deltas), rebuilt = rebuilt, parsimonious_start = start_thr(K))
+  }
+  write_fx("sdt", cells)
+  # bmm's m-AFC quadrature: 40-point Gauss-Hermite for normal noise, 64-point Gauss-Legendre on [0, 1] for
+  # logistic noise (the two Gumbel distributions have closed forms)
+  node_cells[[length(node_cells) + 1]] <- list(fn = ".mafc_gh", args = list(n = 40L),
+    nodes = bmm:::.mafc_gh_nodes, weights = bmm:::.mafc_gh_weights)
+  node_cells[[length(node_cells) + 1]] <- list(fn = ".mafc_gl", args = list(n = 64L),
+    nodes = bmm:::.mafc_gl_nodes, weights = bmm:::.mafc_gl_weights)
+} else cat("sdt        skipped: this bmm has no dsdt_yn()\n")
+if (length(node_cells)) write_fx("nodes", node_cells)
+
 # --- math --------------------------------------------------------------------
 # logPnorm() in js/lib/math.js is R's pnorm(x, log.p = TRUE), which bmm's gaussian M3 rule calls. Points on
 # both sides of the branch cuts of R's algorithm (|x| = 0.67448975 and sqrt(32)), at 0 and +-1e-17, out to
@@ -180,5 +273,11 @@ if (has_since("dmpt", "1.4.1")) {
 x <- c(-1e5, -1e3, -200, -50, -38.5, -37.5193, -20, -10, -8, -5.656854249492380195, -5.66, -5.65, -3, -1,
        -0.67448975, -0.6745, -0.674, -0.3, -1e-17, 0, 1e-17, 0.3, 0.674, 0.67448975, 0.6745, 1, 3, 5.65,
        5.656854249492380195, 5.66, 8, 8.2924, 10, 20, 37, 38.5, 40, 1e3)
-write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd = pnorm(x, log.p = TRUE))))
+# qnorm() in js/lib/math.js is R's qnorm(p) (Wichura's AS 241), which the SDT pages use to place an ROC and to
+# find the equal-variance d of one operating point. Points on both sides of its branch cuts (p = 0.075 and 0.925,
+# where |p - 0.5| = 0.425, and p = exp(-25)), out to the tails, where it is steepest.
+p <- c(1e-300, 1e-100, 1e-20, 1e-12, exp(-25) * c(.999, 1.001), 1e-6, .001, .0749, .075, .0751, .2, .5 - 1e-12, .5,
+       .6, .9249, .925, .9251, .999, 1 - 1e-6, 1 - 1e-12, 1 - 2^-52)
+write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd = pnorm(x, log.p = TRUE)),
+                      list(fn = "qnorm", args = list(), x = p, q = qnorm(p))))
 cat("bmm", version, "->", out, "\n")

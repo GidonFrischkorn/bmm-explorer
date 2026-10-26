@@ -31,7 +31,18 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
 - [Signal discrimination model (`sdm`)](models/sdm.qmd): one distribution with a memory strength and a
   precision, and no separate guessing parameter. No task setting enters the likelihood.
 
+## Signal detection
+
+- [Yes/no (`sdt_yn`)](models/sdt_yn.qmd): noise and signal evidence against one criterion, given from the
+  noise location or as a bias from the midpoint, under four evidence distributions, with the ROC and why
+  one condition cannot identify `sdratio`.
+- [m-alternative forced choice (`sdt_mafc`)](models/sdt_mafc.qmd): the signal among `m` alternatives.
+  The number of alternatives is part of the model, and accuracy across `m` is what tells the evidence
+  distributions apart.
+- [Confidence ratings (`sdt_rating`)](models/sdt_rating.qmd): `K` − 1 thresholds on one evidence axis, the
+  category proportions and the ROC traced by the cumulative rates.
+
 More pages follow in the order of [the roadmap](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/dev/ROADMAP.md):
-the signal detection family and the response-time models.
+the response-time models.
 
 New here? Read [how to read a page](about.qmd) first.
