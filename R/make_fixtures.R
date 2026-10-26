@@ -175,6 +175,112 @@ if (has_since("dmpt", "1.4.1")) {
   write_fx("mpt", cells, list(branches = branches))
 } else cat("mpt        skipped: this bmm has no dmpt()\n")
 
+# --- rt ----------------------------------------------------------------------
+# The response-time pages: ezdm, cswald, ddm. Slider ranges are bmm's default prior means +- 3 SD on the
+# link scale, at 3 significant digits as the pages compute them. drift has an identity link; its cauchy(0, 1)
+# prior in ezdm and ddm has no SD, so the page uses location +- 3 scale, as the normal(0, 1) of cswald crisk.
+# ezdm and ddm: bound exp(+-1.5), ndt exp(-1.5 +- 1.5), zr plogis(+-1.5). cswald: drift exp(+-3) in simple,
+# bound exp(+-0.9), ndt exp(-2 +- 0.9), zr plogis(+-0.9) in crisk. s is fixed at 1 in bmm(); a few cells move it.
+if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("dddm", "1.4.1")) {
+  cells <- list()
+  ez_bound <- c(.223, 1, 4.48)
+  ez_zr <- c(.182, .5, .818)
+  # The forward EZ map the ezdm page draws: P(upper) and the mean and variance of the decision time, from
+  # bmm's own moment functions. The drifts reach every branch of bmm's code: no drift (|2 drift bound| < 1e-4),
+  # the small-argument series (bound * |drift| < 0.7), both signs, and the saturated cgf (bound * |drift| > 30,
+  # typed values only).
+  ez_drift <- c(-3, -1, -.1, -2e-5, 0, 2e-5, .05, .5, 1.5, 3)
+  # The series coefficients are constants in bmm; js/models/rt.js holds a copy, which the test compares.
+  cells[[1]] <- list(fn = "ezdm_log_sinhc_coef", args = list(), values = bmm:::.EZDM_LOG_SINHC_COEF)
+  for (b in ez_bound) for (s in c(1, .7)) {
+    m <- bmm:::.ezdm_moments_3par(ez_drift, b, s)
+    cells[[length(cells) + 1]] <- list(fn = "ezdm_moments_3par", args = list(drift = ez_drift, bound = b, s = s),
+      moments = m[c("pC", "MDT", "VRT", "k3", "k4")])
+  }
+  for (b in ez_bound) for (zr in ez_zr) {
+    m <- bmm:::.ezdm_moments_4par(ez_drift, b, zr, 1)
+    cells[[length(cells) + 1]] <- list(fn = "ezdm_moments_4par", args = list(drift = ez_drift, bound = b, zr = zr, s = 1),
+      moments = m[c("pC", "mdt_upper", "mdt_lower", "vrt_upper", "vrt_lower", "k3_upper", "k3_lower", "k4_upper", "k4_lower")])
+  }
+  m <- bmm:::.ezdm_moments_3par(c(10, -10), 4.48, 1)
+  cells[[length(cells) + 1]] <- list(fn = "ezdm_moments_3par", args = list(drift = c(10, -10), bound = 4.48, s = 1),
+    moments = m[c("pC", "MDT", "VRT", "k3", "k4")])
+  # dezdm(): summary statistics near and away from the ones the parameters predict, at trial counts from 3
+  # (the smallest bmm accepts) to 500, with n_upper from 0 to n_trials. The 4par cells give one boundary fewer
+  # than 2 responses, so its RT terms drop out, and one boundary NA. 4par logit P(upper) has its own branches
+  # (.ezdm_logit_pc): no drift (|2 drift bound| < 1e-4) at the ezdm page's starting values and at tiny drifts
+  # of either sign, and a small negative drift on the falling branch.
+  ez_par <- list(c(1.5, 1, .3), c(-1, 4.48, .05), c(3, .223, 1), c(0, 1, .2), c(.05, 2, .4), c(2, 4.48, .3))
+  for (p in ez_par) {
+    m <- bmm:::.ezdm_moments_3par(p[1], p[2], 1)
+    n_trials <- c(3, 20, 100, 100, 500, 100)
+    n_upper <- pmin(n_trials, round(c(m$pC * n_trials[1:3], 0, m$pC * 500, 100)))
+    mean_rt <- p[3] + m$MDT * c(1, 1.1, .9, 1, 1.02, 1.3)
+    var_rt <- m$VRT * c(1, .8, 1.25, 1, 1, 2)
+    cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
+      n_trials = n_trials, drift = p[1], bound = p[2], ndt = p[3], s = 1, version = "3par"),
+      logd = dezdm(mean_rt, var_rt, n_upper, n_trials, p[1], p[2], p[3], version = "3par"))
+  }
+  for (p in list(c(1.5, 1, .3, .5), c(-1, 4.48, .05, .182), c(3, .223, 1, .818), c(.8, 2, .2, .3),
+                 c(0, 1, .223, .5), c(2e-5, 2, .2, .3), c(-1e-5, 4.48, .1, .7), c(-.05, 1.5, .3, .6))) {
+    m <- bmm:::.ezdm_moments_4par(p[1], p[2], p[4], 1)
+    for (k in list(c(100, .5), c(20, 1), c(100, 0), c(50, 1.2))) {
+      n_upper <- min(k[1], max(0, round(m$pC * k[1] * k[2])))
+      mean_rt <- c(p[3] + m$mdt_upper * (.5 + k[2]), p[3] + m$mdt_lower * (2 - k[2]))
+      var_rt <- c(m$vrt_upper * (.5 + k[2]), m$vrt_lower * (2 - k[2]))
+      if (k[2] == 1.2) { mean_rt[2] <- NA; var_rt[2] <- NA }
+      cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
+        n_trials = k[1], drift = p[1], bound = p[2], ndt = p[3], zr = p[4], s = 1, version = "4par"),
+        logd = dezdm(mean_rt, var_rt, n_upper, k[1], p[1], p[2], p[3], zr = p[4], version = "4par"))
+    }
+  }
+  # Exactly one response at a boundary: its statistics are finite here, so only the count of 1 drops its RT terms.
+  m <- bmm:::.ezdm_moments_4par(1.5, 1, .5, 1)
+  for (n_upper in c(1, 19)) {
+    mean_rt <- .3 + c(m$mdt_upper, m$mdt_lower); var_rt <- c(m$vrt_upper, m$vrt_lower)
+    cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
+      n_trials = 20, drift = 1.5, bound = 1, ndt = .3, zr = .5, s = 1, version = "4par"),
+      logd = dezdm(mean_rt, var_rt, n_upper, 20, 1.5, 1, .3, zr = .5, version = "4par"))
+  }
+  # dcswald(): log densities of both responses on an rt grid from just above ndt to 3 s, both versions.
+  rt_after <- function(ndt) ndt + c(.002, .01, .03, .06, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3)
+  cs_par <- list(
+    simple = list(c(1, 1, .135, 1), c(.0498, .407, .055, 1), c(20.1, 2.46, .333, 1), c(20.1, .407, .055, 1),
+                  c(.0498, 2.46, .333, 1), c(3, 1.5, .2, .6), c(5, .8, .1, 1.4)),
+    crisk = list(c(1, 1, .135, .5, 1), c(-3, .407, .055, .289, 1), c(3, 2.46, .333, .711, 1), c(0, 1, .135, .5, 1),
+                 c(3, .407, .055, .289, 1), c(-1, 2.46, .2, .711, 1), c(2, 1.5, .1, .5, .7)))
+  for (ver in names(cs_par)) for (p in cs_par[[ver]]) for (r in 0:1) {
+    rt <- rt_after(p[3]); zr <- if (ver == "crisk") p[4] else .5; s <- p[length(p)]
+    cells[[length(cells) + 1]] <- list(fn = "dcswald", args = list(response = r, drift = p[1], bound = p[2], ndt = p[3],
+      zr = zr, s = s, version = ver), x = rt,
+      logd = dcswald(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = zr, s = s, version = ver))
+  }
+  # dddm(): through rtdists::ddiffusion. Both responses, an rt grid from just above ndt to 5 s, the slider
+  # corners and middles; far tails included, where fast-dm's truncated series departs from the exact
+  # density and the port has to follow it. The cswald page compares its simple version with dddm(drift,
+  # 2 * bound, ndt, zr = 0.5), which reaches drift exp(+-3) and bound 2 exp(+-0.9): its start and corners.
+  # Where bmm's density underflows to 0 the rt goes to zero_x, at which the port must return -Inf.
+  ddm_par <- list(c(0, 1, .223, .5), c(1.5, 1, .223, .5), c(-3, .223, .0498, .182), c(3, 4.48, 1, .818),
+                  c(3, 4.48, .0498, .182), c(-3, 4.48, .3, .5), c(3, .223, .3, .818), c(.5, 2, .2, .3),
+                  c(-.5, 2.5, .15, .65), c(2, .6, .25, .5), c(0, 4.48, .1, .5), c(1, 1.5, .2, .7),
+                  c(1, 2, .135, .5), c(20.1, 4.92, .333, .5), c(20.1, .814, .055, .5), c(.0498, 4.92, .333, .5),
+                  c(.0498, .814, .055, .5),
+                  # At rt = ndt + 1 fast-dm's truncated series has the wrong sign (lower response here, the
+                  # upper one in the mirror cell), and rtdists returns its absolute value: bmm's log density
+                  # there is log|sum|, which the port has to reproduce instead of a NaN.
+                  c(2.5, 4.48, .2, .818), c(-2.5, 4.48, .2, .182))
+  rt_ddm <- function(ndt) ndt + c(.001, .005, .01, .02, .05, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3, 5)
+  for (p in ddm_par) for (r in 0:1) {
+    rt <- rt_ddm(p[3])
+    logd <- dddm(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = p[4])
+    stopifnot(!is.na(logd), logd < Inf)
+    keep <- is.finite(logd)
+    cells[[length(cells) + 1]] <- list(fn = "dddm", args = list(response = r, drift = p[1], bound = p[2], ndt = p[3], zr = p[4]),
+      x = rt[keep], logd = logd[keep], zero_x = I(rt[!keep]))
+  }
+  write_fx("rt", cells)
+} else cat("rt         skipped: this bmm lacks dezdm(), dcswald() or dddm()\n")
+
 # --- sdt ---------------------------------------------------------------------
 # Yes/no, m-AFC and rating SDT under all four noise distributions. The page sliders span bmm's default priors,
 # mean +- 3 SD on the link scale: d normal(1, 1) on [-2, 4], criterion normal(0.5, 1.5) on [-4, 5], bias
@@ -273,11 +379,15 @@ if (length(node_cells)) write_fx("nodes", node_cells)
 x <- c(-1e5, -1e3, -200, -50, -38.5, -37.5193, -20, -10, -8, -5.656854249492380195, -5.66, -5.65, -3, -1,
        -0.67448975, -0.6745, -0.674, -0.3, -1e-17, 0, 1e-17, 0.3, 0.674, 0.67448975, 0.6745, 1, 3, 5.65,
        5.656854249492380195, 5.66, 8, 8.2924, 10, 20, 37, 38.5, 40, 1e3)
+# lgamma() for the gamma and binomial terms of dezdm(): below 1, around the switch to Stirling's series
+# at 10, and out to the shapes of large trial counts.
+xg <- c(1e-8, .1, .5, 1, 1.5, 2, 2.5, 3, 7.3, 9.99, 10, 10.01, 12.5, 30, 101, 250.7, 1e3, 5e3, 1e5)
 # qnorm() in js/lib/math.js is R's qnorm(p) (Wichura's AS 241), which the SDT pages use to place an ROC and to
 # find the equal-variance d of one operating point. Points on both sides of its branch cuts (p = 0.075 and 0.925,
 # where |p - 0.5| = 0.425, and p = exp(-25)), out to the tails, where it is steepest.
 p <- c(1e-300, 1e-100, 1e-20, 1e-12, exp(-25) * c(.999, 1.001), 1e-6, .001, .0749, .075, .0751, .2, .5 - 1e-12, .5,
        .6, .9249, .925, .9251, .999, 1 - 1e-6, 1 - 1e-12, 1 - 2^-52)
 write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd = pnorm(x, log.p = TRUE)),
+                      list(fn = "lgamma", args = list(), x = xg, logd = lgamma(xg)),
                       list(fn = "qnorm", args = list(), x = p, q = qnorm(p))))
 cat("bmm", version, "->", out, "\n")

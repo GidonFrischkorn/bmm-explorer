@@ -42,7 +42,13 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
 - [Confidence ratings (`sdt_rating`)](models/sdt_rating.qmd): `K` − 1 thresholds on one evidence axis, the
   category proportions and the ROC traced by the cumulative rates.
 
-More pages follow in the order of [the roadmap](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/dev/ROADMAP.md):
-the response-time models.
+## Response times
+
+- [EZ Diffusion Model (`ezdm`)](models/ezdm.qmd): the diffusion model's accuracy, mean and variance of
+  the response times in closed form, and how much they vary with the number of trials per cell.
+- [Censored Shifted Wald Model (`cswald`)](models/cswald.qmd): evidence for the correct response
+  accumulates to one boundary, errors censored or racing; compared with the diffusion model.
+- [Diffusion Decision Model (`ddm`)](models/ddm.qmd): response-time densities of both responses, and how
+  speed and accuracy trade as the boundary separation changes.
 
 New here? Read [how to read a page](about.qmd) first.

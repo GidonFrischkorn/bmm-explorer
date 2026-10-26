@@ -133,3 +133,16 @@ export function integrateExp(logf, lo, hi, n = 160) {
   const f = logf(linspace(lo, hi, n + 1)).map(Math.exp);
   return h / 3 * f.reduce((s, v, i) => s + v * (i === 0 || i === n ? 1 : i % 2 ? 4 : 2), 0);
 }
+
+// log Gamma(x) for x > 0: Stirling's series from 10 on (last term below 1e-15 there), the recurrence
+// Gamma(x) = Gamma(x + n) / (x (x + 1) ... (x + n - 1)) below. Held to R's lgamma() by math.test.mjs.
+export function lgamma(x) {
+  let shift = 0;
+  while (x < 10) { shift += Math.log(x); x += 1; }
+  const z2 = 1 / (x * x);
+  const series = (1 / 12 + z2 * (-1 / 360 + z2 * (1 / 1260 + z2 * (-1 / 1680 + z2 * (1 / 1188 + z2 * (-691 / 360360 + z2 / 156)))))) / x;
+  return (x - 0.5) * Math.log(x) - x + 0.5 * LOG2PI + series - shift;
+}
+
+// plogis(x, log.p = TRUE), which R computes as -log1pexp(-x).
+export const logPlogis = x => -log1pExp(-x);

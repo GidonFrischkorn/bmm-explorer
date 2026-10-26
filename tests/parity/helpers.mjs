@@ -16,7 +16,7 @@ export function loadFixture(name) {
 
 // Fixtures that need a bmm function newer than the oldest bmm the script runs on, with the bmm version
 // that ships it. Only these may be absent, and only when an older bmm wrote the directory.
-export const SINCE = { nodes: "1.4.1", mpt: "1.4.1", sdt: "1.4.1" };
+export const SINCE = { nodes: "1.4.1", mpt: "1.4.1", sdt: "1.4.1", rt: "1.4.1" };
 // Version strings compared numerically per component, so "1.4.1.9000" (develop) counts as >= "1.4.1". A
 // version that is not dotted integers throws: read as older, it would turn a missing fixture into a skip.
 const versionParts = v => {

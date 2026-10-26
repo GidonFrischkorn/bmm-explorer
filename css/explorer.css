@@ -134,3 +134,6 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 /* Rating thresholds: one inline row each below the other parameters. */
 .ex-dash .sdt-thresholds { margin-top: 0.3rem; row-gap: 0.1rem; }
 .ex-dash .sdt-thresholds input[type="number"] { padding-top: 0; padding-bottom: 0; }
+/* Response-time pages: the non-decision band of the task drawing and the halo behind its labels. */
+.ex-dash .rt-ndt { fill: #e9ecef; }
+.ex-dash .rt-halo { paint-order: stroke; stroke: #fff; stroke-width: 7px; stroke-linejoin: round; }
