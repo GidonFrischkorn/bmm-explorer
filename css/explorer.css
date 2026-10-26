@@ -50,7 +50,7 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-dash .task-note { font-size: 19px; fill: #5a6472; }
 .ex-dash .task-letter { font-size: 26px; font-weight: 600; }
 .ex-dash .task-bin { font-size: 21px; font-weight: 700; }
-#m3-reset { margin-top: 0.4rem; }
+.ex-panel > .btn { margin-top: 0.4rem; }
 /* Out-of-range input: the box is outlined and the outputs fade, so old results are not read as new. */
 .ex-invalid { outline: 2px solid var(--ex-orange); outline-offset: 1px; }
 .ex-dash.ex-stale > section, .ex-stale:not(.ex-dash) { opacity: 0.35; }
@@ -77,15 +77,13 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-task-pair .ex-options { margin: 0; font-size: 0.9em; }
 .ex-task-pair .ex-buttons { margin: 0.1rem 0 0; }
 #imm-density { max-height: 22vh; }
-.ex-legend .green { color: var(--ex-green); font-weight: 600; }
 .ex-dash .circ-window { fill: #009E73; fill-opacity: 0.08; }
 .ex-dash .circ-mark { font-size: 15px; fill: #222; }
 .ex-dash .imm-seg { font-size: 17px; font-weight: 600; fill: #fff; }
 .ex-dash .imm-seg-dim { fill: #222; }
-#imm-wheel, #imm-display { touch-action: none; }
+#imm-wheel, #imm-display { touch-action: none; user-select: none; }
 .ex-task-pair .task-note { font-size: 25px; }
 .ex-task-pair .task-bin { font-size: 24px; }
 .ex-task-pair .imm-drag { cursor: grab; }
 .ex-task-pair .imm-drag:focus { outline: none; stroke: #E69F00; stroke-width: 5; }
-#imm-reset { margin-top: 0.4rem; }
 mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }

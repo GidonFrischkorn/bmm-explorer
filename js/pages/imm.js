@@ -124,15 +124,21 @@ const hue = mu => `hsl(${((200 + mu * DEG) % 360 + 360) % 360}, 70%, 50%)`;
 const G = { cx: 220, cy: 192, R: 110, label: 152, W: 440, H: 384 };
 const onCircle = (cx, cy, r, a) => [cx + r * Math.sin(a), cy - r * Math.cos(a)];
 
-// Marks an svg element as a draggable, focusable item for the pointer and keyboard handlers.
-function draggable(node, i, label, value) {
+// Marks an svg element as a draggable, focusable item for the pointer and keyboard handlers. The
+// slider role needs a numeric value and limits; a square position is a pair, so it goes in valuetext.
+function draggable(node, i, label, value, [min, max], text) {
   node.dataset.item = i;
   node.setAttribute("class", "imm-drag");
   node.setAttribute("tabindex", 0);
   node.setAttribute("role", "slider");
   node.setAttribute("aria-label", label);
+  node.setAttribute("aria-valuemin", min);
+  node.setAttribute("aria-valuemax", max);
   node.setAttribute("aria-valuenow", value);
+  if (text !== undefined) node.setAttribute("aria-valuetext", text);
 }
+// Limits of the draggable values: a distance along the circle, a colour, a straight line in the square.
+const RANGE = { dist: [0, r2(Math.PI)], mu: [r2(-Math.PI), r2(Math.PI)], square: [0, r2(2 * EDGE * Math.SQRT2)] };
 
 function drawDisplay(lay) {
   const svg = $("imm-display");
@@ -159,7 +165,8 @@ function drawDisplay(lay) {
     const disc = el("circle", { cx: x, cy: y, r: 22, fill: hue(lay.mu[i]), stroke: "#222", "stroke-width": 1.5 }, svg);
     el("text", { x: lx, y: ly + 8, "text-anchor": "middle", class: "task-bin" }, svg).textContent = i + 1;
     // On the circle the target defines angle 0 and stays at the top; in the square every item moves.
-    if (i > 0 || mode === "square") draggable(disc, i, `position of item ${i + 1}`, mode === "square" ? `${q[0]}, ${q[1]}` : lay.dist[i]);
+    if (mode === "square") draggable(disc, i, `position of item ${i + 1}`, lay.dist[i], RANGE.square, `${q[0]}, ${q[1]}`);
+    else if (i > 0) draggable(disc, i, `position of item ${i + 1}`, lay.dist[i], RANGE.dist);
   });
   el("text", { x: cx, y: G.H - 6, "text-anchor": "middle", class: "task-note" }, svg).textContent = lay.n === 1 ? "the target alone"
     : `item 2: ${fmt(lay.dist[1])} ${mode === "square" ? "radii" : "rad"} from the target`;
@@ -182,7 +189,7 @@ function drawWheel(lay) {
     el("line", { x1: cx, y1: cy, x2: x, y2: y, stroke: i ? "#9aa3ad" : "#222", "stroke-width": i ? 2 : 3 }, svg);
     const dot = el("circle", { cx: x, cy: y, r: i ? 15 : 17, fill: hue(m), stroke: "#222", "stroke-width": i ? 2 : 4 }, svg);
     el("text", { x: lx, y: ly + 8, "text-anchor": "middle", class: "task-bin" }, svg).textContent = i + 1;
-    if (i) draggable(dot, i, `colour of item ${i + 1}, radians from the target`, m);
+    if (i) draggable(dot, i, `colour of item ${i + 1}, radians from the target`, m, RANGE.mu);
   });
   el("text", { x: cx, y: G.H - 6, "text-anchor": "middle", class: "task-note" }, svg).textContent = lay.n > 1
     ? "drag a dot, or click it + arrows" : "no other colours";
@@ -291,7 +298,7 @@ model <- imm(resp_error = "resp_error",
              set_size = ${lay.n},
              version = "full")
 fit <- bmm(formula = bmf(c ~ 1, a ~ 1, s ~ 1, kappa ~ 1), data = my_data, model = model)
-# bmm() fixes b = 1 and estimates c, a, s and kappa on the log scale. ${p.b > 0
+# bmm() fixes b = 1 (log b = 0) and estimates c, a, s and kappa on the log scale. ${p.b > 0
   ? `Scaled to b = 1, the values
 # above are log(c) = ${lg(p.c / p.b)}, log(a) = ${lg(p.a / p.b)}, log(s) = ${lg(p.s)}, log(kappa) = ${lg(p.kappa)} there.`
   : `b = 0 (no guessing) has no
@@ -308,9 +315,12 @@ function draw() {
   }
   for (const id of ["imm-widget", "imm-code", "imm-across-now"]) $(id).classList.toggle("ex-stale", bad.length > 0);
   const single = v.set_size === 1;
-  pairs.spacing.range.disabled = pairs.spacing.num.disabled = single || mode === "square";
+  // Dragged circle positions replace the spacing until Equidistant or a new set size clears them,
+  // so the control is off and says so rather than showing a value that enters nothing.
+  const moved = mode === "circle" && angles !== null;
+  pairs.spacing.range.disabled = pairs.spacing.num.disabled = single || mode === "square" || moved;
   $("imm-spread").disabled = single;
-  $("imm-task-hint").textContent = "";
+  $("imm-task-hint").textContent = moved ? "items moved: Equidistant or a new set size restores the spacing" : "";
   $("imm-par-hint").textContent = "c, a, s, kappa: sliders move in log units. b: fixed at 1 in bmm(), free here.";
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
   if (bad.length) return;
@@ -328,11 +338,14 @@ function draw() {
 // Pointer and keyboard moves on both drawings. The svg keeps the pointer while the items are redrawn
 // under it; a keyboard move keeps the focus on the moved item.
 const itemOf = e => (e.target.dataset?.item === undefined ? null : +e.target.dataset.item);
-// Pointer position in circle radii from the drawing's centre.
+// Pointer position in circle radii from the drawing's centre. The svg box is letterboxed by its
+// max-height, so the pointer goes through the svg's own transform rather than a width ratio.
 function unitAt(svg, e) {
-  const r = svg.getBoundingClientRect(), k = G.W / r.width;
-  return [((e.clientX - r.left) * k - G.cx) / G.R, ((e.clientY - r.top) * k - G.cy) / G.R];
+  const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+  return [(p.x - G.cx) / G.R, (p.y - G.cy) / G.R];
 }
+// Stale outputs keep the old items on screen; moving them would edit a display that is not drawn.
+const stale = () => $("imm-widget").classList.contains("ex-stale");
 const MOVES = {
   wheel: { move: (i, q) => setColour(i, Math.atan2(q[0], -q[1])),
     key: (i, node, dx, dy) => setColour(i, +node.getAttribute("aria-valuenow") + 0.05 * (dx || -dy)) },
@@ -348,16 +361,21 @@ for (const name of ["wheel", "display"]) {
   const svg = $(`imm-${name}`), mv = MOVES[name];
   svg.addEventListener("pointerdown", e => {
     const i = itemOf(e);
-    if (i === null) return;
+    if (i === null || stale()) return;
     drag = { svg: name, item: i };
-    svg.setPointerCapture(e.pointerId);
+    // Cancelling pointerdown also cancels the mousedown that would focus the item, so focus it here
+    // and remember it: the redraws during the drag then keep the arrow keys on the moved item.
+    focus = drag;
+    e.target.focus();
     e.preventDefault();
+    svg.setPointerCapture(e.pointerId);
   });
-  svg.addEventListener("pointermove", e => { if (drag?.svg === name) mv.move(drag.item, unitAt(svg, e)); });
-  svg.addEventListener("pointerup", () => { drag = null; });
+  // A hover without a button is never a drag, whichever event ended the last one.
+  svg.addEventListener("pointermove", e => { if (drag?.svg === name && e.buttons !== 0) mv.move(drag.item, unitAt(svg, e)); });
+  for (const t of ["pointerup", "pointercancel", "lostpointercapture"]) svg.addEventListener(t, () => { drag = null; });
   svg.addEventListener("keydown", e => {
     const i = itemOf(e), k = KEYS[e.key];
-    if (i === null || !k) return;
+    if (i === null || !k || stale()) return;
     e.preventDefault();
     focus = { svg: name, item: i };
     mv.key(i, e.target, ...k);
@@ -382,6 +400,6 @@ $("imm-copy").addEventListener("click", () => navigator.clipboard?.writeText($("
 for (const [k, [m, sd]] of Object.entries(PRIOR)) pairs[k].setBounds({ min: m - 3 * sd, max: m + 3 * sd, step: 0.05, scale: LOG });
 pairs.b.setBounds({ min: B.min, max: B.max, step: B.step });
 pairs.set_size.setBounds({ min: 1, max: MAX_N, step: 1 });
-pairs.spacing.setBounds({ min: 0.1, max: maxSpacing(START_N), step: 0.01 });
+pairs.spacing.setBounds({ min: 0, max: maxSpacing(START_N), step: 0.01 });
 setParams(pairs, { ...start, set_size: START_N, spacing: maxSpacing(START_N) });
 draw();

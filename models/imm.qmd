@@ -117,8 +117,9 @@ $e^{-s d}$ is 1 at the target and falls faster with distance the larger `s` is, 
 the target gets `c`, and at `s` = 0 every item gets the full `c`. `kappa` sets the width of every
 peak and changes no weight. Multiplying `c`, `a` and `b` by the same number leaves every weight
 unchanged, so data cannot tell those three apart from their ratios, and a fit has to fix one of them:
-the original publication fixed `c` at 1, bmm fixes `b` at 1. The page lets all three move so that
-each one's effect can be seen.
+the original publication fixed `c` at 1, bmm fixes `b` at 1 (log `b` = 0 on bmm's link scale, the
+reference weight of the mixture). The page lets all three move so that each one's effect can be
+seen.
 
 ## The task
 
@@ -140,9 +141,11 @@ shorter than the arc.
 
 Drag a disc on the display or a colour on the wheel to move it, or click it and use the arrow
 keys. On the circle the target stays at the top and the others move along the circle; in the square
-every item moves. Switching the layout keeps the items where they are. Equidistant returns to the
-circle preset, and Even colours spreads the colours evenly around the wheel again, as does a new
-set size.
+every item moves. Switching to the square keeps the items where they are; switching back puts the
+target at the top again and each other item on the circle at its angle from the target, as seen from
+the display centre. After a drag, and in the square, the spacing control is off until Equidistant or
+a new set size. Equidistant returns to the circle preset, and Even colours spreads the colours evenly
+around the wheel again, as does a new set size.
 
 Because `s` is a rate per unit of distance, its value depends on how distance is measured: compare
 `s` between conditions of one experiment, not between studies with other layouts or distance
@@ -163,9 +166,9 @@ Each slider spans the prior mean ± 3 SD on that scale and moves evenly in log u
 number fields show natural units: `c`, `a` and `s` run from $e^{-3} = 0.05$ to $e^{3} = 20.1$, and
 `kappa` from $e^{-1} = 0.37$ to $e^{5} = 148$. They start at the prior means, $e^0 = 1$ for `c`, `a`
 and `s` and $e^2 = 7.39$ for `kappa`; the dashed curves and the "prior" bar keep these values. `b`
-has no prior because bmm fixes it at 1; its slider runs from 0 to 5 to show what it does. Typed values
-outside the slider ranges are used as long as they are 0 or more. Reset returns everything to the
-start.
+has no prior because bmm fixes it at 1 (the "fixed to 0" in `?imm` is log `b`); its slider runs from
+0 to 5 to show what it does. Typed values outside the slider ranges are used as long as they are 0 or
+more and `c`, `a` and `b` are not all 0. Reset returns everything to the start.
 
 ## Across task settings
 
