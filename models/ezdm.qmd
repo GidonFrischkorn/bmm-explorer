@@ -52,7 +52,7 @@ toc: false
   <section class="ex-panel ex-p-bars" aria-label="Predicted summary statistics">
     <div class="ex-panel-title">Predicted summary statistics</div>
     <svg id="ezdm-stats" role="img" aria-label="Predicted probability of an upper response, and the mean response time with one standard deviation either side, split into non-decision time and decision time"></svg>
-    <div class="ex-legend">Grey: <code>ndt</code>; coloured: mean decision time; whiskers: ±1 SD of the rt.
+    <div class="ex-legend">Grey: <code>ndt</code>; coloured: mean decision time; whiskers: ±1 SD of the rt, cut off at 0 s.
       Dashed: prior means.</div>
   </section>
 
@@ -108,7 +108,7 @@ The panel *Predicted summary statistics* is the forward EZ map: the summary stat
 parameters predict. The bar is P(upper), the probability of response 1. Below it is one row of response
 times in `3par` and one per response in `4par`: the grey part is `ndt`, the coloured part the mean
 decision time, and the whiskers one standard deviation (the square root of VRT) either side of the mean
-response time. Moving `drift` away from 0 makes one response more likely (positive: the upper) and shortens and narrows
+response time; where the SD exceeds the mean, the left whisker stops at 0 s. Moving `drift` away from 0 makes one response more likely (positive: the upper) and shortens and narrows
 the response times. Raising `bound` makes the
 responses slower and more variable and, for a drift other than 0, more often the one the drift favours.
 `ndt` shifts the mean and leaves the SD alone. In `4par`, moving `zr` toward 1 makes upper responses more
@@ -129,16 +129,18 @@ are themselves data, and `dezdm()` scores them against how much they would vary 
 `n_trials` trials to the next ([Chávez De la Peña & Vandekerckhove,
 2025](https://doi.org/10.3758/s13423-025-02729-y)). The number of upper responses is binomial. The
 observed variance follows a gamma distribution with mean VRT; its sampling variance adds the fourth
-cumulant of the decision time, divided by `n_trials`, to the term a normal sample would have. The observed
-mean, given the observed variance, follows a normal distribution, and the third cumulant, divided by
-`n_trials`, is the covariance of the two, so that mean shifts with the observed variance. The panel *Across trial counts* shows the result: ±2 standard deviations of the
+cumulant of the decision time, divided by the number of trials (in `4par`, those at that boundary), to
+the term a normal sample would have. The observed mean, given the observed variance, follows a normal
+distribution, and the third cumulant, divided by the same number, is the covariance of the two, so the
+mean of that normal shifts with the observed variance. The panel *Across trial counts* shows the result: ±2 standard deviations of the
 observed P(upper) and of the observed mean response time around the prediction. Both bands narrow with
 the square root of `n_trials`, so a cell with more trials pins the parameters down more tightly. In
 `4par`, each response's mean comes from the trials that ended at that boundary only (the panel uses
 the expected count, `n_trials` × P(upper) or its complement), so a rare response has a wide band.
 A boundary reached fewer than twice has no variance; `dezdm()` then drops its response-time terms, and
-the cell counts through `n_upper` alone. A response's band therefore starts where its expected count
-reaches 2.
+the cell counts through `n_upper` alone. A response's band therefore starts at the first `n_trials` for which the call in *In bmm* has at least 2
+responses at that boundary. That call rounds the expected count of upper responses to give `n_upper` and
+leaves `n_trials` − `n_upper` for the lower, so the band starts at an expected count of about 1.5.
 
 ## In bmm
 

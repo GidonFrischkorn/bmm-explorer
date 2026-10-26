@@ -26,17 +26,22 @@ const problems = (p, v) => [
   ["n_trials", Number.isInteger(p.n_trials) && p.n_trials >= 3 && p.n_trials <= N_MAX, `n_trials a whole number 3–${N_MAX}`]
 ].filter(([, ok]) => !ok).map(([k, , msg]) => [k, msg]);
 
+// The n_upper the R snippet prints for n trials; dezdm() counts the lower responses as n_trials - n_upper.
+const nUpperOf = (pC, n) => Math.round(pC * n);
+
 // The forward map: P(upper), and mean and SD of the rt (ndt plus the decision time) for each row the
-// version has: one for all responses in 3par, one per boundary in 4par.
+// version has: one for all responses in 3par, one per boundary in 4par. count(n) is the number of
+// responses the row's rt statistics come from in the printed call for n trials.
 function stats(p, v) {
   if (v === "3par") {
     const m = ezdmMoments3par(p);
-    return { pC: m.pC, rows: [{ label: "rt, all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT, share: 1 }] };
+    return { pC: m.pC, rows: [{ label: "rt, all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT, share: 1, count: n => n }] };
   }
   const m = ezdmMoments4par(p);
   return { pC: m.pC, rows: [
-    { label: "rt, upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper, share: m.pC },
-    { label: "rt, lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower, share: 1 - m.pC }] };
+    { label: "rt, upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper, share: m.pC, count: n => nUpperOf(m.pC, n) },
+    { label: "rt, lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower, share: 1 - m.pC,
+      count: n => n - nUpperOf(m.pC, n) }] };
 }
 
 const W = 500, H = 300;
@@ -81,7 +86,8 @@ function drawStats(p, s, ref, axis) {
 // +-2 SD of the proportion of upper responses (binomial) and of each observed mean rt. Under bmm's
 // sampling model the observed mean has variance VRT / n (normal given the observed variance, which is
 // gamma with mean VRT); in 4par n is the expected count at that boundary. dezdm() drops a boundary's rt
-// terms below 2 responses, so its band starts where the expected count reaches 2, or is not drawn.
+// terms below 2 responses, so its band starts at the first n_trials whose printed call has 2 responses
+// there (after rounding, an expected count of about 1.5), or is not drawn.
 const NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
 function drawAcross(p, s) {
   const svg = $("ezdm-across");
@@ -99,7 +105,7 @@ function drawAcross(p, s) {
     return sc;
   };
   // centre +- half(n) from n0 to N_MAX, clipped to the panel's range.
-  const band = (sc, centre, half, color, n0 = 3, [ymin, ymax] = [-Infinity, Infinity]) => {
+  const band = (sc, centre, half, color, n0, [ymin, ymax] = [-Infinity, Infinity]) => {
     const ns = [n0, ...NS.filter(n => n > n0)];
     const at = (n, y) => sc.sx(lx(n)).toFixed(1) + "," + sc.sy(Math.min(ymax, Math.max(ymin, y))).toFixed(1);
     const up = ns.map(n => at(n, centre + half(n))), lo = ns.map(n => at(n, centre - half(n))).reverse();
@@ -108,7 +114,8 @@ function drawAcross(p, s) {
   };
   band(panel(14, 178, [0, 1], [0, 0.5, 1], "P(upper)"), s.pC, n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n), GREY, 3, [0, 1]);
   // Lower panel: observed mean rt for each row whose band is drawn, axis from the widest band drawn.
-  const shown = s.rows.map(row => ({ ...row, n0: Math.max(3, 2 / row.share) })).filter(row => row.n0 < N_MAX);
+  const shown = s.rows.map(row => ({ ...row, n0: Array.from({ length: N_MAX - 2 }, (_, i) => i + 3).find(n => row.count(n) >= 2) ?? N_MAX }))
+    .filter(row => row.n0 < N_MAX);
   const spread = row => n => 2 * Math.sqrt(row.vrt / (row.share * n));
   const lo = Math.min(...shown.map(r => r.mean - spread(r)(r.n0))), hi = Math.max(...shown.map(r => r.mean + spread(r)(r.n0)));
   const { ylim, yticks } = niceAxis(hi);
@@ -126,7 +133,7 @@ function drawAcross(p, s) {
 // to 3 significant digits before dezdm() runs, so the comment is what R returns for the printed call.
 const r = v => +v.toPrecision(3);
 function drawCode(p, s, v) {
-  const n = p.n_trials, nUpper = Math.round(s.pC * n);
+  const n = p.n_trials, nUpper = nUpperOf(s.pC, n);
   const pr = { drift: r(p.drift), bound: r(p.bound), ndt: r(p.ndt), zr: r(p.zr) };
   const means = s.rows.map(row => +row.mean.toFixed(3)), vars = s.rows.map(row => +row.vrt.toPrecision(3));
   const four = v === "4par";
