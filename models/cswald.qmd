@@ -104,8 +104,10 @@ In `simple`, the blue curve is the density of a correct response at each respons
 curve the likelihood of an error at that time, the probability that no correct response has come yet.
 They share the axis, but one is a density and the other a probability. In `crisk` the two curves are
 defective densities, upper responses above the axis and lower responses below, and each area is the
-probability of that response. Raising `drift` makes responses faster and less variable; in `crisk` it
-also moves area from lower to upper responses. Raising `bound` makes responses slower and more spread
+probability of that response. In `simple`, raising `drift` makes correct responses faster and less
+variable: the decision time has mean $a/v$ and variance $a/v^3$. In `crisk`, moving `drift` away from 0
+in either direction makes both responses faster and less variable, and raising it moves area from lower
+to upper responses. Raising `bound` makes responses slower and more spread
 out. `ndt` shifts everything. The time axis ends at 6 s at most.
 
 Slider ranges come from bmm's default priors for `cswald()`. In `simple`, `drift` is estimated on the log
@@ -130,8 +132,8 @@ its start in the middle. Its readout gives the diffusion model's probability of 
 error rate the comparison is about. When the diffusion model
 gives few lower responses, the correct-response densities nearly coincide. As errors become frequent,
 they part: `simple` has no density for errors at all and keeps all its area on correct responses, while
-the diffusion model moves area to the lower boundary. In `crisk` both models have both densities, and
-they part as the two accumulators' independent races drift away from the single diffusion process.
+the diffusion model moves area to the lower boundary. In `crisk` both models have both densities; they
+agree when one response dominates and differ most when the two responses are about equally common.
 bmm's [cswald article](https://venpopov.com/bmm/articles/bmm_cswald.html) recommends `simple` for error rates
 below 20% and `crisk` above.
 

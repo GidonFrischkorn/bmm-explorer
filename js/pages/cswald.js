@@ -16,7 +16,9 @@ const start = v => ({ zr: 0.5, ...Object.fromEntries(Object.entries(PRIOR[v]).ma
 // The time axis stops near here (6 s once rounded): at the smallest drifts of the simple version the Wald
 // density spreads over minutes.
 const T_CAP = 5;
-const GREY = "#8a939c";
+// The wide diffusion-model band under the thin curves of the comparison panel; lighter than rt-plot's
+// GREY so the curves drawn over it stay readable.
+const DDM_BAND = "#8a939c";
 
 const $ = id => document.getElementById(id);
 const pairs = bindParams(Object.fromEntries(["drift", "bound", "ndt", "zr"].map(k => [k, [`cswald-${k}`, `cswald-${k}-num`]])), draw);
@@ -64,27 +66,30 @@ function drawDensity(p, v, axis, x) {
 function drawCompare(p, v, axis, x) {
   const d = ddmPars(p, v), ddm = r => dddm(x, { ...d, response: r }).map(Math.exp);
   mirroredDensity($("cswald-ddm"), { W: 500, H: 300, margin: MARGIN, ...axis, x,
-    upper: [{ y: ddm(1), color: GREY, width: 5 }, { y: dens(x, p, 1, v), color: BLUE, width: 2.5 }],
-    lower: [{ y: ddm(0), color: GREY, width: 5 }, ...(v === "crisk" ? [{ y: dens(x, p, 0, v), color: ORANGE, width: 2.5 }] : [])],
+    upper: [{ y: ddm(1), color: DDM_BAND, width: 5 }, { y: dens(x, p, 1, v), color: BLUE, width: 2.5 }],
+    lower: [{ y: ddm(0), color: DDM_BAND, width: 5 }, ...(v === "crisk" ? [{ y: dens(x, p, 0, v), color: ORANGE, width: 2.5 }] : [])],
     lowerLabel: v === "simple" ? "lower (0), DDM only" : "lower (0)" });
   const pLower = 1 - ezdmMoments4par(d).pC;
   $("cswald-ddm-readout").textContent = `With these values the diffusion model gives P(lower) = ${fmt(pLower, 3)}` +
     (v === "simple" ? ` (bound ${fmt(d.bound, 2)}, zr 0.5).` : ".");
 }
 
-// R code: plain ASCII digits and minus, so the snippet pastes into R unchanged.
-const r = v => String(+v.toPrecision(3));
+// R code: plain ASCII digits and minus, so the snippet pastes into R unchanged. The call prints the
+// parameters to 3 significant digits, and the comment is computed from those printed values, so it is
+// what R returns for the call even when a typed value has more digits.
+const r = v => +v.toPrecision(3);
 function drawCode(p, v) {
-  const rt = +(p.ndt + 0.5).toFixed(3), crisk = v === "crisk";
-  const ll = [1, 0].map(resp => dcswald(rt, { ...p, response: resp, version: v }));
-  const freeZr = crisk && p.zr !== 0.5;
+  const q = Object.fromEntries(Object.entries(p).map(([k, x]) => [k, r(x)])), crisk = v === "crisk";
+  const rt = +(q.ndt + 0.5).toFixed(3);
+  const ll = [1, 0].map(resp => dcswald(rt, { ...q, response: resp, version: v }));
+  const freeZr = crisk && q.zr !== 0.5;
   $("cswald-code").textContent =
 `library(bmm)
 model <- cswald(rt = "rt", response = "response", version = "${v}")
 
 # log likelihood of an upper (1) and a lower (0) response, both at rt = ndt + 0.5 s
 dcswald(rt = c(${rt}, ${rt}), response = c(1, 0),
-        drift = ${r(p.drift)}, bound = ${r(p.bound)}, ndt = ${r(p.ndt)}${crisk ? `, zr = ${r(p.zr)}` : ""}, version = "${v}")
+        drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""}, version = "${v}")
 # ${ll.map(x => x.toFixed(4)).join("  ")}
 
 # fit: one row per trial, rt in seconds, response 0 or 1
