@@ -94,7 +94,9 @@ not data.
 ## Explore
 
 The density panel shows the two defective densities, upper responses above the axis and lower
-responses below. Raising `drift` moves area from the lower to the upper density and makes both faster.
+responses below. Raising `drift` moves area from the lower to the upper density. Moving it away from 0,
+in either direction, makes both faster: the response-time distribution of each response depends on the
+size of `drift`, not on its sign.
 Raising `bound` makes both slower and more spread out and, for a drift other than 0, moves area toward
 the response the drift favours. `ndt` shifts both densities without changing their shape. Moving `zr`
 toward 1 makes upper responses more frequent and faster and lower responses rarer and slower.
@@ -137,10 +139,11 @@ The code updates with the controls. `ddm()` defines the model, `dddm()` returns 
 response times and responses, and `bmf()` writes the formula for `bmm()`, which estimates the parameters
 from trial-level data; `my_data` stands for your own data, and fitting runs Stan through brms. The
 comment under the `dddm()` call holds the values this page computes for it. `dddm()` calls
-`rtdists::ddiffusion()`, which sums the series above until the error of stopping is below 10⁻⁶ relative
-to the factor in front of the sum. Where a density is very small, far in a tail, that cut-off decides
-the value, and this page
-follows the same rule, so it shows what bmm returns. See the
+`rtdists::ddiffusion()`, which sums either the series above or a second series that converges faster at
+short decision times, whichever needs fewer terms, and stops after enough terms for an absolute error of
+about 10⁻⁶ in the density. Where a density is very small, far in a tail, an error of that size is large
+against the value, so the cut-off decides it; this page follows the same rule, so it shows what bmm
+returns. See the
 [DDM article](https://venpopov.com/bmm/articles/bmm_ddm.html) for the full model and the reference pages
 for [`ddm()`](https://venpopov.com/bmm/reference/ddm.html) and
 [`dddm()`](https://venpopov.com/bmm/reference/ddm_dist.html).

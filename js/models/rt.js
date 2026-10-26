@@ -121,10 +121,10 @@ export function dezdm({ mean_rt, var_rt, n_upper, n_trials, drift, bound, ndt, z
 
 // Wald (inverse Gaussian) first-passage density to a boundary at distance bound, and its log survival
 // function, as bmm's .dwald() and .pwald(lower.tail = FALSE). t is the decision time (rt - ndt).
-export const logDwald = (t, drift, bound, s) =>
+const logDwald = (t, drift, bound, s) =>
   Math.log(bound) - 0.5 * Math.log(2 * Math.PI * t ** 3) - Math.log(s) - (bound - drift * t) ** 2 / (2 * s ** 2 * t);
 
-export function logSwald(t, drift, bound, s) {
+function logSwald(t, drift, bound, s) {
   const z1 = (drift * t - bound) / (s * Math.sqrt(t)), z2 = -(drift * t + bound) / (s * Math.sqrt(t));
   const upper = logPnorm(-z1), a2 = 2 * drift * bound / s ** 2 + logPnorm(z2);
   return upper + log1mExp(a2 - upper);
@@ -149,10 +149,11 @@ export function dcswald(x, { response, drift, bound, ndt, zr = 0.5, s = 1, versi
 // --- dddm(): Wiener first-passage density, as rtdists computes it ----------------------------------------------
 
 // rtdists::ddiffusion() runs fast-dm's C code (Voss & Voss). Without trial-to-trial variability it sums
-// the small-time or the large-time series of the first-passage density, whichever needs fewer terms, with a term
-// count set for an absolute error of 1e-6 relative to the prefactor. That truncation is part of what
-// bmm returns: in the far tails, where the prefactor is tiny, it moves the log density away from the
-// exact value. The port repeats fast-dm's term counts and operation order, so it returns what bmm does.
+// the small-time or the large-time series of the first-passage density, whichever needs fewer terms. Both
+// term counts hold the sum to a tolerance of 1e-6 / prefactor, an absolute error of about 1e-6 on the
+// density. That truncation is part of what bmm returns: in the far tails, where the density is far below
+// 1e-6, it moves the log density away from the exact value. The port repeats fast-dm's term counts and
+// operation order, so it returns what bmm does.
 const FASTDM_EPSILON = 1e-6;
 
 function fastdmSmall(ta, zr, N) {
