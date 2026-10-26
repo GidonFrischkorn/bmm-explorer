@@ -8,7 +8,7 @@ of response candidates) while the parameters stay fixed.
 Everything runs in the browser. The densities are small JavaScript ports of bmm's own `d*()`
 functions, and a test holds every port to fixtures that bmm itself generated.
 
-Site: <https://gidonfrischkorn.github.io/bmm-explorer/> · Issue that started it: popov-lab/bmm#437
+Site: <https://www.gfrischkorn.org/bmm-explorer/> · Issue that started it: popov-lab/bmm#437
 
 ## Layout
 

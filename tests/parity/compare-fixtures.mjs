@@ -8,8 +8,10 @@ let bad = 0;
 for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   const a = JSON.parse(fs.readFileSync(path.join(committed, f))), b = JSON.parse(fs.readFileSync(path.join(fresh, f)));
   if (a.cells.length !== b.cells.length) { console.log(`${f}: ${a.cells.length} vs ${b.cells.length} cells`); bad++; continue; }
+  // A cell holds a log density (logd), a probability vector (probs) or one mass; compare them alike.
+  const values = c => [].concat(c.logd ?? c.probs ?? c.mass);
   a.cells.forEach((ca, i) => {
-    const va = ca.logd ?? ca.probs, vb = b.cells[i].logd ?? b.cells[i].probs;
+    const va = values(ca), vb = values(b.cells[i]);
     const worst = Math.max(...va.map((v, k) => Math.abs(v - vb[k])));
     if (!(worst <= tol)) { console.log(`${f} cell ${i} ${ca.fn}: max abs diff ${worst.toExponential(2)} (bmm ${a.bmm_version} vs ${b.bmm_version})`); bad++; }
   });
