@@ -86,13 +86,13 @@ $$
 $$
 
 bmm calls $k$ `criterion` and $s$ `sdratio`. Its sensitivity parameter `d`, the slider on this page, sets the
-distance between the two locations: $\delta = d\,\sqrt{(1 + s^2)/2}$, the distance divided by the
-root-mean-square of the two scales. With equal scales ($s = 1$) the two are the same, and `d` is the familiar
-$d'$; with unequal scales `d` is the index called $d_a$, and $\delta$ is larger than `d` when $s > 1$. `bias`
-places the same boundary $k$ but measures it from the midpoint between the two locations: `bias` $= k - \delta/2$.
-It is the index usually written $c$; 0 is the midpoint, and positive values put the boundary closer to the
-signal, so the observer answers "new" more often. A row of data holds the number of "old" responses out of
-`n_trials` noise or signal trials, which is binomial with probability FA or H.
+distance $\delta$ between the two locations: $\delta = d\,\sqrt{(1 + s^2)/2}$, so `d` is the distance divided
+by the root-mean-square of the two scales. With equal scales ($s = 1$) `d` and $\delta$ are the same, and `d` is
+the familiar $d'$; with unequal scales `d` is the index called $d_a$, and $\delta$ is larger than `d` when $s > 1$.
+`bias` places the same boundary $k$ but measures it from the midpoint between the two locations: `bias`
+$= k - \delta/2$. Under equal variance it is the index usually written $c$; 0 is the midpoint, and positive values
+put the boundary closer to the signal, so the observer answers "new" more often. A row of data holds the number
+of "old" responses out of `n_trials` noise or signal trials, which is binomial with probability FA or H.
 
 `dist` sets the shape of both densities: `normal`, `logistic`, `gumbel_min` or `gumbel_max`. The logistic is
 symmetric like the normal, with heavier tails. The two Gumbel (extreme-value) distributions are skewed, mirror

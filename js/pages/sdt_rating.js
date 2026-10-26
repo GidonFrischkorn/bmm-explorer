@@ -46,6 +46,10 @@ function problems(p, t) {
   if (!(Number.isInteger(p.K) && p.K >= 3 && p.K <= K_MAX)) return [[["K"], "sdtrating-k-hint", `K must be a whole number from 3 to ${K_MAX}.`]];
   if (!Number.isFinite(p.d)) out.push([["d"], "sdtrating-range-hint", "d must be a number."]);
   if (!(p.sdratio > 0 && Number.isFinite(p.sdratio))) out.push([["sdratio"], "sdtrating-range-hint", "sdratio must be a number above 0."]);
+  // Past about 1e306 the drawing's arithmetic overflows to Infinity.
+  else if (!out.length && !(Math.abs(separation(p.d, p.sdratio)) < 1e300)) {
+    out.push([["d", "sdratio"], "sdtrating-range-hint", "d and sdratio put the signal too far out to draw."]);
+  }
   // A pair out of order flags both of its boxes: either may be the one to change.
   const bad = [...new Set(t.flatMap((x, j) => (!Number.isFinite(x) ? [`t${j + 1}`]
     : j > 0 && !(x > t[j - 1]) ? [`t${j}`, `t${j + 1}`] : [])))];
@@ -189,7 +193,9 @@ $("sdtrating-reset").addEventListener("click", () => {
 });
 $("sdtrating-copy").addEventListener("click", () => navigator.clipboard?.writeText($("sdtrating-code").textContent));
 pairs.d.setBounds({ min: PRIOR.d[0] - 3 * PRIOR.d[1], max: PRIOR.d[0] + 3 * PRIOR.d[1], step: STEP, scale: LINEAR });
-pairs.sdratio.setBounds({ min: -3 * PRIOR.sdratio[1], max: 3 * PRIOR.sdratio[1], step: 0.02, scale: LOG });
+// 3 * 0.3 is 0.8999999999999999 in floating point, which puts the top of the slider's 0.02 grid at 0.88.
+const LOG_SD3 = +(3 * PRIOR.sdratio[1]).toFixed(2);
+pairs.sdratio.setBounds({ min: -LOG_SD3, max: LOG_SD3, step: 0.02, scale: LOG });
 for (const q of T) q.setBounds({ min: T_MIN, max: T_MAX, step: STEP });
 setParams(pairs, START);
 kPair.value = START.K;

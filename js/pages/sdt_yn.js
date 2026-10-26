@@ -10,7 +10,10 @@ import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.j
 const PRIOR = { d: [1, 1], criterion: [0.5, 1.5], bias: [0, 1.5], sdratio: [0, 0.3] };
 const PRIOR_MEANS = { d: 1, criterion: 0.5, bias: 0, sdratio: 1 };
 const STEP = 0.05;
-const XLIM = [-5, 9];
+// The sliders reach criterion -6.38 to 8.26 (bias -4.5 to 4.5 plus half the separation at d -2 or 4 and
+// sdratio 2.46, the slider's top) and put the signal between -3.76 and 7.51; the margin keeps the line's label
+// inside the panel.
+const XLIM = [-7.5, 9.5];
 const LABEL = { criterion: "criterion, from the noise location", bias: "bias, from the midpoint" };
 
 const $ = id => document.getElementById(id);
@@ -33,6 +36,10 @@ function problems(v) {
   const bad = ["d", "k"].filter(key => !Number.isFinite(v[key]));
   if (bad.length) out.push([bad, `d and ${anchor()} must be numbers.`]);
   if (!(v.sdratio > 0 && Number.isFinite(v.sdratio))) out.push([["sdratio"], "sdratio must be a number above 0."]);
+  // Past about 1e306 the axis arithmetic overflows to Infinity.
+  else if (!out.length && ![separation(v.d, v.sdratio), v.criterion].every(x => Math.abs(x) < 1e300)) {
+    out.push([["d", "k", "sdratio"], "These values put the signal or the boundary too far out to draw."]);
+  }
   return out;
 }
 
@@ -43,11 +50,21 @@ function drawLatent(v, [fa, hit]) {
   // The axis stays put; it grows only when a narrow signal density would leave it.
   const ymax = Math.max(0.5, 1.15 * Math.max(peak(1), peak(v.sdratio)));
   const right = v.criterion < 6.5;
+  // The x axis grows only for a criterion the sliders cannot reach (a typed value, or a bias an anchor switch
+  // left outside its slider range), so the line stays where the rates are computed; the margin past the line
+  // grows with the axis so that its label stays inside.
+  const xlim = [v.criterion - 1 < XLIM[0] ? v.criterion - Math.max(3, (XLIM[1] - v.criterion) / 8) : XLIM[0],
+    v.criterion + 1 > XLIM[1] ? v.criterion + Math.max(3, (v.criterion - XLIM[0]) / 8) : XLIM[1]];
+  // Ticks on the round step (1, 2 or 5 times a power of 10) nearest to an eighth of the axis: 5 to 13 ticks.
+  const raw = (xlim[1] - xlim[0]) / 8, mag = 10 ** Math.floor(Math.log10(raw));
+  const tick = [1, 2, 5, 10].map(m => m * mag).reduce((a, b) => (Math.abs(Math.log(b / raw)) < Math.abs(Math.log(a / raw)) ? b : a));
+  const first = Math.ceil(xlim[0] / tick);
   latent = latentPlot($("sdtyn-latent"), {
-    xlim: XLIM, xticks: [-4, -2, 0, 2, 4, 6, 8], xlab: "Evidence (noise at 0, noise scale 1)", ymax,
+    xlim, xticks: Array.from({ length: Math.floor(xlim[1] / tick) - first + 1 }, (_, i) => +((first + i) * tick).toPrecision(12)),
+    xlab: "Evidence (noise at 0, noise scale 1)", ymax,
     curves: [
-      { f: x => evidencePdf(x, v, 0), color: NOISE, shade: [v.criterion, XLIM[1]] },
-      { f: x => evidencePdf(x, v, 1), color: SIGNAL, shade: [v.criterion, XLIM[1]] }
+      { f: x => evidencePdf(x, v, 0), color: NOISE, shade: [v.criterion, xlim[1]] },
+      { f: x => evidencePdf(x, v, 1), color: SIGNAL, shade: [v.criterion, xlim[1]] }
     ],
     lines: [
       { x: v.criterion, drag: true, label: `${anchor()} = ${fmt(v.k, 2)}`, aria: anchor() },
@@ -149,13 +166,14 @@ function applyAnchor() {
   pairs.k.setBounds({ min: m - 3 * sd, max: m + 3 * sd, step: STEP });
   $("sdtyn-k-label").textContent = LABEL[a];
   pairs.k.num.setAttribute("aria-label", a);
-  if (a !== shownAnchor && Number.isFinite(k)) {
-    pairs.k.value = +(a === "bias" ? criterionToBias(k, d, sdratio) : biasToCriterion(k, d, sdratio)).toFixed(2);
-  }
+  // A conversion that is not a number (an invalid d or sdratio) keeps the box as typed.
+  const moved = a === "bias" ? criterionToBias(k, d, sdratio) : biasToCriterion(k, d, sdratio);
+  if (a !== shownAnchor && Number.isFinite(moved)) pairs.k.value = +moved.toFixed(2);
   shownAnchor = a;
 }
 
-// Dragging the criterion line sets the boundary in the selected parametrisation, within its slider range.
+// Dragging the criterion line sets the boundary in the selected parametrisation, within its slider range. An
+// arrow key moves by one step from the value in use; outside the slider range it moves only towards it.
 const clampK = x => Math.min(+pairs.k.range.max, Math.max(+pairs.k.range.min, x));
 dragLines($("sdtyn-latent"), {
   plot: () => latent,
@@ -165,7 +183,11 @@ dragLines($("sdtyn-latent"), {
     pairs.k.value = +clampK(anchor() === "criterion" ? x : criterionToBias(x, v.d, v.sdratio)).toFixed(2);
     draw();
   },
-  step: (i, sign) => { pairs.k.value = +clampK(pairs.k.value + sign * STEP).toFixed(2); draw(); }
+  step: (i, sign) => {
+    const k = pairs.k.value, lo = Math.min(+pairs.k.range.min, k), hi = Math.max(+pairs.k.range.max, k);
+    pairs.k.value = +Math.min(hi, Math.max(lo, k + sign * STEP)).toFixed(2);
+    draw();
+  }
 });
 
 anchorInputs.forEach(i => i.addEventListener("change", () => { applyAnchor(); draw(); }));
@@ -176,7 +198,9 @@ $("sdtyn-reset").addEventListener("click", () => {
 });
 $("sdtyn-copy").addEventListener("click", () => navigator.clipboard?.writeText($("sdtyn-code").textContent));
 pairs.d.setBounds({ min: PRIOR.d[0] - 3 * PRIOR.d[1], max: PRIOR.d[0] + 3 * PRIOR.d[1], step: STEP, scale: LINEAR });
-pairs.sdratio.setBounds({ min: -3 * PRIOR.sdratio[1], max: 3 * PRIOR.sdratio[1], step: 0.02, scale: LOG });
+// 3 * 0.3 is 0.8999999999999999 in floating point, which puts the top of the slider's 0.02 grid at 0.88.
+const LOG_SD3 = +(3 * PRIOR.sdratio[1]).toFixed(2);
+pairs.sdratio.setBounds({ min: -LOG_SD3, max: LOG_SD3, step: 0.02, scale: LOG });
 applyAnchor();
 setParams(pairs, { d: PRIOR_MEANS.d, k: PRIOR_MEANS.criterion, sdratio: PRIOR_MEANS.sdratio });
 draw();
