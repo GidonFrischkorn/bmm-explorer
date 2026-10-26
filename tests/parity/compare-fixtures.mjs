@@ -6,9 +6,10 @@ import { absentReason } from "./helpers.mjs";
 const [committed, fresh, tolArg] = process.argv.slice(2);
 const tol = +(tolArg ?? 1e-10);
 let bad = 0;
-// Every number a cell holds is compared (logd, probs, nodes, ...), except the evaluation points x.
-const values = cell => Object.entries(cell).filter(([k, v]) => k !== "args" && k !== "x" && typeof v !== "string")
-  .flatMap(([, v]) => [v].flat());
+// Every number a cell holds is compared (logd, probs, nodes, ...), except its args and the evaluation points
+// x, including numbers inside objects (the EZ moments are an object of arrays).
+const numbers = v => (v !== null && typeof v === "object" ? Object.values(v).flatMap(numbers) : typeof v === "string" ? [] : [v]);
+const values = cell => Object.entries(cell).filter(([k]) => k !== "args" && k !== "x").flatMap(([, v]) => numbers(v));
 for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // R/make_fixtures.R writes no file for a density an older bmm lacks (mpt.json before dmpt()); any other
   // missing file is a failure, as in the parity tests.
