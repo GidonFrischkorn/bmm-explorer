@@ -7,7 +7,7 @@ import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.j
 import { autoAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
 import { simControls, markBars, simLine, pair } from "../lib/sim-panel.js";
-import { categoryCounts, splitTrials } from "../lib/simulate.js";
+import { ratingSample } from "../lib/simulate.js";
 
 // bmm's default priors for sdt_rating(), [mean, sd] on the link scale: d normal(1, 1); sdratio, a log ratio,
 // normal(0, 0.3). The threshold sliders span the criterion's prior, normal(0.5, 1.5), mean +- 3 SD.
@@ -87,7 +87,6 @@ const barAxis = autoAxis(draw, { nice: m => {
 // The simulated sample: half of the trials noise, half signal, each rated by where its uniform falls among the
 // cumulative rating probabilities. Shares per rating, noise then signal.
 const sim = simControls("sdtrating", draw);
-const sampleShares = cur => splitTrials(sim.us).map((us, s) => categoryCounts(cur[s], us).map(k => k / us.length));
 const meanRating = shares => shares.reduce((a, q, j) => a + (j + 1) * q, 0) / shares.reduce((a, q) => a + q, 0);
 
 function drawBars(cur, ref, K, got) {
@@ -150,7 +149,8 @@ model <- sdt_rating(response = paste0("r", 1:${K}), stimulus = "stimulus",
 dsdt_rating(counts = rbind(c(${counts[0].join(", ")}), c(${counts[1].join(", ")})), stimulus = c(0, 1),
             d = ${v.d}, thresholds = c(${t.join(", ")}), sdratio = ${v.sdratio}, dist = "${v.dist}", log = TRUE)
 ${sim.on ? `
-# simulate ${sim.n / 2} noise and ${sim.n / 2} signal trials: the counts per rating, one row each
+# simulate ${sim.n / 2} noise and ${sim.n / 2} signal trials: the counts per rating, columns r1 to r${K},
+# a row for noise, then one for signal trials
 rsdt_rating(n = 2, n_trials = ${sim.n / 2}, stimulus = c(0, 1),
             d = ${v.d}, thresholds = c(${t.join(", ")}), sdratio = ${v.sdratio}, dist = "${v.dist}")
 ` : ""}
@@ -184,11 +184,11 @@ function draw() {
   $("sdtrating-k-hint").textContent = "Ratings from 1, sure noise, to K, sure signal.";
   $("sdtrating-range-hint").textContent = "t: thresholds from the noise location. sdratio moves on the log scale.";
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const v = { d: p.d, sdratio: p.sdratio, dist: dist(), K: p.K };
   const cur = probs(t, v), ref = probs(parsimoniousThresholds(p.K), { d: 1, sdratio: 1, dist: v.dist });
   drawLatent(v, t);
-  const got = sim.on ? sampleShares(cur) : null;
+  const got = sim.on ? ratingSample(cur, sim.us) : null;
   drawBars(cur, ref, p.K, got);
   drawRoc(v, cur, ref, got);
   drawCode(v, t, cur);

@@ -2,19 +2,19 @@
 // current sample. The uniforms stay until New sample, so a slider move reshapes the same sample; a larger n
 // keeps the first draws and adds to them. Markup ids: <prefix>-sim (checkbox), -sim-n (select), -sim-new
 // (button), -sim-text (the summary line).
-import { uniforms } from "./random.js";
+import { uniforms, SIM_SEED } from "./random.js";
 import { circularSim, circularStats, histogram } from "./simulate.js";
 import { fmt } from "./widget.js";
 import { el, clipped } from "./plot.js";
 import { DEG } from "./circular-plot.js";
 
-const MAX_N = 1000, SEED = 437, BINS = 36;
+const MAX_N = 1000, BINS = 36;
 
 export function simControls(prefix, redraw) {
   const $ = id => document.getElementById(`${prefix}-${id}`);
   const box = $("sim"), size = $("sim-n"), again = $("sim-new"), text = $("sim-text");
   const start = [...size.options].find(o => o.defaultSelected).value;
-  let seed = SEED, us = uniforms(MAX_N, seed);
+  let seed = SIM_SEED, us = uniforms(MAX_N, seed);
   const sync = () => { size.disabled = again.disabled = !box.checked; };
   // The line hides here too: a page with invalid inputs does not redraw, and the line would stay.
   box.addEventListener("change", () => { sync(); text.hidden = !box.checked; redraw(); });
@@ -25,7 +25,7 @@ export function simControls(prefix, redraw) {
     get on() { return box.checked; },
     get n() { return +size.value; },
     get us() { return us.slice(0, +size.value); },
-    reset() { box.checked = false; size.value = start; us = uniforms(MAX_N, seed = SEED); sync(); },
+    reset() { box.checked = false; size.value = start; us = uniforms(MAX_N, seed = SIM_SEED); sync(); },
     text
   };
 }

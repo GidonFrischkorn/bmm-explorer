@@ -1,8 +1,8 @@
 // The sampler's parts (js/lib/simulate.js, js/lib/random.js): inversion, seeding, histogram.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { inverseCdf, circularSim, histogram, SIM_GRID, categoryCounts } from "../../js/lib/simulate.js";
-import { uniforms, mulberry32 } from "../../js/lib/random.js";
+import { inverseCdf, circularSim, histogram, SIM_GRID, categoryCounts, splitTrials } from "../../js/lib/simulate.js";
+import { uniforms, mulberry32, SIM_SEED } from "../../js/lib/random.js";
 import { dvonmises, integrateExp } from "../../js/lib/math.js";
 
 test("inverseCdf inverts a uniform density exactly", () => {
@@ -52,4 +52,20 @@ test("categoryCounts puts each uniform in the category whose cumulative probabil
   assert.equal(a[0] + a[1], 1000);
   const moved = us.filter(u => u >= 0.5 && u < 0.52).length;
   assert.equal(b[0] - a[0], moved, "a shifted boundary moves only the trials between the old and the new boundary");
+});
+
+// Kolmogorov-Smirnov statistic of a sample against the uniform distribution, scaled by sqrt(n).
+const ksUniform = us => {
+  const s = [...us].sort((a, b) => a - b), n = s.length;
+  return Math.sqrt(n) * Math.max(...s.map((u, i) => Math.max((i + 1) / n - u, u - i / n)));
+};
+test("the pages' start sample is a typical draw at every sample size, as a whole and in both halves", () => {
+  const us = uniforms(1000, SIM_SEED);
+  for (const n of [50, 100, 200, 500, 1000]) {
+    const sample = us.slice(0, n);
+    [sample, ...splitTrials(sample)].forEach((part, i) => {
+      const k = ksUniform(part);
+      assert.ok(k < 0.83, `n = ${n}, ${["all trials", "noise half", "signal half"][i]}: sqrt(n) D = ${k.toFixed(3)}`);
+    });
+  }
 });

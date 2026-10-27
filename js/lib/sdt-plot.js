@@ -84,6 +84,18 @@ export function dragLines(svg, { plot, move, step, active = () => true }) {
   });
 }
 
+// A point's label, below right of the point at (x, y): left of it where it would pass right, above it where it
+// would reach bottom (the plot's right edge and x axis, in svg units), so it stays clear of the tick labels.
+export function pointLabel(svg, x, y, text, { right, bottom }) {
+  const t = el("text", { x: x + 10, y: y + 20 > bottom - 4 ? y - 12 : y + 20, class: "sdt-note" }, svg);
+  t.textContent = text;
+  if (x + 10 + t.getComputedTextLength() > right) {
+    t.setAttribute("x", x - 10);
+    t.setAttribute("text-anchor", "end");
+  }
+  return t;
+}
+
 // spec: { W, H, curves: [{ pts: [[fa, hit]], color, dashed, dotted, width }], points: [{ fa, hit, label, color }] }
 // The chance diagonal is drawn first. Returns the scales.
 export function rocPlot(svg, spec) {
@@ -97,7 +109,7 @@ export function rocPlot(svg, spec) {
   spec.curves.forEach((c, i) => { if (c.dotted) paths[i + 1].setAttribute("stroke-dasharray", "2 5"); });
   for (const p of spec.points ?? []) {
     el("circle", { cx: sx(p.fa), cy: sy(p.hit), r: p.r ?? 7, fill: p.fill ?? "#fff", stroke: p.color ?? "#222", "stroke-width": 2.5 }, svg);
-    if (p.label) el("text", { x: sx(p.fa) + 10, y: sy(p.hit) + 20, class: "sdt-note" }, svg).textContent = p.label;
+    if (p.label) pointLabel(svg, sx(p.fa), sy(p.hit), p.label, { right: sx(1), bottom: sy(0) });
   }
   return { sx, sy };
 }

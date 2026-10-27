@@ -16,3 +16,8 @@ export function mulberry32(seed) {
 export const boxMuller = unif => Math.sqrt(-2 * Math.log(1 - unif())) * Math.cos(2 * Math.PI * unif());
 
 export const uniforms = (n, seed) => Array.from({ length: n }, mulberry32(seed));
+
+// The seed of the sample a page shows first: at every sample size the pages offer, its first n uniforms and both
+// halves splitTrials() takes of them have a Kolmogorov-Smirnov sqrt(n) D below 0.83, about the median of its null
+// distribution, so the first view is a typical draw, not one that leans the same way on every page.
+export const SIM_SEED = 296;

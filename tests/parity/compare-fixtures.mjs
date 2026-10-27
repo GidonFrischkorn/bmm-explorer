@@ -37,21 +37,42 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // it is 0), as in rt.test.mjs; every other rt.json value stays absolute.
   const scale = (key, v) => f === "math.json" ? Math.max(2 ** -1022, Math.abs(v)) : f === "sdt.json" ? relScale(v)
     : f === "rt.json" && /(^|\.)k[34](_|$)/.test(key) && v !== 0 ? Math.abs(v) : 1;
+  // simulate_counts.json holds one sample of n trials from bmm's r*() per cell, as shares p with their SE. Any change
+  // to the random stream bmm consumes (R's rbinom() or rmultinom(), a loop in bmm vectorised, another RNGkind) moves
+  // p by multiples of 1/n while the distribution stays: p is compared as two samples, within 4 sqrt(2) SE of the
+  // committed cell, and se, a function of p, must be sqrt(p (1 - p) / n) of the fresh cell's p. The probabilities
+  // r*() samples from, n and the seeds are compared at tol. A cell whose shares differ beyond tol but within that
+  // bound is reported on its own line and does not fail.
+  const sampled = f === "simulate_counts.json";
   a.cells.forEach((ca, i) => {
-    const va = values(ca), vb = values(b.cells[i]);
+    const cb = b.cells[i], va = values(ca), vb = values(cb);
     const keys = [...new Set([...va.keys(), ...vb.keys()])];
+    let resampled = false;
     const diffs = keys.map(key => {
       const x = va.get(key), y = vb.get(key);
       if (!x || !y) return [key, `only in the ${x ? "committed" : "fresh"} cell`];
       if (x.length !== y.length) return [key, `${x.length} vs ${y.length} values`];
+      if (sampled && /(^|\.)se$/.test(key)) {
+        const p = vb.get(key.replace(/se$/, "p"));
+        if (!p) return [key, "no p beside se"];
+        const worst = Math.max(0, ...y.map((v, k) => closeError(v, Math.sqrt(p[k] * (1 - p[k]) / cb.n))));
+        return [key, worst <= tol ? null : `not sqrt(p (1 - p) / n) of the fresh p, max diff ${worst.toExponential(2)}`];
+      }
       // the same non-finite value on both sides (-Inf, or NA from both bmm versions) agrees; closeError() fails any other
       const worst = Math.max(0, ...x.map((v, k) => Object.is(v, y[k]) ? 0 : closeError(y[k], v, scale(key, v))));
+      if (worst > tol && sampled && /(^|\.)p$/.test(key)) {
+        const se = va.get(key.replace(/p$/, "se"));
+        const z = Math.max(0, ...x.map((v, k) => (se[k] > 0 ? Math.abs(y[k] - v) / se[k] : Object.is(v, y[k]) ? 0 : Infinity)));
+        if (z <= 4 * Math.SQRT2) { resampled = true; return [key, null]; }
+        return [key, `max diff ${worst.toExponential(2)}, ${z.toFixed(2)} SE`];
+      }
       return [key, worst <= tol ? null : `max diff ${worst.toExponential(2)}`];
     }).filter(([, d]) => d !== null);
     if (diffs.length) {
       console.log(`${f} cell ${i} ${ca.fn}: ${diffs.map(([k, d]) => `${k} ${d}`).join("; ")} (bmm ${a.bmm_version} vs ${b.bmm_version})`);
       bad++;
-    }
+    } else if (resampled)
+      console.log(`${f} cell ${i} ${ca.fn}: bmm's r*() draws a different stream; the shares are within 4 sqrt(2) SE of the committed sample`);
   });
 }
 console.log(bad ? `${bad} differing cell(s) or missing file(s)` : `fixtures agree within ${tol}`);

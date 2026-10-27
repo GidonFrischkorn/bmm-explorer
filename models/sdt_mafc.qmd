@@ -61,9 +61,10 @@ toc: false
         <select id="sdtmafc-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtmafc-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="sdtmafc-sim-info" aria-label="About simulate">i</button></span>
     </div>
-    <div class="ex-info-pop" id="sdtmafc-sim-info" hidden>Draws N trials at this <code>m</code> and <code>d</code> and marks the sample's proportion correct at the current <code>d</code>. Below the panel: the expected P(correct) and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_mafc()</code>, in the code under In bmm.</div>
+    <div class="ex-info-pop" id="sdtmafc-sim-info" hidden>Draws N trials at this <code>m</code> and <code>d</code> and marks the sample's proportion correct at the current <code>d</code> (no mark when <code>d</code> is outside the plotted range, −2 to 4). Below the panel: the expected P(correct) and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_mafc()</code>, in the code under In bmm.</div>
     <svg id="sdtmafc-byd" role="img" aria-label="Predicted probability correct against d at the current number of alternatives"></svg>
-    <div class="ex-legend">Circle: the current d. Dotted: chance, 1/m. Dashed: bmm's prior mean of d.</div>
+    <div class="ex-legend">Circle: the current d. Dotted: chance, 1/m. Dashed: bmm's prior mean of d. Black: the
+      sample.</div>
     <div class="ex-legend ex-sim-text" id="sdtmafc-sim-text" hidden></div>
   </section>
 

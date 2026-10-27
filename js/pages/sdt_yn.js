@@ -6,7 +6,7 @@ import { barPlot, el } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
 import { simControls, markBars, pair, simLine } from "../lib/sim-panel.js";
-import { splitTrials, shareBelow } from "../lib/simulate.js";
+import { ynSample } from "../lib/simulate.js";
 
 // bmm's default priors for sdt_yn(), [mean, sd] on the link scale: identity, log for sdratio. The sliders
 // span mean +- 3 SD; the prior means are the starting values and the dashed reference.
@@ -85,7 +85,6 @@ function drawLatent(v, [fa, hit]) {
 
 // The simulated sample: half of the trials noise, half signal, each "old" when its uniform falls below the rate.
 const sim = simControls("sdtyn", draw);
-const sampleRates = cur => splitTrials(sim.us).map((us, s) => shareBelow(cur[s], us));
 
 function drawBars(cur, ref, got) {
   const svg = $("sdtyn-bars");
@@ -97,7 +96,11 @@ function drawBars(cur, ref, got) {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
     r.setAttribute("fill", [NOISE, SIGNAL][i]);
     el("rect", { x, y: sy(ref[i]), width: w, height: sy(0) - sy(ref[i]), fill: "none", stroke: "#222", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
-    el("text", { x: x + w / 2, y: sy(Math.max(cur[i], ref[i])) - 6, "text-anchor": "middle", class: "tick" }, svg).textContent = fmt(cur[i], 2);
+    // The value label clears the sample mark's halo and sits no higher than over a full bar (digits have no
+    // descenders, so it still clears a mark at 1).
+    const y = Math.max(sy(1) - 6, Math.min(sy(Math.max(cur[i], ref[i])) - 6, got ? sy(got[i]) - 8 : Infinity));
+    el("text", { x: x + w / 2, y, "text-anchor": "middle", class: "tick" }, svg)
+      .textContent = fmt(cur[i], 2);
   });
   if (got) markBars(svg, rects[0], sy, got);
   simLine(sim, () => `Expected (this sample of ${sim.n / 2} noise and ${sim.n / 2} signal trials): ` +
@@ -144,7 +147,7 @@ model <- sdt_yn(response = "n_old", stimulus = "stimulus", n_trials = "n_trials"
 dsdt_yn(n_old = c(${n.join(", ")}), n_trials = 100, stimulus = c(0, 1),
         d = ${v.d}, ${a} = ${v.k}, sdratio = ${v.sdratio}, dist = "${v.dist}", log = TRUE)
 ${sim.on ? `
-# simulate ${sim.n / 2} noise and ${sim.n / 2} signal trials: the "old" count in each
+# simulate ${sim.n / 2} noise and ${sim.n / 2} signal trials: the "old" count on noise, then on signal trials
 rsdt_yn(n = 2, n_trials = ${sim.n / 2}, stimulus = c(0, 1),
         d = ${v.d}, ${a} = ${v.k}, sdratio = ${v.sdratio}, dist = "${v.dist}")
 ` : ""}
@@ -164,10 +167,10 @@ function draw() {
   for (const id of ["sdtyn-widget", "sdtyn-code", "sdtyn-across-now"]) $(id).classList.toggle("ex-stale", bad.length > 0);
   $("sdtyn-range-hint").textContent = bad.length ? bad.map(b => b[1]).join(" ")
     : "Sliders: bmm's prior mean ± 3 SD. sdratio moves on the log scale; the box shows the ratio.";
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const cur = rates(v);
   drawLatent(v, cur);
-  const got = sim.on ? sampleRates(cur) : null;
+  const got = sim.on ? ynSample(cur, sim.us) : null;
   drawBars(cur, rates(prior()), got);
   drawRoc(v, cur, got);
   drawCode(v, cur);

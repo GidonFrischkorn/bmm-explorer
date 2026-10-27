@@ -84,3 +84,14 @@ export function categoryCounts(probs, us) {
 export const splitTrials = us => [us.filter((_, i) => i % 2 === 0), us.filter((_, i) => i % 2 === 1)];
 // The share of trials whose uniform falls below p: a rate (P("old"), P(correct)) counted as the pages count it.
 export const shareBelow = (p, us) => us.filter(u => u < p).length / us.length;
+
+// The samples the pages show, one function per kind of page, so the parity test checks the functions the pages sample
+// with (what a page passes them is not tested).
+// Each category's share of the trials (M3, MPT).
+export const categoricalShares = (probs, us) => categoryCounts(probs, us).map(k => k / us.length);
+// Yes/no: the false-alarm and hit rates of the noise and signal halves; rates = [P("old" | noise), P("old" | signal)].
+export const ynSample = (rates, us) => splitTrials(us).map((half, s) => shareBelow(rates[s], half));
+// Ratings: each rating's share on noise and on signal trials; probs = [noise probabilities, signal probabilities].
+export const ratingSample = (probs, us) => splitTrials(us).map((half, s) => categoricalShares(probs[s], half));
+// m-AFC: the proportion correct.
+export const mafcSample = (pc, us) => shareBelow(pc, us);

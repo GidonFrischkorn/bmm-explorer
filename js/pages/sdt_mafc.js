@@ -4,10 +4,10 @@ import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } fr
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
 import { linspace, log1pExp } from "../lib/math.js";
-import { latentPlot, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
+import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
 import { simControls, pair, simLine } from "../lib/sim-panel.js";
-import { shareBelow } from "../lib/simulate.js";
+import { mafcSample } from "../lib/simulate.js";
 
 // bmm's quadrature rules for normal (m > 2) and logistic noise, written from bmm by R/make_fixtures.R. Without
 // them those two distributions are switched off rather than computed on other nodes.
@@ -90,10 +90,10 @@ function drawByD(p, cur) {
   });
   paths[0].setAttribute("stroke-dasharray", "2 5");
   if (p.d >= dLo && p.d <= dHi) el("circle", { cx: sx(p.d), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
-  const got = sim.on ? shareBelow(cur, sim.us) : null;
+  const got = sim.on ? mafcSample(cur, sim.us) : null;
   if (got !== null && p.d >= dLo && p.d <= dHi) {
     el("circle", { cx: sx(p.d), cy: sy(got), r: 6, fill: "#000" }, svg);
-    el("text", { x: sx(p.d) + 10, y: sy(got) + 20, class: "sdt-note" }, svg).textContent = "sample";
+    pointLabel(svg, sx(p.d), sy(got), "sample", { right: sx(dHi), bottom: sy(0) });
   }
   simLine(sim, () => `Expected (this sample of ${sim.n} trials): P(correct) ${pair(cur, got)}.`);
 }
@@ -180,7 +180,7 @@ function draw() {
   $("sdtmafc-range-hint").textContent = "Slider: bmm's prior mean ± 3 SD." +
     (RULES ? "" : " normal and logistic are off: bmm's quadrature nodes did not load.");
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const cur = pc(p.d, p.m);
   drawTiles(p.m);
   drawLatent(p);
