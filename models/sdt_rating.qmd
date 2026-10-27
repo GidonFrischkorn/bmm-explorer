@@ -79,16 +79,22 @@ toc: false
   </div>
 
   <section class="ex-panel ex-p-bars" aria-label="Predicted rating proportions">
-    <div class="ex-panel-title">Predicted ratings</div>
+    <div class="ex-panel-title ex-title-row">Predicted ratings
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="sdtrating-sim"> simulate</label>
+        <select id="sdtrating-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtrating-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="sdtrating-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="sdtrating-sim-info" hidden>Draws N trials, half noise and half signal, marks each rating's share in the sample on its bar (black lines) and the sample's cumulative rates as points on the ROC. Below the panel: the expected mean rating on noise and on signal trials and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_rating()</code>, in the code under In bmm.</div>
     <svg id="sdtrating-bars" role="img" aria-label="Predicted proportion of each rating on noise and on signal trials"></svg>
     <div class="ex-legend">Probability of each rating on <span class="blue">noise</span> and on
       <span class="orange">signal</span> trials. Dashed: bmm's prior means.</div>
+    <div class="ex-legend ex-sim-text" id="sdtrating-sim-text" hidden></div>
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="ROC">
     <div class="ex-panel-title">ROC from the cumulative rates</div>
     <svg id="sdtrating-roc" role="img" aria-label="Receiver operating characteristic with one point per threshold: the rate of ratings at or above it on noise and signal trials"></svg>
-    <div class="ex-legend">Circles: P(rating ≥ j), noise vs. signal. Solid: all criteria. Dashed: prior means.
+    <div class="ex-legend">Circles: P(rating ≥ j), noise vs. signal. Solid: all criteria. Dashed: prior means. Black dots, with simulate on: the sample.
       Grey: chance.</div>
   </section>
 </div>

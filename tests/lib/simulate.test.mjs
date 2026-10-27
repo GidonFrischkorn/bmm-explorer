@@ -1,7 +1,7 @@
 // The sampler's parts (js/lib/simulate.js, js/lib/random.js): inversion, seeding, histogram.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { inverseCdf, circularSim, histogram, SIM_GRID } from "../../js/lib/simulate.js";
+import { inverseCdf, circularSim, histogram, SIM_GRID, categoryCounts } from "../../js/lib/simulate.js";
 import { uniforms, mulberry32 } from "../../js/lib/random.js";
 import { dvonmises, integrateExp } from "../../js/lib/math.js";
 
@@ -43,4 +43,13 @@ test("histogram heights integrate to 1 and clamp draws at the ends into the end 
   const w = 2 * Math.PI / 36;
   assert.ok(Math.abs(h.reduce((s, v) => s + v * w, 0) - 1) < 1e-12);
   assert.ok(h[0] > 0 && h[35] > 0);
+});
+
+test("categoryCounts puts each uniform in the category whose cumulative probability first exceeds it", () => {
+  assert.deepEqual(categoryCounts([0.2, 0.3, 0.5], [0, 0.19, 0.2, 0.49, 0.5, 0.99]), [2, 2, 2]);
+  assert.deepEqual(categoryCounts([2, 3, 5], [0.1, 0.45, 0.9]), [1, 1, 1], "probabilities are renormalised");
+  const us = uniforms(1000, 5), a = categoryCounts([0.5, 0.5], us), b = categoryCounts([0.52, 0.48], us);
+  assert.equal(a[0] + a[1], 1000);
+  const moved = us.filter(u => u >= 0.5 && u < 0.52).length;
+  assert.equal(b[0] - a[0], moved, "a shifted boundary moves only the trials between the old and the new boundary");
 });

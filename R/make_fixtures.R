@@ -431,4 +431,53 @@ cells <- c(
 )
 write_fx("simulate", cells)
 
+# --- simulate_counts ---------------------------------------------------------
+# Simulated data on the categorical and signal detection pages: one draw of 1e5 trials from bmm's r*() per cell,
+# as proportions per category with their SE, sqrt(p (1 - p) / n). The explorer counts trials by inverting the
+# cumulative probabilities its parity-tested functions give, and is held to these within a few SE. yn and rating
+# draw 1e5 noise and 1e5 signal trials.
+cnt_n <- 1e5
+shares <- function(x) { p <- as.numeric(x) / cnt_n; list(p = p, se = sqrt(p * (1 - p) / cnt_n)) }
+cells <- list()
+for (g in c(list(list(rule = "simple", a = 1, c = 20.1, n = c(1, 4, 5)), list(rule = "softmax", a = 3, c = 3, n = c(1, 2, 6))),
+            if (has_gauss) list(list(rule = "gaussian", a = 2, c = 2, n = c(1, 4, 5))))) {
+  mod <- m3(resp_cats = c("corr", "other", "npl"), num_options = g$n, choice_rule = g$rule, version = "ss")
+  set.seed(437)
+  cells[[length(cells) + 1]] <- c(list(fn = "m3_ss", args = list(a = g$a, c = g$c, n_other = g$n[2], n_npl = g$n[3],
+    choice_rule = g$rule, b = mod$fixed_parameters$b)), shares(rm3(n = 1, size = cnt_n, pars = c(a = g$a, c = g$c), m3_model = mod)))
+}
+mod <- m3(resp_cats = c("corr", "dist_context", "other", "dist_other", "npl"), num_options = c(1, 1, 4, 3, 5),
+          choice_rule = "softmax", version = "cs")
+set.seed(437)
+cells[[length(cells) + 1]] <- c(list(fn = "m3_cs", args = list(a = 3, c = 3, f = .5, num_options = c(1, 1, 4, 3, 5),
+  choice_rule = "softmax", b = mod$fixed_parameters$b)), shares(rm3(n = 1, size = cnt_n, pars = c(a = 3, c = 3, f = .5), m3_model = mod)))
+if (has_since("rmpt", "1.4.1")) {
+  mod <- mpt(mpt_tree("span", branches), covariates = c("gl_corr", "gl_other", "g_corr", "g_other", "g_npl"))
+  for (g in list(list(Pi = .5, Pb = .5, n = c(4, 5)), list(Pi = .9, Pb = .3, n = c(1, 8)))) {
+    N <- 1 + sum(g$n)
+    cv <- c(gl_corr = 1 / (1 + g$n[1]), gl_other = g$n[1] / (1 + g$n[1]), g_corr = 1 / N, g_other = g$n[1] / N, g_npl = g$n[2] / N)
+    set.seed(437)
+    cells[[length(cells) + 1]] <- c(list(fn = "mpt_span", args = list(Pi = g$Pi, Pb = g$Pb, n_other = g$n[1], n_npl = g$n[2])),
+      shares(rmpt(n = 1, size = cnt_n, pars = c(Pi = g$Pi, Pb = g$Pb), mpt_model = mod, covariates = cv)))
+  }
+}
+if (has_since("rsdt_yn", "1.4.1")) {
+  for (g in list(list(d = 1, criterion = .5, sdratio = 1, dist = "normal"), list(d = 2, bias = .3, sdratio = 1.5, dist = "logistic"))) {
+    set.seed(437)
+    cells[[length(cells) + 1]] <- c(list(fn = "sdt_yn", args = g),
+      shares(do.call(rsdt_yn, c(list(n = 2, n_trials = cnt_n, stimulus = c(0, 1)), g))))
+  }
+  for (g in list(list(m = 4, d = 1, dist = "normal"), list(m = 2, d = 1.5, dist = "gumbel_min"))) {
+    set.seed(437)
+    cells[[length(cells) + 1]] <- c(list(fn = "sdt_mafc", args = g), shares(do.call(rsdt_mafc, c(list(n = 1, n_trials = cnt_n), g))))
+  }
+  for (g in list(list(d = 1, thresholds = c(-1, 0, 1), sdratio = 1, dist = "normal"),
+                 list(d = 1.2, thresholds = c(-1.11, -0.19, 0.5, 1.19, 2.11), sdratio = 1.3, dist = "gumbel_max"))) {
+    set.seed(437)
+    x <- do.call(rsdt_rating, c(list(n = 2, n_trials = cnt_n, stimulus = c(0, 1)), g))
+    cells[[length(cells) + 1]] <- c(list(fn = "sdt_rating", args = g), list(noise = shares(x[1, ]), signal = shares(x[2, ])))
+  }
+}
+write_fx("simulate_counts", cells)
+
 cat("bmm", version, "->", out, "\n")

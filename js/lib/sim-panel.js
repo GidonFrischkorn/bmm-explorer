@@ -5,6 +5,7 @@
 import { uniforms } from "./random.js";
 import { circularSim, circularStats, histogram } from "./simulate.js";
 import { fmt } from "./widget.js";
+import { el, clipped } from "./plot.js";
 import { DEG } from "./circular-plot.js";
 
 const MAX_N = 1000, SEED = 437, BINS = 36;
@@ -53,3 +54,26 @@ n <- ${n}
 y <- ${call}
 c(mean_abs = mean(abs(y)), circ_sd = sqrt(-2 * log(Mod(mean(exp(1i * y))))), within_${w} = mean(abs(y) <= ${w} * pi / 180))`;
 }
+
+// "expected (sample)" for a share, as the summary lines print it.
+export const pair = (e, got) => `${fmt(e)} (${fmt(got)})`;
+
+// The sample's share on each predicted bar: a dark line across the bar with a white halo, so it reads over any
+// fill. rects and sy come from barPlot; shares in the bars' order.
+export function markBars(svg, rects, sy, shares) {
+  rects.forEach((r, i) => {
+    const x = +r.getAttribute("x"), w = +r.getAttribute("width"), y = sy(shares[i]);
+    for (const [stroke, width] of [["#fff", 7], ["#000", 3]])
+      el("line", { x1: x - 3, x2: x + w + 3, y1: y, y2: y, stroke, "stroke-width": width, class: "sim-mark", ...clipped(svg) }, svg);
+  });
+}
+
+// The summary line: hidden when the switch is off, else text() (only computed then).
+export function simLine(sim, text) {
+  sim.text.hidden = !sim.on;
+  if (sim.on) sim.text.textContent = text();
+}
+
+// The summary line of a categorical sample: each category's expected share and, in brackets, the sample's.
+export const shareLine = (sim, labels, expected, shares) =>
+  simLine(sim, () => `Expected (this sample of ${sim.n}): ${labels.map((l, i) => `${l} ${pair(expected[i], shares[i])}`).join(", ")}.`);

@@ -60,10 +60,16 @@ toc: false
   </div>
 
   <section class="ex-panel ex-p-bars" aria-label="Predicted rates">
-    <div class="ex-panel-title">Predicted P("old")</div>
+    <div class="ex-panel-title ex-title-row">Predicted P("old")
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="sdtyn-sim"> simulate</label>
+        <select id="sdtyn-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtyn-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="sdtyn-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="sdtyn-sim-info" hidden>Draws N trials, half noise and half signal, and marks the sample's false-alarm and hit rates on their bars (black lines) and as a point on the ROC. Below the panel: the expected rates and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_yn()</code>, in the code under In bmm.</div>
     <svg id="sdtyn-bars" role="img" aria-label="Predicted false-alarm rate on noise trials and hit rate on signal trials"></svg>
     <div class="ex-legend">P("old") on <span class="blue">noise</span> trials (false alarms) and on
       <span class="orange">signal</span> trials (hits). Dashed: bmm's prior means.</div>
+    <div class="ex-legend ex-sim-text" id="sdtyn-sim-text" hidden></div>
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="ROC">
