@@ -4,8 +4,10 @@ import { dvonmises } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { linePlot, el } from "../lib/plot.js";
 import { circularPlot, CIRC_X, wrap } from "../lib/circular-plot.js";
+import { autoAxis } from "../lib/axis.js";
 import { colourWheel, hue, TAU } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
+import { initInfo } from "../lib/info.js";
 
 // kappa has bmm's default prior normal(2, 1) on the log link; its slider spans the mean +- 3 SD.
 // thetat = thetant = 0 (the medians of their logistic(0, 1) priors) give weights of 1/3 each, which
@@ -72,11 +74,12 @@ function components(mu, p) {
   return { base, top1, top2: top1.map((v, i) => v + tgt[i]) };
 }
 
+const densityAxis = autoAxis(draw);
 function drawDensity(mu, p) {
   const total = q => dmixture3p(CIRC_X, { mu, ...q }).map(Math.exp);
   const c = components(mu, p);
   circularPlot($("mix3-density"), {
-    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Density (per radian)",
+    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: total(START), color: WEIGHT_COLOR.target, dashed: true }, { y: total(p), color: WEIGHT_COLOR.target }],
     areas: [
       { lo: CIRC_X.map(() => 0), hi: c.base, color: WEIGHT_COLOR.guess, opacity: 0.3 },
@@ -185,3 +188,4 @@ pairs.kappa.setBounds({ min: KAPPA[0] - 3 * KAPPA[1], max: KAPPA[0] + 3 * KAPPA[
 pairs.set_size.setBounds({ min: 2, max: MAX_N, step: 1 });
 setParams(pairs, { ...START, set_size: START_N });
 draw();
+initInfo();

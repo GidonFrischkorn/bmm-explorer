@@ -29,10 +29,12 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="mix2-p_mem">p_mem, probability of recalling the target</label>
+      <div class="ex-label"><label for="mix2-p_mem">p_mem, probability of recalling the target</label><button type="button" class="ex-info" aria-controls="mix2-p_mem-info">i</button></div>
+      <div class="ex-info-pop" id="mix2-p_mem-info" hidden>Probability that the target is recalled. On those trials the error scatters around 0 with precision <code>kappa</code>; on the other 1 − <code>p_mem</code> the participant guesses and every error is equally likely. <code>p_mem</code> = 0.6 puts 60% of the responses in the peak and 40% in the flat floor. bmm's formulas call it <code>thetat</code> and estimate it on the logit scale.</div>
       <input type="range" id="mix2-p_mem">
       <input type="number" id="mix2-p_mem-num" aria-label="p_mem">
-      <label for="mix2-kappa">kappa, precision of the memory</label>
+      <div class="ex-label"><label for="mix2-kappa">kappa, precision of the memory</label><button type="button" class="ex-info" aria-controls="mix2-kappa-info">i</button></div>
+      <div class="ex-info-pop" id="mix2-kappa-info" hidden>Precision of the recalled colour: the concentration of the von Mises peak around the target. Higher <code>kappa</code>: a narrower peak, smaller errors on recalled trials. It moves no weight between memory and guessing.</div>
       <input type="range" id="mix2-kappa">
       <input type="number" id="mix2-kappa-num" aria-label="kappa">
       <div class="ex-hint" id="mix2-par-hint"></div>

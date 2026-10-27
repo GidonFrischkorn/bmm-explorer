@@ -2,8 +2,10 @@
 // one, kept in order by the controls.
 import { ratingLogProbs, dsdtRating, ynRoc, evidencePdf, separation, parsimoniousThresholds, toLogDistance, DISTS } from "../models/sdt.js";
 import { bindPair, bindParams, readParams, setParams, fmt, LINEAR, LOG } from "../lib/widget.js";
-import { barPlot, el } from "../lib/plot.js";
+import { barPlot, el, clipped } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
+import { autoAxis } from "../lib/axis.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's default priors for sdt_rating(), [mean, sd] on the link scale: d normal(1, 1); sdratio, a log ratio,
 // normal(0, 0.3). The threshold sliders span the criterion's prior, normal(0.5, 1.5), mean +- 3 SD.
@@ -75,19 +77,22 @@ function drawLatent(v, t) {
   });
 }
 
+// Rating proportions seldom pass 0.5: the axis ends at the next quarter above the tallest bar.
+const barAxis = autoAxis(draw, { nice: m => {
+  const top = Math.max(0.5, Math.ceil(4 * m) / 4);
+  return { ylim: [0, top], yticks: [0, 0.25, 0.5, 0.75, 1].filter(y => y <= top) };
+} });
 function drawBars(cur, ref, K) {
   const svg = $("sdtrating-bars");
-  // Rating proportions seldom pass 0.5: the axis ends at the next quarter above the tallest bar.
-  const top = Math.max(0.5, Math.ceil(4 * Math.max(...cur.flat(), ...ref.flat())) / 4);
   const { rects, sy } = barPlot(svg, {
-    W: 500, H: 300, margin: { l: 64, r: 10, t: 14, b: 50 }, ylim: [0, top],
-    yticks: [0, 0.25, 0.5, 0.75, 1].filter(y => y <= top),
+    W: 500, H: 300, margin: { l: 64, r: 10, t: 14, b: 50 }, ...barAxis.next(Math.max(...cur.flat(), ...ref.flat())),
     categories: Array.from({ length: K }, (_, j) => String(j + 1)), xlab: "Rating", ylab: "Proportion",
     groups: [{ values: cur[0], color: NOISE }, { values: cur[1], color: SIGNAL }]
   });
   rects.forEach((grp, g) => grp.forEach((r, j) => {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
-    el("rect", { x, y: sy(ref[g][j]), width: w, height: sy(0) - sy(ref[g][j]), fill: "none", stroke: "#222", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, svg);
+    el("rect", { x, y: sy(ref[g][j]), width: w, height: sy(0) - sy(ref[g][j]), fill: "none", stroke: "#222", "stroke-width": 1.5, "stroke-dasharray": "5 4",
+      ...clipped(svg) }, svg);
   }));
 }
 
@@ -201,3 +206,4 @@ setParams(pairs, START);
 kPair.value = START.K;
 applyK();
 draw();
+initInfo();

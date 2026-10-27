@@ -2,8 +2,9 @@
 import { dcswald, dddm, ezdmMoments4par } from "../models/rt.js";
 import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { linePlot } from "../lib/plot.js";
-import { niceAxis } from "../lib/circular-plot.js";
+import { autoAxis, niceAxis } from "../lib/axis.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's default priors for cswald(version = ...), [mean, sd, scale, step] on the link scale; the sliders
 // span mean +- 3 SD and start at the means. drift has a log link in simple (it is positive there) and an
@@ -46,11 +47,15 @@ function tEnd(p, v) {
 
 const dens = (x, p, response, v) => dcswald(x, { ...p, response, version: v }).map(Math.exp);
 const MARGIN = { l: 64, r: 10, t: 12, b: 50 };
+// The time axis is shared by the task drawing and both density panels.
+const timeAuto = autoAxis(draw, { nice: niceAxis }), densityAxis = autoAxis(draw), compareAxis = autoAxis(draw);
+// simple: the axis reaches 1 at least, the probability of no correct response by rt 0.
+const simpleAxis = autoAxis(draw, { nice: m => niceAxis(Math.max(1, m) * 1.05) });
 
 function drawDensity(p, v, axis, x) {
   const ref = start(v), svg = $("cswald-density");
   if (v === "crisk") {
-    mirroredDensity(svg, { W: 500, H: 300, margin: MARGIN, ...axis, x,
+    mirroredDensity(svg, { W: 500, H: 300, margin: MARGIN, ...axis, x, axis: densityAxis,
       upper: [{ y: dens(x, ref, 1, v), color: BLUE, dashed: true }, { y: dens(x, p, 1, v), color: BLUE }],
       lower: [{ y: dens(x, ref, 0, v), color: ORANGE, dashed: true }, { y: dens(x, p, 0, v), color: ORANGE }] });
     return;
@@ -59,13 +64,13 @@ function drawDensity(p, v, axis, x) {
   // response has happened by rt. One is a density, the other a probability; they share the axis only.
   const series = [[ref, true], [p, false]].flatMap(([q, dashed]) => [
     { x, y: dens(x, q, 1, v), color: BLUE, dashed }, { x, y: dens(x, q, 0, v), color: ORANGE, dashed }]);
-  const { ylim, yticks } = niceAxis(Math.max(1, ...series.flatMap(s => s.y.filter(Number.isFinite))) * 1.05);
+  const { ylim, yticks } = simpleAxis.next(Math.max(...series.flatMap(s => s.y.filter(Number.isFinite))));
   linePlot(svg, { W: 500, H: 300, margin: MARGIN, ...axis, ylim, yticks, xlab: "rt (s)", ylab: "density · probability", series });
 }
 
 function drawCompare(p, v, axis, x) {
   const d = ddmPars(p, v), ddm = r => dddm(x, { ...d, response: r }).map(Math.exp);
-  mirroredDensity($("cswald-ddm"), { W: 500, H: 300, margin: MARGIN, ...axis, x,
+  mirroredDensity($("cswald-ddm"), { W: 500, H: 300, margin: MARGIN, ...axis, x, axis: compareAxis,
     upper: [{ y: ddm(1), color: DDM_BAND, width: 5 }, { y: dens(x, p, 1, v), color: BLUE, width: 2.5 }],
     lower: [{ y: ddm(0), color: DDM_BAND, width: 5 }, ...(v === "crisk" ? [{ y: dens(x, p, 0, v), color: ORANGE, width: 2.5 }] : [])],
     lowerLabel: v === "simple" ? "lower (0), DDM only" : "lower (0)" });
@@ -121,7 +126,7 @@ function draw() {
   $("cswald-hint").textContent = bad.length ? `Needed: ${bad.map(([, msg]) => msg).join(", ")}.` : HINT[v];
   if (bad.length) return;
   const q = v === "simple" ? { ...p, zr: 0.5 } : p;
-  const axis = timeAxis(Math.min(T_CAP, Math.max(tEnd(q, v), tEnd(start(v), v)))), x = rtGrid(axis.xlim);
+  const axis = timeAxis(Math.min(T_CAP, Math.max(tEnd(q, v), tEnd(start(v), v))), timeAuto), x = rtGrid(axis.xlim);
   drawDiffusion($("cswald-task"), { mode: v, ...q, ...axis });
   drawDensity(q, v, axis, x);
   drawCompare(q, v, axis, x);
@@ -138,6 +143,7 @@ function draw() {
 // that version's prior means.
 function applyVersion() {
   const v = version();
+  for (const a of [timeAuto, densityAxis, compareAxis, simpleAxis]) a.reset();
   for (const [k, [m, sd, scale, step]] of Object.entries(PRIOR[v])) pairs[k].setBounds({ min: m - 3 * sd, max: m + 3 * sd, step, scale });
   setParams(pairs, start(v));
 }
@@ -148,3 +154,4 @@ $("cswald-copy").addEventListener("click", () => navigator.clipboard?.writeText(
 pairs.zr.setBounds({ min: -0.9, max: 0.9, step: 0.02, scale: LOGIT });
 applyVersion();
 draw();
+initInfo();

@@ -4,7 +4,8 @@ import { ezdmMoments3par, ezdmMoments4par, dezdm } from "../models/rt.js";
 import { bindParams, readParams, setParams, fmt, rValue, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { el, clear, scales } from "../lib/plot.js";
 import { drawDiffusion, timeAxis, BLUE, ORANGE, GREY } from "../lib/rt-plot.js";
-import { niceAxis } from "../lib/circular-plot.js";
+import { autoAxis, niceAxis } from "../lib/axis.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's default priors for ezdm(), [mean, sd, scale, step] on the link scale; the sliders span mean +- 3 SD
 // and start at the means. drift's cauchy(0, 1) has no SD; its slider spans location +- 3 scale.
@@ -89,6 +90,10 @@ function drawStats(p, s, ref, axis) {
 // terms below 2 responses, so its band starts at the first n_trials whose printed call has 2 responses
 // there (after rounding, an expected count of about 1.5), or is not drawn.
 const NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
+const timeAuto = autoAxis(draw, { nice: niceAxis }), rtAuto = autoAxis(draw, { nice: niceAxis });
+// The mean-rt panel's floor moves in whole ticks; like its top, it stays while the bands keep above it and
+// come within two ticks of it.
+let rtFloor = 0;
 function drawAcross(p, s) {
   const svg = $("ezdm-across");
   clear(svg);
@@ -118,10 +123,12 @@ function drawAcross(p, s) {
     .filter(row => row.n0 < N_MAX);
   const spread = row => n => 2 * Math.sqrt(row.vrt / (row.share * n));
   const lo = Math.min(...shown.map(r => r.mean - spread(r)(r.n0))), hi = Math.max(...shown.map(r => r.mean + spread(r)(r.n0)));
-  const { ylim, yticks } = niceAxis(hi);
-  const ymin = Math.max(0, Math.floor(lo / yticks[1]) * yticks[1]);
-  const rtSc = panel(146, 50, [ymin, ylim[1]], yticks.filter(v => v >= ymin - 1e-9), "mean rt (s)");
-  shown.forEach(row => band(rtSc, row.mean, spread(row), row.color, row.n0));
+  const { ylim, yticks } = rtAuto.next(hi);
+  if (!(lo >= rtFloor && lo < rtFloor + 2 * yticks[1])) rtFloor = Math.max(0, Math.floor(lo / yticks[1]) * yticks[1]);
+  // While the top eases up to a jump in the bands, it can still be below their floor for a few frames.
+  const rtTop = Math.max(ylim[1], rtFloor + yticks[1]);
+  const rtSc = panel(146, 50, [rtFloor, rtTop], yticks.filter(v => v >= rtFloor - 1e-9 && v <= rtTop + 1e-9), "mean rt (s)");
+  shown.forEach(row => band(rtSc, row.mean, spread(row), row.color, row.n0, [rtFloor, rtTop]));
   [3, 10, 30, 100, 300].forEach(n => {
     el("text", { x: rtSc.sx(lx(n)), y: H - 26, "text-anchor": "middle", class: "tick" }, svg).textContent = String(n);
   });
@@ -169,7 +176,7 @@ function draw() {
   if (bad.length) return;
   const q = v === "3par" ? { ...p, zr: 0.5 } : p;
   const s = stats(q, v), ref = stats({ ...START, n_trials: p.n_trials }, v);
-  const axis = timeAxis(Math.max(...[...s.rows, ...ref.rows].map(row => row.mean + 2 * Math.sqrt(row.vrt))));
+  const axis = timeAxis(Math.max(...[...s.rows, ...ref.rows].map(row => row.mean + 2 * Math.sqrt(row.vrt))), timeAuto);
   drawDiffusion($("ezdm-task"), { mode: "ddm", ...q, ...axis });
   drawStats(q, s, ref, axis);
   drawAcross(q, s);
@@ -183,3 +190,4 @@ $("ezdm-copy").addEventListener("click", () => navigator.clipboard?.writeText($(
 pairs.n_trials.setBounds({ min: 3, max: N_MAX, step: 1 });
 setParams(pairs, START);
 draw();
+initInfo();

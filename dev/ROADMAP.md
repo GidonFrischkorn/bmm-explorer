@@ -1,6 +1,6 @@
 # bmm model explorer: roadmap
 
-Status 2026-10-25. One milestone is one working session with its own branch and PR. Each milestone
+Status 2026-10-27. One milestone is one working session with its own branch and PR. Each milestone
 ships pages that pass the parity test, render, and read well to someone who has not opened bmm.
 
 ## Decisions that shape everything
@@ -12,13 +12,17 @@ ships pages that pass the parity test, render, and read well to someone who has 
 | Oracle version | CRAN bmm blocks, bmm `develop` reports | Pages should match what users have installed; drift in develop should be visible early. |
 | Hosting | This repo, GitHub Pages via Actions | Independent of bmm's pkgdown build; pkgdown links here. |
 | Page template | A one-screen dashboard, then five fixed sections (below) | Everything that moves is visible at once; a reader learns the layout once. |
+| Simulated data (E9, E10) | Draws by inverting the parity-tested density on a fine grid, from fixed uniforms; expected statistics have quadrature fixtures from bmm's `d*()`, sample statistics match bmm's `r*()` within 4 Monte Carlo SE | bmm's `rimm()` and `rsdm()` are rejection samplers from `dimm()` and `dsdm()`, so drawing from the tested density is drawing from bmm's model; fixed uniforms let the sample follow a slider. |
 | First models | M3 simple span, then IMM | The two models with the richest task-settings axis; they fix the categorical and the circular template. |
 
 ## Page template
 
 Dashboard first, one screen at 1280 x 800: task drawing, task settings, parameters (ranges from bmm's
 default priors, mean +- 3 SD), predicted distribution with the prior means dashed, and the prediction
-across the design variable. Then the five sections:
+across the design variable. Every parameter, task setting and model choice has an (i) note: what it
+does in the model and an example from the task drawing. Auto-scaled axes hold their round limit while
+the data fill more than half of it and ease to a new limit when they must change (`js/lib/axis.js`).
+Then the five sections:
 
 1. **What the model says**: the model in prose and formula, bmm's parameter names.
 2. **The task**: what a trial is and which settings enter the likelihood.
@@ -52,6 +56,9 @@ across the design variable. Then the five sections:
 | E5 | Signal detection | yes/no (ROC, criterion vs bias, sdratio, noise distributions), mAFC (`m` panel), rating | sdt_yn, sdt_mafc, sdt_rating; Gauss-Hermite nodes exported from bmm |
 | E6 | Response times | ezdm (forward EZ: drift/bound/ndt to mean, variance, accuracy), cswald, DDM (first-passage series, parity through `dddm()`) | ezdm, cswald, ddm |
 | E7 | Release | landing page with a model map, pkgdown navbar link (PR to bmm), accessibility pass, mobile check, #437 closed | none |
+| E8 | Reader feedback I | (i) notes on every control, axes that hold and ease, on all pages | none |
+| E9 | Simulated data, circular | a "simulate N trials" overlay on imm, mixture2p, mixture3p, sdm: histogram of draws, expected vs sample statistics, the `r*()` call | expected statistics by `integrate()` over bmm's `d*()`; `r*()` sample statistics |
+| E10 | Simulated data, categorical and RT | the same overlay on m3, mpt, the SDT and the RT pages | as E9 |
 
 Cross-cutting, every milestone: `node --test` green, `quarto render` green, a naive-reader pass over
 the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabulary.

@@ -23,16 +23,20 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="ddm-drift">drift, rate of evidence accumulation</label>
+      <div class="ex-label"><label for="ddm-drift">drift, rate of evidence accumulation</label><button type="button" class="ex-info" aria-controls="ddm-drift-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-drift-info" hidden>Average rate of evidence accumulation, the quality of the evidence. A positive <code>drift</code> favours the upper response (1), a negative one the lower (0); the larger it is in size, the faster and more consistent the responses.</div>
       <input type="range" id="ddm-drift">
       <input type="number" id="ddm-drift-num" aria-label="drift">
-      <label for="ddm-bound">bound, boundary separation</label>
+      <div class="ex-label"><label for="ddm-bound">bound, boundary separation</label><button type="button" class="ex-info" aria-controls="ddm-bound-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-bound-info" hidden>Boundary separation: how much evidence the participant waits for. A larger <code>bound</code> gives slower responses that more often follow the drift: speed traded for accuracy.</div>
       <input type="range" id="ddm-bound">
       <input type="number" id="ddm-bound-num" aria-label="bound">
-      <label for="ddm-ndt">ndt, non-decision time (s)</label>
+      <div class="ex-label"><label for="ddm-ndt">ndt, non-decision time (s)</label><button type="button" class="ex-info" aria-controls="ddm-ndt-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-ndt-info" hidden>Non-decision time in seconds, for encoding the stimulus and executing the response. It shifts both response-time densities to the right and changes no response probability.</div>
       <input type="range" id="ddm-ndt">
       <input type="number" id="ddm-ndt-num" aria-label="ndt">
-      <label for="ddm-zr">zr, relative starting point</label>
+      <div class="ex-label"><label for="ddm-zr">zr, relative starting point</label><button type="button" class="ex-info" aria-controls="ddm-zr-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-zr-info" hidden>Relative starting point between the lower (0) and the upper (1) boundary. Above 0.5 the participant leans toward the upper response before any evidence arrives: more upper responses, and faster ones.</div>
       <input type="range" id="ddm-zr">
       <input type="number" id="ddm-zr-num" aria-label="zr">
       <div class="ex-hint" id="ddm-hint"></div>

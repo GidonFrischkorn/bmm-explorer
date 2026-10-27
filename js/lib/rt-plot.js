@@ -1,7 +1,7 @@
 // Drawings shared by the response-time pages: the evidence path between the boundaries (the task panel),
 // a time axis, and the two responses' densities mirrored about zero, upper above and lower below.
 import { el, clear, linePlot, scales, pathFor } from "./plot.js";
-import { niceAxis } from "./circular-plot.js";
+import { niceAxis } from "./axis.js";
 import { linspace } from "./math.js";
 
 export const BLUE = "#0072B2", ORANGE = "#D55E00", GREY = "#595959";
@@ -33,9 +33,9 @@ function walk(noise, { start, drift, s = 1, lo, hi, dt }) {
   return { x, hit: null };
 }
 
-// A round time axis from 0 to at least tmax seconds.
-export function timeAxis(tmax) {
-  const { ylim, yticks } = niceAxis(tmax);
+// A round time axis from 0 to at least tmax seconds; auto, an autoAxis made with nice: niceAxis, holds it.
+export function timeAxis(tmax, auto) {
+  const { ylim, yticks } = auto ? auto.next(tmax) : niceAxis(tmax);
   return { xlim: ylim, xticks: yticks };
 }
 
@@ -121,10 +121,11 @@ export function drawDiffusion(svg, spec) {
 
 // Densities of the two responses over rt (seconds), upper above zero and lower mirrored below.
 // spec: { W, H, margin, xlim, xticks, x, upper: [{ y, color, dashed, width }], lower: [...], lowerLabel }, y on
-// the natural scale. The y axis is symmetric and labelled with absolute values; lowerLabel defaults to "lower (0)".
+// the natural scale. The y axis is symmetric and labelled with absolute values; lowerLabel defaults to "lower (0)";
+// axis, an autoAxis, holds its limit.
 export function mirroredDensity(svg, spec) {
   const ymax = Math.max(1e-9, ...[...spec.upper, ...spec.lower].flatMap(s => s.y.filter(Number.isFinite)));
-  const { ylim, yticks } = niceAxis(ymax * 1.05);
+  const { ylim, yticks } = spec.axis ? spec.axis.next(ymax) : niceAxis(ymax * 1.05);
   const ticks = [...yticks.slice(1).reverse().map(v => -v), ...yticks];
   const fin = v => (Number.isFinite(v) ? v : 0);
   const out = linePlot(svg, {
