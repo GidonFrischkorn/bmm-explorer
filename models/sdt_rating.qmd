@@ -21,7 +21,8 @@ toc: false
   <section class="ex-panel" aria-label="Task settings">
     <div class="ex-panel-title">Task settings</div>
     <div class="ex-controls ex-inline">
-      <label for="sdtrating-k" title="rating categories">K</label>
+      <div class="ex-label"><label for="sdtrating-k">K</label><button type="button" class="ex-info" aria-controls="sdtrating-k-info">i</button></div>
+      <div class="ex-info-pop" id="sdtrating-k-info" hidden>Rating categories, from 1 (sure new) to K (sure old). K − 1 thresholds split the evidence axis into them. At the start, K = 6: five thresholds and six bars each for noise and signal trials.</div>
       <input type="range" id="sdtrating-k" min="3" max="8" step="1">
       <input type="number" id="sdtrating-k-num" min="3" max="8" step="1" aria-label="K">
       <div class="ex-hint" id="sdtrating-k-hint"></div>
@@ -30,23 +31,27 @@ toc: false
 
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title ex-title-row">Parameters
-      <label class="ex-select">dist
+      <span class="ex-label"><label class="ex-select">dist
         <select id="sdtrating-dist">
           <option value="normal">normal</option>
           <option value="logistic">logistic</option>
           <option value="gumbel_min">gumbel_min</option>
           <option value="gumbel_max">gumbel_max</option>
         </select>
-      </label>
+      </label><button type="button" class="ex-info" aria-controls="sdtrating-dist-info" aria-label="About dist">i</button></span>
     </div>
+    <div class="ex-info-pop" id="sdtrating-dist-info" hidden>Shape of the noise and signal distributions: <code>normal</code>; <code>logistic</code>, symmetric with heavier tails; <code>gumbel_min</code> or <code>gumbel_max</code>, skewed mirror images whose location 0 is the peak. Each enters with scale 1, so under the last three <code>d</code> is in units of that scale, not of the SD. In bmm: the <code>dist</code> argument. At the start, <code>logistic</code> instead of <code>normal</code> raises the share of noise trials rated 6 from 0.02 to 0.11.</div>
     <div class="ex-controls ex-inline sdt-thresholds">
-      <label for="sdtrating-d" title="sensitivity">d</label>
+      <div class="ex-label"><label for="sdtrating-d">d</label><button type="button" class="ex-info" aria-controls="sdtrating-d-info">i</button></div>
+      <div class="ex-info-pop" id="sdtrating-d-info" hidden>Sensitivity: how far the signal distribution sits from the noise distribution, in units of √((1 + <code>sdratio</code>²)/2), the root mean square of the two scales. At <code>sdratio</code> = 1 it is d′. At the start, <code>d</code> = 1, rating 6 takes 0.13 of the signal trials and 0.02 of the noise trials.</div>
       <input type="range" id="sdtrating-d">
       <input type="number" id="sdtrating-d-num" aria-label="d">
-      <label for="sdtrating-s" title="signal scale over noise scale">sdratio</label>
+      <div class="ex-label"><label for="sdtrating-s">sdratio</label><button type="button" class="ex-info" aria-controls="sdtrating-s-info">i</button></div>
+      <div class="ex-info-pop" id="sdtrating-s-info" hidden>Scale of the signal distribution over the scale of the noise distribution. Above 1 the signal distribution is wider, and the ROC is no longer symmetric. At <code>sdratio</code> = 2 the signal trials spread to both ends: rating 1 takes 0.09 of them instead of 0.02, rating 6 takes 0.40 instead of 0.13. bmm estimates it on the log scale.</div>
       <input type="range" id="sdtrating-s">
       <input type="number" id="sdtrating-s-num" aria-label="sdratio">
-      <label for="sdtrating-t1" data-thr="1">t1</label>
+      <div class="ex-label" data-thr="1"><label for="sdtrating-t1">t1</label><button type="button" class="ex-info" aria-controls="sdtrating-t1-info" aria-label="About the thresholds">i</button></div>
+      <div class="ex-info-pop" id="sdtrating-t1-info" hidden>Thresholds t1 &lt; t2 &lt; … split the evidence axis into the ratings: evidence below t1 gives rating 1, between t1 and t2 rating 2, and so on. They are measured from the noise location in units of the noise scale. bmm builds them from a <code>criterion</code> and further parameters, set by <code>threshold_type</code>; the code below the dashboard uses <code>log_distance</code>, where <code>delta1</code>, <code>delta2</code>, … are the log widths of the gaps. The start thresholds −1.11, −0.19, 0.5, 1.19 and 2.11 are <code>criterion</code> = 0.5 and <code>delta1</code> to <code>delta4</code> = −0.083, −0.371, −0.371, −0.083.</div>
       <input type="range" id="sdtrating-t1" data-thr="1">
       <input type="number" id="sdtrating-t1-num" data-thr="1" aria-label="threshold 1">
       <label for="sdtrating-t2" data-thr="2">t2</label>
@@ -108,9 +113,11 @@ $$
 
 The thresholds are positions measured from the noise location in units of the noise scale, and `sdratio` does
 not rescale them. A row of data holds the $K$ counts of one stimulus class, which are multinomial with these
-probabilities. bmm does not estimate the thresholds one by one; its argument `threshold_type` decides how they
-are built from fewer parameters. Every type places a `criterion` at the same point, the middle threshold when
-$K$ is even and the centre of the middle rating when $K$ is odd, and builds the other thresholds around it.
+probabilities. bmm does not estimate the thresholds themselves; its argument `threshold_type` decides how they
+are built from a `criterion` and further parameters. `parsimonious` and `equidistant` use fewer parameters than
+there are thresholds; `log_distance` uses as many. Every type places a `criterion` at the same point, the middle
+threshold when $K$ is even and the centre of the middle rating when $K$ is odd, and builds the other thresholds
+around it.
 The default, `parsimonious`, uses one more parameter, `spacing`, and puts threshold $k$ at
 $\text{criterion} + e^{\text{spacing}} \log\big(k / (K - k)\big)$
 ([Selker et al., 2019](https://doi.org/10.3758/s13428-019-01231-3)). `log_distance` instead estimates the log

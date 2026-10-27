@@ -137,3 +137,21 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 /* Response-time pages: the non-decision band of the task drawing and the halo behind its labels. */
 .ex-dash .rt-ndt { fill: #e9ecef; }
 .ex-dash .rt-halo { paint-order: stroke; stroke: #fff; stroke-width: 7px; stroke-linejoin: round; }
+/* Info notes: an (i) after a label opens a note that floats over the dashboard (js/lib/info.js), so opening
+   one moves no panel. The label row keeps the label's grid place; a hidden row hides its button too. */
+.ex-dash { position: relative; }
+.ex-label { display: flex; align-items: center; gap: 0.35rem; grid-column: 1 / -1; }
+.ex-label[hidden] { display: none; }
+.ex-label label { margin: 0; }
+.ex-dash .ex-controls.ex-inline .ex-label { grid-column: auto; }
+.ex-info { flex: none; width: 1.1rem; height: 1.1rem; padding: 0; border: 1px solid #8a939d; border-radius: 50%;
+  background: #fff; color: #4a535c; font: italic 700 0.7rem/1 Georgia, serif; cursor: pointer; }
+.ex-info:hover, .ex-info[aria-expanded="true"] { background: var(--ex-blue); border-color: var(--ex-blue); color: #fff; }
+.ex-info:focus-visible { outline: 2px solid var(--ex-yellow); outline-offset: 1px; }
+.ex-info-pop { position: absolute; z-index: 30; width: max-content; max-width: min(21rem, calc(100vw - 16px));
+  background: #fff; border: 1px solid var(--ex-border); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  padding: 0.45rem 0.65rem; font-size: 0.82rem; font-weight: 400; line-height: 1.38; color: #222; text-align: left; }
+.ex-dash > section:has(.ex-info-pop:not([hidden])) { position: relative; z-index: 31; }
+.ex-dash.ex-stale > section:has(.ex-info-pop:not([hidden])) { opacity: 1; }
+.ex-info-pop p { margin: 0; }
+.ex-info-pop p + p { margin-top: 0.35rem; }

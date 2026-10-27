@@ -5,6 +5,7 @@ import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
 import { linspace, log1pExp } from "../lib/math.js";
 import { latentPlot, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's quadrature rules for normal (m > 2) and logistic noise, written from bmm by R/make_fixtures.R. Without
 // them those two distributions are switched off rather than computed on other nodes.
@@ -186,3 +187,4 @@ $("sdtmafc-copy").addEventListener("click", () => navigator.clipboard?.writeText
 pairs.d.setBounds({ min: dLo, max: dHi, step: 0.05 });
 setParams(pairs, START);
 draw();
+initInfo();

@@ -26,27 +26,31 @@ toc: false
 
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title ex-title-row">Parameters
-      <label class="ex-select">dist
+      <span class="ex-label"><label class="ex-select">dist
         <select id="sdtyn-dist">
           <option value="normal">normal</option>
           <option value="logistic">logistic</option>
           <option value="gumbel_min">gumbel_min</option>
           <option value="gumbel_max">gumbel_max</option>
         </select>
-      </label>
+      </label><button type="button" class="ex-info" aria-controls="sdtyn-dist-info" aria-label="About dist">i</button></span>
     </div>
+    <div class="ex-info-pop" id="sdtyn-dist-info" hidden>Shape of the noise and signal distributions: <code>normal</code>; <code>logistic</code>, symmetric with heavier tails; <code>gumbel_min</code> or <code>gumbel_max</code>, skewed mirror images whose location 0 is the peak. Each enters with scale 1, so under the last three <code>d</code> is in units of that scale, not of the SD. In bmm: the <code>dist</code> argument. At the start, <code>logistic</code> instead of <code>normal</code> raises the false-alarm rate from 0.31 to 0.38.</div>
     <div class="ex-options" role="radiogroup" aria-label="Where the boundary is measured from">
       <label><input type="radio" name="sdtyn-anchor" value="criterion" checked> criterion</label>
       <label><input type="radio" name="sdtyn-anchor" value="bias"> bias</label>
     </div>
     <div class="ex-controls">
-      <label for="sdtyn-d">d, sensitivity</label>
+      <div class="ex-label"><label for="sdtyn-d">d, sensitivity</label><button type="button" class="ex-info" aria-controls="sdtyn-d-info">i</button></div>
+      <div class="ex-info-pop" id="sdtyn-d-info" hidden>Sensitivity: how far the signal distribution sits from the noise distribution, in units of √((1 + <code>sdratio</code>²)/2), the root mean square of the two scales. At <code>sdratio</code> = 1 it is d′: with normal noise, <code>d</code> = 1 and the criterion at 0.5 give a hit rate of 0.69 and a false-alarm rate of 0.31.</div>
       <input type="range" id="sdtyn-d">
       <input type="number" id="sdtyn-d-num" aria-label="d">
-      <label for="sdtyn-k" id="sdtyn-k-label">criterion, from the noise location</label>
+      <div class="ex-label"><label for="sdtyn-k" id="sdtyn-k-label">criterion, from the noise location</label><button type="button" class="ex-info" aria-controls="sdtyn-k-info" aria-label="About criterion and bias">i</button></div>
+      <div class="ex-info-pop" id="sdtyn-k-info" hidden>Where the boundary between "new" and "old" lies. <code>criterion</code> measures it from the noise location (0); <code>bias</code> measures the same boundary from the midpoint between noise and signal. Bias 0 is the midpoint, and a positive bias means fewer "old" responses, false alarms and hits alike. At the start, <code>d</code> = 1 puts the midpoint at 0.5, so <code>criterion</code> = 0.5 and <code>bias</code> = 0 are the same boundary.</div>
       <input type="range" id="sdtyn-k">
       <input type="number" id="sdtyn-k-num" aria-label="criterion">
-      <label for="sdtyn-s">sdratio, signal scale over noise scale</label>
+      <div class="ex-label"><label for="sdtyn-s">sdratio, signal scale over noise scale</label><button type="button" class="ex-info" aria-controls="sdtyn-s-info">i</button></div>
+      <div class="ex-info-pop" id="sdtyn-s-info" hidden>Scale of the signal distribution over the scale of the noise distribution (the SD ratio under normal noise). Above 1 the signal distribution is wider than the noise one, and the ROC is no longer symmetric. At <code>sdratio</code> = 2 the signal distribution sits at 1.58 and is twice as wide: the hit rate rises from 0.69 to 0.71, and the false-alarm rate stays at 0.31. bmm estimates it on the log scale.</div>
       <input type="range" id="sdtyn-s">
       <input type="number" id="sdtyn-s-num" aria-label="sdratio">
       <div class="ex-hint" id="sdtyn-range-hint"></div>

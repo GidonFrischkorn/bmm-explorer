@@ -3,6 +3,7 @@
 import { m3Probs, ssActs, csActs, defaultB } from "../models/m3.js";
 import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { barPlot, linePlot, el, clear } from "../lib/plot.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's quadrature rule for the gaussian rule, written from bmm by R/make_fixtures.R. Without it the
 // gaussian rule is switched off rather than computed on other nodes.
@@ -341,3 +342,4 @@ setParams(pairs, { ...START_COUNTS, f: F_START });
 applyVersion();
 applyRule();
 draw();
+initInfo();

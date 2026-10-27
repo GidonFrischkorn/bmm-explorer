@@ -10,11 +10,12 @@ toc: false
 <div class="ex-dash" id="ezdm-widget">
   <section class="ex-panel ex-p-task" aria-label="The task">
     <div class="ex-panel-title ex-title-row">The task
-      <span class="ex-options" role="radiogroup" aria-label="Model version">
+      <span class="ex-label"><span class="ex-options" role="radiogroup" aria-label="Model version">
         <label><input type="radio" name="ezdm-version" value="3par" checked> 3par</label>
         <label><input type="radio" name="ezdm-version" value="4par"> 4par</label>
-      </span>
+      </span><button type="button" class="ex-info" aria-controls="ezdm-version-info" aria-label="About the model versions">i</button></span>
     </div>
+    <div class="ex-info-pop" id="ezdm-version-info" hidden><code>3par</code>: the evidence starts halfway between the boundaries, and the model uses the mean and variance of all response times together. <code>4par</code>: the start, <code>zr</code> × <code>bound</code>, is free, and each response gets its own mean and variance. The summary panel shows this: one rt row in <code>3par</code>, the start, and an upper and a lower row in <code>4par</code>. In <code>ezdm()</code>: <code>version</code>.</div>
     <svg id="ezdm-task" role="img" aria-label="Evidence paths starting between two horizontal boundaries after the non-decision time; each path ends at the upper or the lower boundary"></svg>
   </section>
 
@@ -22,7 +23,8 @@ toc: false
   <section class="ex-panel" aria-label="Task settings">
     <div class="ex-panel-title">Task settings</div>
     <div class="ex-controls">
-      <label for="ezdm-n" title="trials the summary statistics of one cell come from">n_trials, trials per cell</label>
+      <div class="ex-label"><label for="ezdm-n">n_trials, trials per cell</label><button type="button" class="ex-info" aria-controls="ezdm-n-info">i</button></div>
+      <div class="ex-info-pop" id="ezdm-n-info" hidden>Trials in one cell of the design, a participant in a condition. It leaves the predicted statistics alone and sets how far the observed ones scatter around them: their variance shrinks with 1 / <code>n_trials</code>. At the start, 100 trials, the ±2 SD bands are ±0.10 around P(upper) = 0.5 and ±0.04 s around the mean response time of 0.47 s; at 25 trials both bands are twice as wide.</div>
       <input type="range" id="ezdm-n">
       <input type="number" id="ezdm-n-num" aria-label="n_trials">
     </div>
@@ -31,16 +33,20 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="ezdm-drift">drift, rate of evidence accumulation</label>
+      <div class="ex-label"><label for="ezdm-drift">drift, rate of evidence accumulation</label><button type="button" class="ex-info" aria-controls="ezdm-drift-info">i</button></div>
+      <div class="ex-info-pop" id="ezdm-drift-info" hidden>Rate of evidence accumulation, the quality of the evidence. A positive <code>drift</code> favours the upper response, a negative one the lower; the larger it is in size, the faster the responses. At <code>drift</code> = 0 both responses are equally likely if the evidence starts halfway, as in <code>3par</code>. At the start, <code>drift</code> = 0 gives a mean response time of 0.47 s; <code>drift</code> = 1 and −1 both give 0.45 s, with P(upper) 0.73 and 0.27.</div>
       <input type="range" id="ezdm-drift">
       <input type="number" id="ezdm-drift-num" aria-label="drift">
-      <label for="ezdm-bound">bound, boundary separation</label>
+      <div class="ex-label"><label for="ezdm-bound">bound, boundary separation</label><button type="button" class="ex-info" aria-controls="ezdm-bound-info">i</button></div>
+      <div class="ex-info-pop" id="ezdm-bound-info" hidden>Boundary separation: how much evidence is collected before responding. A larger <code>bound</code> slows the responses and, with a positive <code>drift</code>, makes more of them upper responses: speed traded for accuracy. At <code>drift</code> = 0, the start, only the slowing shows: <code>bound</code> 1 → 2 moves the mean response time from 0.47 s to 1.22 s. At <code>drift</code> = 1 the same step also raises P(upper) from 0.73 to 0.88.</div>
       <input type="range" id="ezdm-bound">
       <input type="number" id="ezdm-bound-num" aria-label="bound">
-      <label for="ezdm-ndt">ndt, non-decision time (s)</label>
+      <div class="ex-label"><label for="ezdm-ndt">ndt, non-decision time (s)</label><button type="button" class="ex-info" aria-controls="ezdm-ndt-info">i</button></div>
+      <div class="ex-info-pop" id="ezdm-ndt-info" hidden>Non-decision time in seconds, for encoding the stimulus and executing the response. It adds to the mean response time and leaves P(upper) and the variance alone. At the start, 0.22 s of the 0.47 s mean response time is non-decision time, the grey part of the rt row.</div>
       <input type="range" id="ezdm-ndt">
       <input type="number" id="ezdm-ndt-num" aria-label="ndt">
-      <label for="ezdm-zr" class="ezdm-4par-only">zr, relative starting point</label>
+      <div class="ex-label ezdm-4par-only"><label for="ezdm-zr">zr, relative starting point</label><button type="button" class="ex-info" aria-controls="ezdm-zr-info">i</button></div>
+      <div class="ex-info-pop" id="ezdm-zr-info" hidden>Relative starting point between the boundaries, from 0 (at the lower) to 1 (at the upper). Above 0.5 the evidence starts closer to the upper boundary: more upper responses, and faster ones. In <code>4par</code> at the start values, <code>zr</code> = 0.7 gives P(upper) = 0.7, a mean upper response time of 0.39 s and a mean lower one of 0.53 s.</div>
       <input type="range" id="ezdm-zr" class="ezdm-4par-only">
       <input type="number" id="ezdm-zr-num" class="ezdm-4par-only" aria-label="zr">
       <div class="ex-hint" id="ezdm-hint"></div>

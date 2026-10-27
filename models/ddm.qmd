@@ -23,16 +23,20 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="ddm-drift">drift, rate of evidence accumulation</label>
+      <div class="ex-label"><label for="ddm-drift">drift, rate of evidence accumulation</label><button type="button" class="ex-info" aria-controls="ddm-drift-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-drift-info" hidden>Average rate of evidence accumulation, the quality of the evidence. A positive <code>drift</code> favours the upper response (1), a negative one the lower (0); the larger it is in size, the faster and more consistent the responses. At the start, <code>drift</code> = 0 gives P(upper) = 0.5; <code>drift</code> = 1 raises it to 0.73 and shortens the mean response time from 0.47 s to 0.45 s.</div>
       <input type="range" id="ddm-drift">
       <input type="number" id="ddm-drift-num" aria-label="drift">
-      <label for="ddm-bound">bound, boundary separation</label>
+      <div class="ex-label"><label for="ddm-bound">bound, boundary separation</label><button type="button" class="ex-info" aria-controls="ddm-bound-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-bound-info" hidden>Boundary separation: how much evidence the participant waits for. A larger <code>bound</code> gives slower responses that more often follow the drift: speed traded for accuracy. At <code>drift</code> = 0, the start, only the slowing shows: <code>bound</code> 1 → 2 moves the mean response time from 0.47 s to 1.22 s. At <code>drift</code> = 1 the same step also raises P(upper) from 0.73 to 0.88.</div>
       <input type="range" id="ddm-bound">
       <input type="number" id="ddm-bound-num" aria-label="bound">
-      <label for="ddm-ndt">ndt, non-decision time (s)</label>
+      <div class="ex-label"><label for="ddm-ndt">ndt, non-decision time (s)</label><button type="button" class="ex-info" aria-controls="ddm-ndt-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-ndt-info" hidden>Non-decision time in seconds, for encoding the stimulus and executing the response. It shifts both response-time densities to the right and changes no response probability. At the start, 0.22 s of the 0.47 s mean response time is non-decision time.</div>
       <input type="range" id="ddm-ndt">
       <input type="number" id="ddm-ndt-num" aria-label="ndt">
-      <label for="ddm-zr">zr, relative starting point</label>
+      <div class="ex-label"><label for="ddm-zr">zr, relative starting point</label><button type="button" class="ex-info" aria-controls="ddm-zr-info">i</button></div>
+      <div class="ex-info-pop" id="ddm-zr-info" hidden>Relative starting point between the lower (0) and the upper (1) boundary. Above 0.5 the participant leans toward the upper response before any evidence arrives: more upper responses, and faster ones. At the start, <code>drift</code> = 0, moving <code>zr</code> from 0.5 to 0.7 raises P(upper) from 0.5 to 0.7 and shortens the mean upper response time from 0.47 s to 0.39 s.</div>
       <input type="range" id="ddm-zr">
       <input type="number" id="ddm-zr-num" aria-label="zr">
       <div class="ex-hint" id="ddm-hint"></div>

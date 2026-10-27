@@ -29,19 +29,25 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="sdm-c">c, memory strength</label>
+      <div class="ex-label"><label for="sdm-c">c, memory strength</label><button type="button" class="ex-info" aria-controls="sdm-c-info">i</button></div>
+      <div class="ex-info-pop" id="sdm-c-info" hidden>Memory strength: how much more activation the target's colour has than the colours far from it. The SDM has no guessing parameter: at <code>c</code> = 0 every colour is equally likely, which is guessing. At the start, <code>c</code> = 7.39 puts 0.93 of the responses within ±20° of the target; at <code>c</code> = 0 that share drops to 0.11, the part of the circle the window covers.</div>
       <input type="range" id="sdm-c">
       <input type="number" id="sdm-c-num" aria-label="c">
-      <label for="sdm-kappa">kappa, precision</label>
+      <div class="ex-label"><label for="sdm-kappa">kappa, precision</label><button type="button" class="ex-info" aria-controls="sdm-kappa-info">i</button></div>
+      <div class="ex-info-pop" id="sdm-kappa-info" hidden>Precision: how fast activation falls with the distance from the target's colour, the concentration of the von Mises shape. Higher <code>kappa</code> narrows the density and, unlike in the mixture models, also lowers the floor far from the target, as a larger <code>c</code> does. At the start, raising <code>kappa</code> from 5.75 to 12.2 moves the share of responses within ±20° of the target from 0.93 to 1.00.</div>
       <input type="range" id="sdm-kappa">
       <input type="number" id="sdm-kappa-num" aria-label="kappa">
       <div class="ex-hint" id="sdm-par-hint"></div>
     </div>
-    <div class="ex-options" role="radiogroup" aria-label="Parametrization of the SDM">
-      <span>Parametrization:</span>
-      <label><input type="radio" name="sdm-par" value="sqrtexp" checked> sqrtexp</label>
-      <label><input type="radio" name="sdm-par" value="bessel"> bessel</label>
+    <div class="ex-label">
+      <div class="ex-options" role="radiogroup" aria-label="Parametrization of the SDM">
+        <span>Parametrization:</span>
+        <label><input type="radio" name="sdm-par" value="sqrtexp" checked> sqrtexp</label>
+        <label><input type="radio" name="sdm-par" value="bessel"> bessel</label>
+      </div>
+      <button type="button" class="ex-info" aria-controls="sdm-par-info" aria-label="About the parametrizations">i</button>
     </div>
+    <div class="ex-info-pop" id="sdm-par-info" hidden>Two ways of writing the same family of densities. <code>sqrtexp</code>, bmm's default, writes the activation as <code>c</code>·√(<code>kappa</code>/2π)·e<sup>kappa (cos x − 1)</sup>; <code>bessel</code>, the original, as <code>c</code>·e<sup>kappa cos x</sup> / (2π I<sub>0</sub>(<code>kappa</code>)). The same density has a different <code>c</code> in each, so switching converts <code>c</code> and the curve stays: at the start, 7.39 becomes 7.57.</div>
     <div class="ex-hint">Two ways to write the same family; see What the model says.</div>
     <button type="button" class="btn btn-sm btn-outline-secondary" id="sdm-reset">Reset</button>
   </section>

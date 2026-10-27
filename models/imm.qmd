@@ -18,10 +18,12 @@ toc: false
       <section aria-label="Task settings">
         <div class="ex-panel-title">Task settings</div>
         <div class="ex-controls">
-          <label for="imm-set-size">set size, items on the display</label>
+          <div class="ex-label"><label for="imm-set-size">set size, items on the display</label><button type="button" class="ex-info" aria-controls="imm-set-size-info">i</button></div>
+          <div class="ex-info-pop" id="imm-set-size-info" hidden>Items on the display, the target included. Every item adds its activation, <code>c</code>·e<sup>−s·d</sup> + <code>a</code>, to the total that each weight is divided by, so each added item takes weight from the target. At the start, going from set size 4 to 5 (equidistant) lowers the target's weight from 0.31 to 0.26. In <code>imm()</code> it is the <code>set_size</code> argument.</div>
           <input type="range" id="imm-set-size">
           <input type="number" id="imm-set-size-num" aria-label="set size">
-          <label for="imm-spacing">spacing, item 2's distance (rad)</label>
+          <div class="ex-label"><label for="imm-spacing">spacing, item 2's distance (rad)</label><button type="button" class="ex-info" aria-controls="imm-spacing-info">i</button></div>
+          <div class="ex-info-pop" id="imm-spacing-info" hidden>Item 2's distance from the target along the display circle, in radians. Items 3, 4, … sit at 2, 3, … times this angle going round, and each one's distance is the shorter way round, at most π. At the start the spacing is at its maximum, 2π/4 = 1.57, so the 4 items are equidistant: items 2 and 4 are 1.57 rad from the target and item 3 is 3.14 rad (π) away. The model takes one distance per non-target (<code>nt_distances</code>).</div>
           <input type="range" id="imm-spacing">
           <input type="number" id="imm-spacing-num" aria-label="spacing in radians">
           <div class="ex-hint" id="imm-task-hint"></div>
@@ -44,19 +46,24 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="imm-c">c, cue-dependent activation</label>
+      <div class="ex-label"><label for="imm-c">c, cue-dependent activation</label><button type="button" class="ex-info" aria-controls="imm-c-info">i</button></div>
+      <div class="ex-info-pop" id="imm-c-info" hidden>Activation the cue gives to the item at the cued location: the target (1, in the frame) gets all of <code>c</code>. An item at distance d from the cue gets <code>c</code>·e<sup>−s·d</sup>, so the target's near neighbours get part of it. Larger <code>c</code>: more responses at the target's colour; at the start, raising <code>c</code> from 1 to 2.72 lifts the target's weight from 0.31 to 0.41.</div>
       <input type="range" id="imm-c">
       <input type="number" id="imm-c-num" aria-label="c">
-      <label for="imm-a">a, cue-independent activation</label>
+      <div class="ex-label"><label for="imm-a">a, cue-independent activation</label><button type="button" class="ex-info" aria-controls="imm-a-info">i</button></div>
+      <div class="ex-info-pop" id="imm-a-info" hidden>Activation every item gets wherever it is on the display: the target and each non-target get the same <code>a</code>. It draws responses to the non-targets' colours whatever their distance from the cue. At the start item 3, π away, gets 0.04 from the cue and 1 from <code>a</code>, and still a weight of 0.16. <code>version = "bsc"</code> sets it to 0.</div>
       <input type="range" id="imm-a">
       <input type="number" id="imm-a-num" aria-label="a">
-      <label for="imm-s">s, spatial gradient</label>
+      <div class="ex-label"><label for="imm-s">s, spatial gradient</label><button type="button" class="ex-info" aria-controls="imm-s-info">i</button></div>
+      <div class="ex-info-pop" id="imm-s-info" hidden>How fast the cue's activation falls with distance: an item at distance d gets <code>c</code>·e<sup>−s·d</sup>. At <code>s</code> = 0 every item gets all of <code>c</code>; at large <code>s</code> only the target does. At the start (set size 4, <code>s</code> = 1) item 2 is 1.57 rad from the target and gets e<sup>−1.57</sup> = 0.21 of <code>c</code>.</div>
       <input type="range" id="imm-s">
       <input type="number" id="imm-s-num" aria-label="s">
-      <label for="imm-kappa">kappa, precision</label>
+      <div class="ex-label"><label for="imm-kappa">kappa, precision</label><button type="button" class="ex-info" aria-controls="imm-kappa-info">i</button></div>
+      <div class="ex-info-pop" id="imm-kappa-info" hidden>Precision of recall, shared by all items: the concentration of the von Mises peak at each item's colour. Higher <code>kappa</code> narrows every peak. It moves no weight between the items and guessing; it only sets how far responses scatter around the colour they go to. At the start (<code>kappa</code> = 7.39), 0.65 of the responses that go to an item's colour fall within ±20° of it.</div>
       <input type="range" id="imm-kappa">
       <input type="number" id="imm-kappa-num" aria-label="kappa">
-      <label for="imm-b">b, background activation</label>
+      <div class="ex-label"><label for="imm-b">b, background activation</label><button type="button" class="ex-info" aria-controls="imm-b-info">i</button></div>
+      <div class="ex-info-pop" id="imm-b-info" hidden>Background activation, which goes to every colour on the wheel rather than to an item. Its share of the total, <code>b</code> divided by all activations, is the probability of a guess: the flat floor of the density. At the start <code>b</code> = 1 against a total of 6.46 gives a guess weight of 0.15. bmm fixes <code>b</code> at 1 when fitting; here it moves so that its effect can be seen.</div>
       <input type="range" id="imm-b">
       <input type="number" id="imm-b-num" aria-label="b">
       <div class="ex-hint" id="imm-par-hint"></div>

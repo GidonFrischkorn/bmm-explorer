@@ -3,6 +3,8 @@ import { dddm, ezdmMoments4par } from "../models/rt.js";
 import { bindParams, readParams, setParams, fmt, rValue, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { linePlot, el } from "../lib/plot.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
+import { autoAxis, niceAxis } from "../lib/axis.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's default priors for ddm(), [mean, sd, scale] on the link scale; the sliders span mean +- 3 SD and
 // start at the means. drift's cauchy(0, 1) has no SD; its slider spans location +- 3 scale.
@@ -27,10 +29,13 @@ function summary(p) {
     tEnd: p.ndt + Math.max(m.mdt_upper, m.mdt_lower) + 3 * Math.sqrt(Math.max(m.vrt_upper, m.vrt_lower)) };
 }
 
+// The time axis is shared by the task drawing and the densities; the speed-accuracy panel has its own.
+const timeAuto = autoAxis(draw, { nice: niceAxis }), satAuto = autoAxis(draw, { nice: niceAxis }), densityAxis = autoAxis(draw);
+
 function drawDensity(p, axis) {
   const x = rtGrid(axis.xlim), dens = (q, r) => dddm(x, { ...q, response: r }).map(Math.exp);
   mirroredDensity($("ddm-density"), {
-    W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, ...axis, x,
+    W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, ...axis, x, axis: densityAxis,
     upper: [{ y: dens(START, 1), color: BLUE, dashed: true }, { y: dens(p, 1), color: BLUE }],
     lower: [{ y: dens(START, 0), color: ORANGE, dashed: true }, { y: dens(p, 0), color: ORANGE }]
   });
@@ -41,7 +46,7 @@ const BOUNDS = Array.from({ length: 41 }, (_, i) => Math.exp(-1.5 + 3 * i / 40))
 function drawSpeedAccuracy(p, s) {
   const sweep = q => BOUNDS.map(b => summary({ ...q, bound: b }));
   const cur = sweep(p), ref = sweep(START);
-  const axis = timeAxis(Math.max(...cur.map(c => c.meanRt), ...ref.map(c => c.meanRt)));
+  const axis = timeAxis(Math.max(...cur.map(c => c.meanRt), ...ref.map(c => c.meanRt)), satAuto);
   const svg = $("ddm-sat");
   const { sx, sy } = linePlot(svg, {
     W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, ...axis, ylim: [0, 1], yticks: [0, 0.25, 0.5, 0.75, 1],
@@ -95,7 +100,7 @@ function draw() {
   $("ddm-hint").textContent = bad.length ? `Needed: ${bad.map(([, msg]) => msg).join(", ")}.`
     : "bound, ndt: log scale; zr: logit scale. The boxes show the values.";
   if (bad.length) return;
-  const s = summary(p), axis = timeAxis(Math.max(s.tEnd, summary(START).tEnd));
+  const s = summary(p), axis = timeAxis(Math.max(s.tEnd, summary(START).tEnd), timeAuto);
   drawDiffusion($("ddm-task"), { mode: "ddm", ...p, ...axis });
   drawDensity(p, axis);
   $("ddm-readout").textContent = `P(upper) = ${fmt(s.pC, 2)}; mean rt ${fmt(s.rtUpper, 2)} s upper, ${fmt(s.rtLower, 2)} s lower.`;
@@ -108,3 +113,4 @@ $("ddm-reset").addEventListener("click", () => { setParams(pairs, START); draw()
 $("ddm-copy").addEventListener("click", () => navigator.clipboard?.writeText($("ddm-code").textContent));
 setParams(pairs, START);
 draw();
+initInfo();

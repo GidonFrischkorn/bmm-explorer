@@ -33,6 +33,16 @@ function axes(svg, spec, { sx, sy }) {
   if (ylab) el("text", { x: 16, y: (m.t + H - m.b) / 2, "text-anchor": "middle", class: "axis-label", transform: `rotate(-90 16 ${(m.t + H - m.b) / 2})` }, svg).textContent = ylab;
 }
 
+// The plot area plus a stroke's width, as a clipPath on the svg: an axis that eases to a new limit (axis.js) is
+// still below the data for a few frames. clipped(svg) is the attribute that clips an element to it.
+function clipArea(svg, { W, H, margin: m }) {
+  if (!svg.id) return;
+  const pad = 6;
+  el("rect", { x: m.l - pad, y: m.t - pad, width: W - m.l - m.r + 2 * pad, height: H - m.t - m.b + 2 * pad },
+    el("clipPath", { id: `${svg.id}-clip` }, el("defs", {}, svg)));
+}
+export const clipped = svg => (svg.id ? { "clip-path": `url(#${svg.id}-clip)` } : {});
+
 export const pathFor = (xs, ys, sx, sy) => xs.map((x, i) => (i ? "L" : "M") + sx(x).toFixed(1) + "," + sy(ys[i]).toFixed(1)).join("");
 
 // spec: { W, H, margin, xlim, ylim, xticks, yticks, xtickLabels?, ytickLabels?, xlab, ylab, series: [{ x, y, color, dashed, width, label }] }
@@ -42,10 +52,12 @@ export function linePlot(svg, spec) {
   svg.setAttribute("viewBox", `0 0 ${spec.W} ${spec.H}`);
   const sc = scales(spec);
   axes(svg, spec, sc);
+  clipArea(svg, spec);
   const paths = spec.series.map((s, i) => el("path", {
     d: pathFor(s.x, s.y, sc.sx, sc.sy), fill: "none",
     stroke: s.color ?? SERIES[i % SERIES.length], "stroke-width": s.width ?? 3,
     ...(s.dashed ? { "stroke-dasharray": "8 6", "stroke-opacity": 0.6 } : {}),
+    ...clipped(svg),
     class: "series"
   }, svg));
   return { paths, ...sc };
@@ -59,10 +71,11 @@ export function barPlot(svg, spec) {
   const xlim = [0, n];
   const sc = scales({ ...spec, xlim });
   axes(svg, { ...spec, xlim, xticks: spec.categories.map((_, i) => i + 0.5), xtickLabels: spec.categories, xlab: spec.xlab }, sc);
+  clipArea(svg, spec);
   const slot = (sc.sx(1) - sc.sx(0)) * 0.8 / g, pad = (sc.sx(1) - sc.sx(0)) * 0.1;
   const rects = spec.groups.map((grp, j) => grp.values.map((v, i) => el("rect", {
     x: sc.sx(i) + pad + j * slot, y: sc.sy(v), width: slot * 0.92, height: sc.sy(spec.ylim[0]) - sc.sy(v),
-    fill: grp.color ?? SERIES[j % SERIES.length], class: "bar"
+    fill: grp.color ?? SERIES[j % SERIES.length], class: "bar", ...clipped(svg)
   }, svg)));
   return { rects, ...sc };
 }

@@ -3,8 +3,10 @@ import { dsdm, sdmLogNumer, sdmLogDenom } from "../models/circular.js";
 import { integrateExp } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { circularPlot, CIRC_X, DEG } from "../lib/circular-plot.js";
+import { autoAxis } from "../lib/axis.js";
 import { colourWheel, hue } from "../lib/wheel.js";
 import { WEIGHT_COLOR } from "../lib/weights-bar.js";
+import { initInfo } from "../lib/info.js";
 
 // Slider ranges are the page's choice (the article names none). The starting values are the centres
 // of bmm's default priors, student_t(5, 2, 0.75) on log c and student_t(5, 1.75, 0.75) on log kappa,
@@ -47,9 +49,10 @@ const wheel = colourWheel($("sdm-wheel"), () => {});
 const args = p => ({ mu: 0, parametrization: par, ...p });
 const within = p => integrateExp(x => dsdm(x, args(p)), -WINDOW, WINDOW);
 
+const densityAxis = autoAxis(draw), activationAxis = autoAxis(draw);
 function drawDensity(p, ref) {
   circularPlot($("sdm-density"), {
-    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)",
+    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: ref.density, color: WEIGHT_COLOR.target, dashed: true }, { y: dsdm(CIRC_X, args(p)).map(Math.exp), color: WEIGHT_COLOR.target }],
     marks: [{ at: 0, color: hue(0), label: 1 }]
   });
@@ -57,7 +60,7 @@ function drawDensity(p, ref) {
 
 function drawActivation(p, ref, logZ) {
   circularPlot($("sdm-activation"), {
-    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Activation",
+    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Activation", axis: activationAxis,
     series: [{ y: ref.activation, color: WEIGHT_COLOR.nt, dashed: true }, { y: CIRC_X.map(x => sdmLogNumer(x, 0, p.c, p.kappa, par)), color: WEIGHT_COLOR.nt }],
     marks: [{ at: 0, color: hue(0), label: 1 }]
   });
@@ -133,6 +136,8 @@ for (const r of document.querySelectorAll('input[name="sdm-par"]')) r.addEventLi
   const next = convertC(c, kappa, par, r.value);
   if (inRange(c, 0, Infinity) && inRange(kappa, 0, Infinity) && Number.isFinite(next)) pairs.c.value = sig3(next);
   par = r.value;
+  // The density stays; the activation changes scale with the parametrization.
+  activationAxis.reset();
   draw();
 });
 $("sdm-reset").addEventListener("click", () => {
@@ -150,3 +155,4 @@ pairs.c.setBounds(C);
 pairs.kappa.setBounds({ min: -2.3, max: Math.log(KAPPA.max), step: 0.05, scale: LOG });
 setParams(pairs, start(par));
 draw();
+initInfo();

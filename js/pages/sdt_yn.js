@@ -4,6 +4,7 @@ import { ynLogPOld, dsdtYn, ynRoc, evidencePdf, separation, biasToCriterion, cri
 import { bindParams, readParams, setParams, fmt, LINEAR, LOG } from "../lib/widget.js";
 import { barPlot, el } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's default priors for sdt_yn(), [mean, sd] on the link scale: identity, log for sdratio. The sliders
 // span mean +- 3 SD; the prior means are the starting values and the dashed reference.
@@ -204,3 +205,4 @@ pairs.sdratio.setBounds({ min: -LOG_SD3, max: LOG_SD3, step: 0.02, scale: LOG })
 applyAnchor();
 setParams(pairs, { d: PRIOR_MEANS.d, k: PRIOR_MEANS.criterion, sdratio: PRIOR_MEANS.sdratio });
 draw();
+initInfo();

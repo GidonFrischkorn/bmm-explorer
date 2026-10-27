@@ -5,6 +5,7 @@ import { SPAN_TREE, spanTreeToM3 } from "../models/mpt-span-tree.js";
 import { m3Probs, ssActs } from "../models/m3.js";
 import { bindParams, readParams, setParams, fmt, LOGIT } from "../lib/widget.js";
 import { barPlot, linePlot, el, clear } from "../lib/plot.js";
+import { initInfo } from "../lib/info.js";
 
 // bmm's mpt() puts Pi and Pb on the logit scale with a logistic(0, 1) prior, SD pi / sqrt(3): the
 // sliders span mean +- 3 SD (+-5.44) and start at the prior mean, 0.5.
@@ -218,3 +219,4 @@ $("mpt-copy").addEventListener("click", () => navigator.clipboard?.writeText($("
 for (const k of ["Pi", "Pb"]) pairs[k].setBounds(BOUNDS);
 setParams(pairs, { ...PRIOR_MEANS, ...START_COUNTS });
 draw();
+initInfo();

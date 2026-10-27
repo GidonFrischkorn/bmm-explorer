@@ -5,7 +5,10 @@ title: "How to read a page"
 Every model page opens with one screen of panels: a drawing of the task, the task settings, the
 parameters, the predicted responses, and the prediction across task settings. Move any control and
 every panel follows. The dashed lines and outlines show the model at bmm's prior means, so a change is
-always a comparison. Each slider covers the range bmm's default priors consider plausible.
+always a comparison. Each slider covers the range bmm's default priors consider plausible. The (i)
+next to a control opens a note on what that parameter or setting does, with an example from the task.
+An axis that has to change its limit eases to the new one, and it keeps its limit as long as the
+curves fill more than half of it, so a slider moved back and forth does not make the axis jump.
 
 Below the panels, every page has the same five parts.
 

@@ -10,11 +10,12 @@ toc: false
 <div class="ex-dash" id="cswald-widget">
   <section class="ex-panel ex-p-task" aria-label="The task">
     <div class="ex-panel-title ex-title-row">The task
-      <span class="ex-options" role="radiogroup" aria-label="Model version">
+      <span class="ex-label"><span class="ex-options" role="radiogroup" aria-label="Model version">
         <label><input type="radio" name="cswald-version" value="simple" checked> simple</label>
-        <label title="competing risks"><input type="radio" name="cswald-version" value="crisk"> crisk</label>
-      </span>
+        <label><input type="radio" name="cswald-version" value="crisk"> crisk</label>
+      </span><button type="button" class="ex-info" aria-controls="cswald-version-info" aria-label="About the model versions">i</button></span>
     </div>
+    <div class="ex-info-pop" id="cswald-version-info" hidden><code>simple</code>: one accumulator, for the correct response. An error counts as a censored trial: by the error's response time the accumulator had not arrived. At the start, an error at 1 s has likelihood 0.39, the probability that no correct response has come by then. <code>crisk</code> (competing risks): one accumulator per response, and the first to arrive gives the response. In <code>cswald()</code>: <code>version</code>.</div>
     <svg id="cswald-task" role="img" aria-label="Evidence accumulating after the non-decision time toward the response boundary or boundaries"></svg>
   </section>
 
@@ -28,16 +29,20 @@ toc: false
   <section class="ex-panel" aria-label="Parameters">
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
-      <label for="cswald-drift">drift, rate of evidence accumulation</label>
+      <div class="ex-label"><label for="cswald-drift">drift, rate of evidence accumulation</label><button type="button" class="ex-info" aria-controls="cswald-drift-info">i</button></div>
+      <div class="ex-info-pop" id="cswald-drift-info" hidden>Rate at which evidence accumulates. In <code>simple</code> it is the rate of the correct response's accumulator and must be positive; bmm estimates it on the log scale. At the start, <code>drift</code> = 1 gives a mean correct response time of 1.14 s, and <code>drift</code> = 2 shortens it to 0.64 s. In <code>crisk</code> the upper accumulator runs at <code>drift</code> and the lower at −<code>drift</code>, so a negative <code>drift</code> favours the lower response.</div>
       <input type="range" id="cswald-drift">
       <input type="number" id="cswald-drift-num" aria-label="drift">
-      <label for="cswald-bound">bound, evidence needed</label>
+      <div class="ex-label"><label for="cswald-bound">bound, evidence needed</label><button type="button" class="ex-info" aria-controls="cswald-bound-info">i</button></div>
+      <div class="ex-info-pop" id="cswald-bound-info" hidden>Evidence needed to respond. In <code>simple</code>, the distance from the start to the correct boundary, half the boundary separation of the diffusion model; in <code>crisk</code>, the full separation of the two boundaries. At the start, <code>simple</code> with <code>bound</code> = 1 is compared with a diffusion model with <code>bound</code> = 2, the wide grey band, and gives a mean correct response time of 1.14 s.</div>
       <input type="range" id="cswald-bound">
       <input type="number" id="cswald-bound-num" aria-label="bound">
-      <label for="cswald-ndt">ndt, non-decision time (s)</label>
+      <div class="ex-label"><label for="cswald-ndt">ndt, non-decision time (s)</label><button type="button" class="ex-info" aria-controls="cswald-ndt-info">i</button></div>
+      <div class="ex-info-pop" id="cswald-ndt-info" hidden>Non-decision time in seconds, for encoding the stimulus and executing the response. It shifts every response time and changes no response probability. At the start, 0.14 s of the 1.14 s mean correct response time is non-decision time.</div>
       <input type="range" id="cswald-ndt">
       <input type="number" id="cswald-ndt-num" aria-label="ndt">
-      <label for="cswald-zr" class="cswald-crisk-only">zr, relative starting point</label>
+      <div class="ex-label cswald-crisk-only"><label for="cswald-zr">zr, relative starting point</label><button type="button" class="ex-info" aria-controls="cswald-zr-info">i</button></div>
+      <div class="ex-info-pop" id="cswald-zr-info" hidden>Relative starting point of both accumulators between the lower (0) and the upper (1) boundary. Above 0.5 the upper accumulator has less distance to run: more upper responses, and faster ones. At the start of <code>crisk</code>, <code>drift</code> = 0 and <code>bound</code> = 1, moving <code>zr</code> from 0.5 to 0.7 raises P(upper) from 0.5 to 0.74.</div>
       <input type="range" id="cswald-zr" class="cswald-crisk-only">
       <input type="number" id="cswald-zr-num" class="cswald-crisk-only" aria-label="zr">
       <div class="ex-hint" id="cswald-hint"></div>

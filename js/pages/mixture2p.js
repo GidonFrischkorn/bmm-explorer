@@ -3,8 +3,10 @@ import { dmixture2p } from "../models/circular.js";
 import { integrateExp } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { circularPlot, CIRC_X, DEG } from "../lib/circular-plot.js";
+import { autoAxis } from "../lib/axis.js";
 import { colourWheel, hue } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
+import { initInfo } from "../lib/info.js";
 
 // kappa has bmm's default prior normal(2, 1) on the log link; its slider spans the mean +- 3 SD.
 // p_mem has the whole probability range; its start is the median of the logistic(0, 1) prior on thetat.
@@ -29,11 +31,12 @@ function problems(p) {
 
 const wheel = colourWheel($("mix2-wheel"), () => {});
 
+const densityAxis = autoAxis(draw);
 function drawDensity(p) {
   const total = q => dmixture2p(CIRC_X, q).map(Math.exp);
   const now = total(p), fl = CIRC_X.map(() => floor(p));
   circularPlot($("mix2-density"), {
-    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)",
+    W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: total(START), color: WEIGHT_COLOR.target, dashed: true }, { y: now, color: WEIGHT_COLOR.target }],
     areas: [{ lo: CIRC_X.map(() => 0), hi: fl, color: WEIGHT_COLOR.guess, opacity: 0.3 }, { lo: fl, hi: now, color: WEIGHT_COLOR.target, opacity: 0.3 }],
     marks: [{ at: 0, color: hue(0), label: 1 }]
@@ -90,3 +93,4 @@ pairs.p_mem.setBounds({ min: 0, max: 1, step: 0.01 });
 pairs.kappa.setBounds({ min: KAPPA[0] - 3 * KAPPA[1], max: KAPPA[0] + 3 * KAPPA[1], step: 0.05, scale: LOG });
 setParams(pairs, START);
 draw();
+initInfo();
