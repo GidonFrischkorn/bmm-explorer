@@ -15,7 +15,7 @@ toc: false
         <label><input type="radio" name="m3-version" value="cs"> complex span</label>
       </span><button type="button" class="ex-info" aria-controls="m3-version-info" aria-label="About the task versions">i</button></span>
     </div>
-    <div class="ex-info-pop" id="m3-version-info" hidden><code>simple span</code>: list letters only, in three categories. <code>complex span</code>: a distractor follows each list letter, which adds two distractor categories and the filtering parameter <code>f</code>. In <code>m3()</code>: <code>version = "ss"</code> or <code>"cs"</code>.</div>
+    <div class="ex-info-pop" id="m3-version-info" hidden><code>simple span</code>: no distractors; the candidates fall in three categories. <code>complex span</code>: a distractor follows each list letter, which adds two distractor categories and the filtering parameter <code>f</code>. At the start the screen holds the correct letter, 4 other list letters and 5 lures; complex span adds 1 close and 3 far distractors. In <code>m3()</code>: <code>version = "ss"</code> or <code>"cs"</code>.</div>
     <svg id="m3-task" role="img" aria-label="A studied list of letters with one box cued by a question mark, and the response screen with the candidate letters"></svg>
   </section>
 
@@ -24,23 +24,23 @@ toc: false
     <div class="ex-panel-title">Task settings</div>
     <div class="ex-controls ex-inline">
       <div class="ex-label"><label for="m3-set-size">set size</label><button type="button" class="ex-info" aria-controls="m3-set-size-info">i</button></div>
-      <div class="ex-info-pop" id="m3-set-size-info" hidden>Letters studied. It caps <code>n_other</code> at set size − 1 and does not enter the likelihood otherwise: <code>m3()</code> takes only the number of candidates in each category.</div>
+      <div class="ex-info-pop" id="m3-set-size-info" hidden>Letters studied. It caps <code>n_other</code> at set size − 1 and, in complex span, the number of distractors offered. Otherwise it does not enter the likelihood: <code>m3()</code> takes only the number of candidates in each category. At the start, set size 6 allows up to 5 other list letters, 2 close distractors and 4 far ones.</div>
       <input type="range" id="m3-set-size" min="1" max="9" step="1">
       <input type="number" id="m3-set-size-num" min="1" max="9" step="1" aria-label="set size">
       <div class="ex-label"><label for="m3-n-other">n_other</label><button type="button" class="ex-info" aria-controls="m3-n-other-info">i</button></div>
-      <div class="ex-info-pop" id="m3-n-other-info" hidden>Other list letters offered at test (orange). Each gets <code>b</code> + <code>a</code>, the correct letter's activation without <code>c</code>, so each one draws responses away from the correct letter. In bmm it is the <code>other</code> entry of <code>num_options</code>.</div>
+      <div class="ex-info-pop" id="m3-n-other-info" hidden>Other list letters offered at test (orange). Each gets <code>b</code> + <code>a</code>, the correct letter's activation without <code>c</code>, so each one draws responses away from the correct letter. At the start each has 1.1 against the correct letter's 21.19, and a fifth one lowers P(correct) from 0.81 to 0.78. In bmm it is the <code>other</code> entry of <code>num_options</code>.</div>
       <input type="range" id="m3-n-other" min="0" max="8" step="1">
       <input type="number" id="m3-n-other-num" min="0" max="8" step="1" aria-label="n_other">
       <div class="ex-label m3-cs-only"><label for="m3-n-dc">n_dist_context</label><button type="button" class="ex-info" aria-controls="m3-n-dc-info">i</button></div>
-      <div class="ex-info-pop" id="m3-n-dc-info" hidden>Distractors close to the cued position offered at test (green). Each gets <code>b</code> + <code>f</code>·<code>a</code> + <code>f</code>·<code>c</code>: a share <code>f</code> of what a list letter in context gets.</div>
+      <div class="ex-info-pop" id="m3-n-dc-info" hidden>Distractors close to the cued position offered at test (green). Each gets <code>b</code> + <code>f</code>·<code>a</code> + <code>f</code>·<code>c</code>: the background plus a share <code>f</code> of the correct letter's <code>a</code> + <code>c</code>. At the start one close distractor is offered and takes 0.28 of the responses, against the correct letter's 0.55.</div>
       <input type="range" id="m3-n-dc" class="m3-cs-only" min="0" max="2" step="1">
       <input type="number" id="m3-n-dc-num" class="m3-cs-only" min="0" max="2" step="1" aria-label="n_dist_context">
       <div class="ex-label m3-cs-only"><label for="m3-n-do">n_dist_other</label><button type="button" class="ex-info" aria-controls="m3-n-do-info">i</button></div>
-      <div class="ex-info-pop" id="m3-n-do-info" hidden>Other distractors offered at test (purple). Each gets <code>b</code> + <code>f</code>·<code>a</code>.</div>
+      <div class="ex-info-pop" id="m3-n-do-info" hidden>Other distractors offered at test (purple). Each gets <code>b</code> + <code>f</code>·<code>a</code>, with no share of <code>c</code>. At the start (<code>f</code> = 0.5) each has 0.6 against a lure's 0.1, and the 3 of them take 0.05 of the responses.</div>
       <input type="range" id="m3-n-do" class="m3-cs-only" min="0" max="4" step="1">
       <input type="number" id="m3-n-do-num" class="m3-cs-only" min="0" max="4" step="1" aria-label="n_dist_other">
       <div class="ex-label"><label for="m3-n-npl">n_npl</label><button type="button" class="ex-info" aria-controls="m3-n-npl-info">i</button></div>
-      <div class="ex-info-pop" id="m3-n-npl-info" hidden>Lures: letters that were not shown (grey). They get the background activation <code>b</code> only, so they collect the responses that memory does not explain.</div>
+      <div class="ex-info-pop" id="m3-n-npl-info" hidden>Lures: letters that were not shown (grey). They get the background activation <code>b</code> only, so they collect the responses that memory does not explain. At the start each lure has 0.1 against the correct letter's 21.19, and the 5 of them take 0.02 of the responses.</div>
       <input type="range" id="m3-n-npl" min="0" max="12" step="1">
       <input type="number" id="m3-n-npl-num" min="0" max="12" step="1" aria-label="n_npl">
       <div class="ex-hint" id="m3-n-total"></div>
@@ -57,18 +57,18 @@ toc: false
       </div>
       <button type="button" class="ex-info" aria-controls="m3-rule-info" aria-label="About the choice rules">i</button>
     </div>
-    <div class="ex-info-pop" id="m3-rule-info" hidden>How activations become the probabilities of the categories; the three rules are different models of that step. <code>simple</code>: each category's share of the summed activations n·A. <code>softmax</code>, bmm's default: the share of n·e<sup>A</sup>, so differences between activations count rather than ratios. <code>gaussian</code>: every candidate's activation gets standard normal noise and the strongest is recalled. In <code>m3()</code>: <code>choice_rule</code>.</div>
+    <div class="ex-info-pop" id="m3-rule-info" hidden>How activations become the probabilities of the categories (<code>choice_rule</code> in <code>m3()</code>); the three rules are different models of that step. <code>simple</code>: each category's share of the summed activations n·A, at the start 21.19 / (21.19 + 4 · 1.1 + 5 · 0.1) = 0.81 for the correct letter. <code>softmax</code>, bmm's default: the share of n·e<sup>A</sup>, so differences between activations count rather than ratios. <code>gaussian</code>: every candidate's activation gets standard normal noise and the strongest is recalled.</div>
     <div class="ex-controls">
       <div class="ex-label"><label for="m3-a">a, general activation</label><button type="button" class="ex-info" aria-controls="m3-a-info">i</button></div>
-      <div class="ex-info-pop" id="m3-a-info" hidden>General activation, which every letter of the studied list gets: an other list letter has <code>b</code> + <code>a</code>, the correct letter <code>b</code> + <code>a</code> + <code>c</code>. Raising <code>a</code> draws responses to the other list letters, as when the letters are remembered but not where they were.</div>
+      <div class="ex-info-pop" id="m3-a-info" hidden>General activation, which every letter of the studied list gets: an other list letter has <code>b</code> + <code>a</code>, the correct letter <code>b</code> + <code>a</code> + <code>c</code>. Raising <code>a</code> draws responses to the other list letters, as when the letters are remembered but not where they were. At the start, raising <code>a</code> from 1 to 2.72 moves P(other) from 0.17 to 0.33.</div>
       <input type="range" id="m3-a">
       <input type="number" id="m3-a-num" aria-label="a">
       <div class="ex-label"><label for="m3-c">c, context activation</label><button type="button" class="ex-info" aria-controls="m3-c-info">i</button></div>
-      <div class="ex-info-pop" id="m3-c-info" hidden>Context activation from the cue, which only the letter at the cued position (the box with the question mark) gets. Raising <code>c</code> raises P(correct) and takes from every other category.</div>
+      <div class="ex-info-pop" id="m3-c-info" hidden>Context activation from the cue: the letter at the cued position (the box with the question mark) gets all of <code>c</code>, and in complex span the distractors close to it (green) get <code>f</code>·<code>c</code>. Raising <code>c</code> raises P(correct) and takes from the other list letters, the far distractors and the lures. At the start, raising <code>c</code> from 20.09 to 33.12 moves P(correct) from 0.81 to 0.87. In complex span the same step moves P(correct) from 0.55 to 0.59 and the close distractors from 0.28 to 0.30.</div>
       <input type="range" id="m3-c">
       <input type="number" id="m3-c-num" aria-label="c">
       <div class="ex-label m3-cs-only"><label for="m3-f">f, filtering of distractors</label><button type="button" class="ex-info" aria-controls="m3-f-info">i</button></div>
-      <div class="ex-info-pop" id="m3-f-info" hidden>Filtering: the share of <code>a</code> and <code>c</code> that a distractor gets, from 0 (filtered out; distractors act as lures) to 1 (they act as list letters). bmm estimates it on the logit scale.</div>
+      <div class="ex-info-pop" id="m3-f-info" hidden>Filtering: the share of <code>a</code> that every distractor gets and of <code>c</code> that the close ones get. At 0 the distractors act as lures; at 1 a close distractor (green) is as strong as the correct letter and a far one (purple) as an other list letter. At the start, <code>f</code> = 0.5 puts a close distractor at 10.64, half way between a lure's 0.1 and the correct letter's 21.19. bmm estimates <code>f</code> on the logit scale.</div>
       <input type="range" id="m3-f" class="m3-cs-only">
       <input type="number" id="m3-f-num" class="m3-cs-only" aria-label="f">
       <div class="ex-hint" id="m3-range-hint"></div>
@@ -129,8 +129,8 @@ function. bmm computes the integral with 40-node Gauss-Hermite quadrature, and t
 nodes. Only the ratios of activations matter under the simple rule, and only their differences
 under softmax and gaussian, so one activation has to set the scale: bmm fixes `b` at 0.1 under the
 simple rule and at 0 under the other two. `a` reaches every
-item on the studied list, `c` comes from the cue and reaches only the item at the cued position, and
-`f` scales both for the distractors.
+item on the studied list, `c` comes from the cue and reaches the item at the cued position, and
+`f` scales `a` for every distractor and `c` for the distractors close to the cued position.
 
 ## The task
 
