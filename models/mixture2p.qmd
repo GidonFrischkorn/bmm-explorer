@@ -30,11 +30,11 @@ toc: false
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
       <div class="ex-label"><label for="mix2-p_mem">p_mem, probability of recalling the target</label><button type="button" class="ex-info" aria-controls="mix2-p_mem-info">i</button></div>
-      <div class="ex-info-pop" id="mix2-p_mem-info" hidden>Probability that the target is recalled. On those trials the error scatters around 0 with precision <code>kappa</code>; on the other 1 − <code>p_mem</code> the participant guesses and every error is equally likely. <code>p_mem</code> = 0.6 puts 60% of the responses in the peak and 40% in the flat floor. bmm's formulas call it <code>thetat</code> and estimate it on the logit scale.</div>
+      <div class="ex-info-pop" id="mix2-p_mem-info" hidden>Probability that the target is recalled. On those trials the error scatters around 0 with precision <code>kappa</code>; on the other 1 − <code>p_mem</code> the participant guesses and every error is equally likely. At the start, <code>p_mem</code> = 0.5 puts half of the responses in the peak and half in the flat floor. bmm's formulas call it <code>thetat</code> and estimate it on the logit scale.</div>
       <input type="range" id="mix2-p_mem">
       <input type="number" id="mix2-p_mem-num" aria-label="p_mem">
       <div class="ex-label"><label for="mix2-kappa">kappa, precision of the memory</label><button type="button" class="ex-info" aria-controls="mix2-kappa-info">i</button></div>
-      <div class="ex-info-pop" id="mix2-kappa-info" hidden>Precision of the recalled colour: the concentration of the von Mises peak around the target. Higher <code>kappa</code>: a narrower peak, smaller errors on recalled trials. It moves no weight between memory and guessing.</div>
+      <div class="ex-info-pop" id="mix2-kappa-info" hidden>Precision of the recalled colour: the concentration of the von Mises peak around the target. Higher <code>kappa</code> gives a narrower peak and smaller errors on recalled trials; it moves no weight between memory and guessing. At the start, raising <code>kappa</code> from 7.39 to 20.1 moves the share of responses within ±20° of the target from 0.38 to 0.49, while <code>p_mem</code> stays at 0.5.</div>
       <input type="range" id="mix2-kappa">
       <input type="number" id="mix2-kappa-num" aria-label="kappa">
       <div class="ex-hint" id="mix2-par-hint"></div>
@@ -49,7 +49,7 @@ toc: false
         <select id="mix2-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="mix2-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="mix2-sim-info" aria-label="About simulate">i</button></span>
     </div>
-    <div class="ex-info-pop" id="mix2-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Below the panel: the expected mean |error|, circular SD and share within ±20°, and the same for this sample. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rmixture2p()</code>, in the code under In bmm.</div>
+    <div class="ex-info-pop" id="mix2-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Each bar averages the density over its 10°, so the bars stay below a peak narrower than that. Below the legend: the expected mean |error|, circular SD and share within ±20°, against the same for this sample. The circular SD is √(−2 ln R), with R the length of the mean error vector; it grows without bound as the errors approach uniform, so above 140° only that bound is shown, and in a small sample of widely spread errors it comes out lower than expected. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rmixture2p()</code>, in the code under In bmm; R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="mix2-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the starting values, with the memory and guessing components shaded"></svg>
     <div class="ex-legend">
       Solid: now; dashed: starting values (see Explore); band: ±20° around the target, the window the

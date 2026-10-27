@@ -20,7 +20,7 @@ toc: false
         <div class="ex-panel-title">Task settings</div>
         <div class="ex-controls">
           <div class="ex-label"><label for="mix3-set-size">set size, items on the display</label><button type="button" class="ex-info" aria-controls="mix3-set-size-info">i</button></div>
-          <div class="ex-info-pop" id="mix3-set-size-info" hidden>Items on the display. The non-targets share <code>p_nt</code> equally, so each gets <code>p_nt</code> / (set size − 1): with more items each swap peak is lower, and together they keep <code>p_nt</code>.</div>
+          <div class="ex-info-pop" id="mix3-set-size-info" hidden>Items on the display. The non-targets share <code>p_nt</code> equally, so each gets <code>p_nt</code> / (set size − 1): with more items each swap peak is lower, and together they keep <code>p_nt</code>. At the start, with <code>p_nt</code> = 0.33, going from set size 4 to 8 lowers each non-target's share from 0.11 to 0.05.</div>
           <input type="range" id="mix3-set-size">
           <input type="number" id="mix3-set-size-num" aria-label="set size">
           <div class="ex-hint" id="mix3-task-hint"></div>
@@ -39,15 +39,15 @@ toc: false
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
       <div class="ex-label"><label for="mix3-p_mem">p_mem, probability of recalling the target</label><button type="button" class="ex-info" aria-controls="mix3-p_mem-info">i</button></div>
-      <div class="ex-info-pop" id="mix3-p_mem-info" hidden>Probability that the target is recalled: the response scatters around the target's colour (0) with precision <code>kappa</code>. bmm's formulas call it <code>thetat</code> and turn it into a weight with a softmax in which guessing is the reference.</div>
+      <div class="ex-info-pop" id="mix3-p_mem-info" hidden>Probability that the target is recalled: the response scatters around the target's colour (0) with precision <code>kappa</code>. Guessing gets what <code>p_mem</code> and <code>p_nt</code> leave: at the start, 1 − 0.33 − 0.33 = 0.34. bmm's formulas call it <code>thetat</code> and turn it into a weight with a softmax in which guessing is the reference.</div>
       <input type="range" id="mix3-p_mem">
       <input type="number" id="mix3-p_mem-num" aria-label="p_mem">
       <div class="ex-label"><label for="mix3-p_nt">p_nt, probability of reporting a non-target</label><button type="button" class="ex-info" aria-controls="mix3-p_nt-info">i</button></div>
-      <div class="ex-info-pop" id="mix3-p_nt-info" hidden>Probability of reporting a non-target instead of the target, a swap error. The response then scatters around that item's colour, and each non-target is reported equally often: <code>p_nt</code> = 0.2 at set size 5 gives each of the 4 non-targets 0.05. bmm's formulas call it <code>thetant</code>.</div>
+      <div class="ex-info-pop" id="mix3-p_nt-info" hidden>Probability of reporting a non-target instead of the target, a swap error. The response then scatters around that item's colour, and each non-target is reported equally often. At the start, <code>p_nt</code> = 0.33 at set size 4 gives each of the 3 non-targets 0.11. bmm's formulas call it <code>thetant</code>.</div>
       <input type="range" id="mix3-p_nt">
       <input type="number" id="mix3-p_nt-num" aria-label="p_nt">
       <div class="ex-label"><label for="mix3-kappa">kappa, precision of the memory</label><button type="button" class="ex-info" aria-controls="mix3-kappa-info">i</button></div>
-      <div class="ex-info-pop" id="mix3-kappa-info" hidden>Precision of every memory response, to the target or to a non-target: the concentration of each von Mises peak. It moves no weight between the three kinds of response.</div>
+      <div class="ex-info-pop" id="mix3-kappa-info" hidden>Precision of every memory response, to the target or to a non-target: the concentration of each von Mises peak. It moves no weight between the three kinds of response. At the start, raising <code>kappa</code> from 7.39 to 20.1 lifts the density at the target from 0.41 to 0.64 per radian, while the weights stay put: 0.33 for the target, 0.11 for each non-target, 0.34 for guessing.</div>
       <input type="range" id="mix3-kappa">
       <input type="number" id="mix3-kappa-num" aria-label="kappa">
       <div class="ex-hint" id="mix3-par-hint"></div>
@@ -62,12 +62,13 @@ toc: false
         <select id="mix3-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="mix3-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="mix3-sim-info" aria-label="About simulate">i</button></span>
     </div>
-    <div class="ex-info-pop" id="mix3-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Below the panel: the expected mean |error|, circular SD and share within ±20°, and the same for this sample. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rmixture3p()</code>, in the code under In bmm.</div>
+    <div class="ex-info-pop" id="mix3-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Each bar averages the density over its 10°, so the bars stay below a peak narrower than that. Below the legend: the expected mean |error|, circular SD and share within ±20°, against the same for this sample. The circular SD is √(−2 ln R), with R the length of the mean error vector; it grows without bound as the errors approach uniform, so above 140° only that bound is shown, and in a small sample of widely spread errors it comes out lower than expected. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rmixture3p()</code>, in the code under In bmm; R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="mix3-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the starting values, with the target, non-target and guessing components shaded"></svg>
     <svg id="mix3-weights" role="img" aria-label="Mixture weights of memory, each non-target and guessing, now and at the starting values"></svg>
     <div class="ex-legend">
       Weights: M is memory (the target), the numbers are the non-targets, G is guessing. Solid: now;
-      dashed and "start": starting values (see Explore). Shaded: the
+      dashed and "start": starting values (see Explore); band: ±20° around the target, the window
+      simulate counts. Shaded: the
       <span class="blue">target component</span> and the <span class="orange">non-target components</span>,
       stacked on the <span class="grey">guessing floor</span>. <span id="mix3-weights-text"></span>
     </div>

@@ -17,7 +17,8 @@ On the M3, MPT, yes/no and rating pages a black line on each bar marks the sampl
 yes/no and rating pages the sample's rates also appear as points on the ROC. On the m-AFC page a black
 dot marks the sample's proportion correct at the current `d`. The sample keeps its random numbers
 while the sliders move, and New sample draws other ones; how far a sample of 50 or 200 trials strays
-from the expected values is a view of the noise in a real data set.
+from the expected values is a view of the noise in a real data set. For the circular SD of widely
+spread errors part of the gap is a bias, not noise: a small sample gives a lower value than expected.
 
 Below the panels, every page has the same five parts.
 

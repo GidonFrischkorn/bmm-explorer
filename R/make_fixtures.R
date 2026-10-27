@@ -395,9 +395,13 @@ write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd 
 # --- simulate ----------------------------------------------------------------
 # Simulated data on the circular pages. (a) The expected statistics of the response error by integrate() over
 # bmm's d*(): mean |x|, mean cos x, mean sin x (the circular SD comes from the last two) and P(|x| <= 20 deg).
-# (b) The same four as sample means of n draws from bmm's r*(), each with its Monte Carlo SE, sd / sqrt(n); the
-# explorer's draws are held to these within a few SE. Cells: page starts, a narrow and a wide memory peak, and
-# the IMM page's corner with the narrowest peaks.
+# (b) The same four as sample means of n draws from bmm's r*(), each with its Monte Carlo SE, sd / sqrt(n); this
+# sample and the explorer's are each held to (a) within 5 SE. Cells: page starts, a narrow and a wide memory peak, the
+# IMM page's corner with the narrowest peaks, and slider ends where an inversion defect at the ends of the CDF or
+# at the +-180 deg seam would show: mixture2p with p_mem 1, mixture3p with p_nt 1 and a non-target at 3.14 (its
+# peak wraps the seam), imm at set size 1. Each cell draws from its own seed, 437 + its 1-based position (438 for
+# the first cell), written into the cell, so the cells' sample errors are independent; the explorer's test draws
+# from the same seed. The RNG kind is set, so that an .Rprofile cannot change the stream.
 sim_n <- 1e5
 w20 <- 20 * pi / 180
 sim_stats <- function(x) {
@@ -410,28 +414,33 @@ sim_expected <- function(d) {
        mean_cos = int(cos, -pi, 0) + int(cos, 0, pi), mean_sin = int(sin, -pi, 0) + int(sin, 0, pi),
        within = int(function(x) 1, -w20, 0) + int(function(x) 1, 0, w20))
 }
-sim_cell <- function(fn, args) {
+sim_cell <- function(fn, args, seed) {
   d <- function(x) do.call(get(paste0("d", fn)), c(list(x = x), args))
-  set.seed(437)
+  RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+  set.seed(seed)
   draws <- do.call(get(paste0("r", fn)), c(list(n = sim_n), args))
-  list(fn = fn, args = args, expected = sim_expected(d), n = sim_n, sample = sim_stats(draws))
+  list(fn = fn, args = args, expected = sim_expected(d), n = sim_n, seed = seed, sample = sim_stats(draws))
 }
-cells <- c(
-  lapply(list(list(mu = 0, kappa = 5, p_mem = .6), list(mu = 0, kappa = 148, p_mem = .9), list(mu = 0, kappa = .5, p_mem = .3)),
-         function(a) sim_cell("mixture2p", a)),
+# kappa e^5 is 148, as the pages compute exp(slider) at 3 significant digits.
+sim_specs <- c(
+  lapply(list(list(mu = 0, kappa = 5, p_mem = .6), list(mu = 0, kappa = 148, p_mem = .9), list(mu = 0, kappa = .5, p_mem = .3),
+              list(mu = 0, kappa = 148, p_mem = 1)),
+         function(a) list("mixture2p", a)),
   lapply(list(list(mu = c(0, 2, -1.5), kappa = 5, p_mem = .6, p_nt = .2), list(mu = c(0, 1), kappa = 20, p_mem = .3, p_nt = .6),
-              list(mu = c(0, .5, -.5, 3, -3), kappa = 2, p_mem = .5, p_nt = .05)),
-         function(a) sim_cell("mixture3p", a)),
+              list(mu = c(0, .5, -.5, 3, -3), kappa = 2, p_mem = .5, p_nt = .05), list(mu = c(0, 3.14), kappa = 148, p_mem = 0, p_nt = 1)),
+         function(a) list("mixture3p", a)),
   lapply(list(c(equi(4), start), c(spaced(8, .5), start),
               c(equi(8), list(c = 20.1, a = .0498, b = 1, s = 20.1, kappa = 148)),
-              c(list(mu = c(0, 0.79, -2.36, 3.14), dist = c(0, 0.05, 3.11, 1.2)), modifyList(start, list(kappa = 30)))),
-         function(a) sim_cell("imm", a)),
+              c(list(mu = c(0, 0.79, -2.36, 3.14), dist = c(0, 0.05, 3.11, 1.2)), modifyList(start, list(kappa = 30))),
+              c(equi(1), start)),
+         function(a) list("imm", a)),
   lapply(list(list(mu = 0, c = 7.39, kappa = 5.75, parametrization = "sqrtexp"), list(mu = 0, c = 1, kappa = 2, parametrization = "sqrtexp"),
               list(mu = 0, c = 15, kappa = 50, parametrization = "sqrtexp"), list(mu = 0, c = 20, kappa = 50, parametrization = "sqrtexp"),
               list(mu = 0, c = 3, kappa = 5, parametrization = "bessel")),
-         function(a) sim_cell("sdm", a))
+         function(a) list("sdm", a))
 )
-write_fx("simulate", cells)
+cells <- Map(function(s, i) sim_cell(s[[1]], s[[2]], 437 + i), sim_specs, seq_along(sim_specs))
+write_fx("simulate", unname(cells))
 
 # --- simulate_counts ---------------------------------------------------------
 # Simulated data on the categorical and signal detection pages. Per cell: the probabilities bmm's r*() samples from

@@ -18,15 +18,15 @@ toc: false
     <div class="ex-panel-title">Task settings</div>
     <div class="ex-controls ex-inline">
       <div class="ex-label"><label for="mpt-set-size">set size</label><button type="button" class="ex-info" aria-controls="mpt-set-size-info">i</button></div>
-      <div class="ex-info-pop" id="mpt-set-size-info" hidden>Letters studied. It caps <code>n_other</code> at set size − 1 and does not enter the likelihood otherwise.</div>
+      <div class="ex-info-pop" id="mpt-set-size-info" hidden>Letters studied. It caps <code>n_other</code> at set size − 1 and does not enter the likelihood otherwise. At the start, set size 6 allows up to 5 other list letters; 4 are offered.</div>
       <input type="range" id="mpt-set-size" min="1" max="9" step="1">
       <input type="number" id="mpt-set-size-num" min="1" max="9" step="1" aria-label="set size">
       <div class="ex-label"><label for="mpt-n-other">n_other</label><button type="button" class="ex-info" aria-controls="mpt-n-other-info">i</button></div>
-      <div class="ex-info-pop" id="mpt-n-other-info" hidden>Other list letters offered at test. They set the guessing rates: a guess among the list letters on the screen hits the correct one with 1 / (1 + <code>n_other</code>), a guess among all N candidates with 1 / N.</div>
+      <div class="ex-info-pop" id="mpt-n-other-info" hidden>Other list letters offered at test. They set the guessing rates: a guess among the list letters on the screen hits the correct one with 1 / (1 + <code>n_other</code>), a guess among all N = 1 + <code>n_other</code> + <code>n_npl</code> candidates with 1 / N. At the start (<code>n_other</code> = 4, N = 10) these rates are 1/5 = 0.2 and 1/10 = 0.1.</div>
       <input type="range" id="mpt-n-other" min="0" max="8" step="1">
       <input type="number" id="mpt-n-other-num" min="0" max="8" step="1" aria-label="n_other">
       <div class="ex-label"><label for="mpt-n-npl">n_npl</label><button type="button" class="ex-info" aria-controls="mpt-n-npl-info">i</button></div>
-      <div class="ex-info-pop" id="mpt-n-npl-info" hidden>Lures offered at test, letters never shown. They enter only through the guess among all N candidates, which lands on a lure with <code>n_npl</code> / N.</div>
+      <div class="ex-info-pop" id="mpt-n-npl-info" hidden>Lures offered at test, letters never shown. They enter only through the guess among all N candidates, which lands on a lure with <code>n_npl</code> / N. At the start 5 of the 10 candidates are lures, so P(lure) = (1 − <code>Pi</code>) · 5/10 = 0.25.</div>
       <input type="range" id="mpt-n-npl" min="0" max="12" step="1">
       <input type="number" id="mpt-n-npl-num" min="0" max="12" step="1" aria-label="n_npl">
       <div class="ex-hint" id="mpt-n-total"></div>
@@ -37,11 +37,11 @@ toc: false
     <div class="ex-panel-title">Parameters</div>
     <div class="ex-controls">
       <div class="ex-label"><label for="mpt-pi">Pi, item in memory</label><button type="button" class="ex-info" aria-controls="mpt-pi-info">i</button></div>
-      <div class="ex-info-pop" id="mpt-pi-info" hidden>Probability that the cued item is in memory. Without it the participant guesses among all N candidates on the screen.</div>
+      <div class="ex-info-pop" id="mpt-pi-info" hidden>Probability that the cued item is in memory. If the item is not in memory, the participant guesses among all N candidates on the screen. At the start, <code>Pi</code> = 0.5 sends half of the trials to that guess, which is correct with 1/10 and adds 0.05 to P(correct) = 0.35.</div>
       <input type="range" id="mpt-pi">
       <input type="number" id="mpt-pi-num" aria-label="Pi">
       <div class="ex-label"><label for="mpt-pb">Pb, position retrieved, given the item</label><button type="button" class="ex-info" aria-controls="mpt-pb-info">i</button></div>
-      <div class="ex-info-pop" id="mpt-pb-info" hidden>Probability that the item's position is retrieved as well, given the item is in memory; then the response is correct. An item in memory without its position leaves a guess among the 1 + <code>n_other</code> list letters on the screen.</div>
+      <div class="ex-info-pop" id="mpt-pb-info" hidden>Probability that the item's position is retrieved as well, given the item is in memory; then the response is correct. An item in memory without its position leaves a guess among the 1 + <code>n_other</code> list letters on the screen. At the start, <code>Pi</code>·<code>Pb</code> = 0.25 of the trials are correct from memory, and the 0.25 with the item but not its position add 0.25 / 5 = 0.05.</div>
       <input type="range" id="mpt-pb">
       <input type="number" id="mpt-pb-num" aria-label="Pb">
       <div class="ex-hint" id="mpt-range-hint"></div>

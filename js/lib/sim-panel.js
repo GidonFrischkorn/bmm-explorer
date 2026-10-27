@@ -30,7 +30,17 @@ export function simControls(prefix, redraw) {
   };
 }
 
-const deg = v => (Number.isFinite(v) ? `${fmt(v * DEG, 0)}°` : "∞");
+const deg = v => `${fmt(v * DEG, 0)}°`;
+// Circular SD from the mean resultant length R. Below R = 0.05 (above 140°) only the bound is printed, so a nearly
+// flat density does not show a large number that means little (492° for a uniform one, R = 1e-16 from the grid's
+// round-off); below 1e-9 the density has no mean direction. The cap does not hide the small-sample bias: a uniform
+// sample's R has a median of 0.118 at n 50, 0.084 at 100 and 0.059 at 200 (mean sqrt(pi / (4 n))), so it is capped
+// in 12%, 22% and 39% of samples and otherwise shows a finite SD below the expected one; at n 500 and 1000 it is
+// capped in 72% and 92% (20000 samples through this sampler). The (i) note explains the bias.
+const sdText = st => {
+  const R = Math.hypot(st.meanCos, st.meanSin);
+  return R < 1e-9 ? "unbounded (R = 0)" : R < 0.05 ? "> 140°" : deg(st.circSd);
+};
 
 // For a page with the switch on: the histogram heights for circularPlot's bars, and the summary line filled in.
 // Off: no bars, and the line is hidden.
@@ -39,9 +49,9 @@ export function circularSimulation(sim, logd, window) {
   if (!sim.on) return undefined;
   const model = circularSim(logd, window), draws = model.draw(sim.us), got = circularStats(draws, window);
   const e = model.expected;
-  sim.text.textContent = `Expected (this sample of ${sim.n}): mean |error| ${deg(e.meanAbs)} (${deg(got.meanAbs)}), ` +
-    `circular SD ${deg(e.circSd)} (${deg(got.circSd)}), within ±${deg(window)} ${fmt(e.within)} (${fmt(got.within)}).`;
-  return histogram(draws, -Math.PI, Math.PI, BINS);
+  sim.text.textContent = `Expected vs this sample of ${sim.n}: mean |error| ${deg(e.meanAbs)} vs ${deg(got.meanAbs)}, ` +
+    `circular SD ${sdText(e)} vs ${sdText(got)}, within ±${deg(window)} ${fmt(e.within)} vs ${fmt(got.within)}.`;
+  return histogram(draws, BINS);
 }
 
 // R lines that draw the same kind of sample with bmm and print the three statistics; call is the r*() call
