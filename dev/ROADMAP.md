@@ -58,7 +58,8 @@ Then the five sections:
 | E7 | Release | landing page with a model map, pkgdown navbar link (PR to bmm), accessibility pass, mobile check, #437 closed | none |
 | E8 | Reader feedback I | (i) notes on every control, axes that hold and ease, on all pages | none |
 | E9 | Simulated data, circular | a "simulate N trials" overlay on imm, mixture2p, mixture3p, sdm: histogram of draws, expected vs sample statistics, the `r*()` call | expected statistics by `integrate()` over bmm's `d*()`; `r*()` sample statistics |
-| E10 | Simulated data, categorical and RT | the same overlay on m3, mpt, the SDT and the RT pages | as E9 |
+| E10a | Simulated data, categorical and SDT | the switch on m3, mpt, sdt_yn, sdt_mafc, sdt_rating: sample shares marked on the bars, sample points on the ROC, the `r*()` call | `r*()` samples of 1e5 trials (`simulate_counts.json`) |
+| E10b | Simulated data, response times | the switch on ddm, cswald, ezdm: rt histograms behind the densities, sampled summary statistics on the ezdm bands | as E9, `r*()` for rt and choice |
 
 Cross-cutting, every milestone: `node --test` green, `quarto render` green, a naive-reader pass over
 the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabulary.

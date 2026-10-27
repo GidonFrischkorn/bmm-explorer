@@ -4,6 +4,8 @@ import { m3Probs, ssActs, csActs, defaultB } from "../models/m3.js";
 import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../lib/widget.js";
 import { barPlot, linePlot, el, clear } from "../lib/plot.js";
 import { initInfo } from "../lib/info.js";
+import { simControls, markBars, shareLine } from "../lib/sim-panel.js";
+import { categoricalShares } from "../lib/simulate.js";
 
 // bmm's quadrature rule for the gaussian rule, written from bmm by R/make_fixtures.R. Without it the
 // gaussian rule is switched off rather than computed on other nodes.
@@ -183,19 +185,27 @@ function drawTask(p, v) {
     el("text", { x: bx, y: 302, "text-anchor": "middle", class: cs ? "task-bin task-bin-sm" : "task-bin", fill: TILE[k].text }, svg).textContent = label;
 }
 
+const sim = simControls("m3", draw);
 function drawBars(cur, ref, v) {
-  const svg = $("m3-bars");
+  const svg = $("m3-bars"), LABELS = VERSION[v].labels;
   svg.classList.toggle("m3-five", v === "cs");
   const { rects, sy } = barPlot(svg, {
     W: 500, H: 300, margin: { l: 64, r: 10, t: 22, b: 44 }, ylim: [0, 1], yticks: [0, 0.25, 0.5, 0.75, 1],
     categories: VERSION[v].labels, ylab: "Proportion", groups: [{ values: cur }]
   });
+  // The simulated sample's share on each bar, and the summary line. The value label clears the mark's halo and sits
+  // no higher than over a full bar (digits have no descenders, so it still clears a mark at 1).
+  const got = sim.on ? categoricalShares(cur, sim.us) : null;
   rects[0].forEach((r, i) => {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
     r.setAttribute("fill", COLOR[VERSION[v].cats[i]]);
     el("rect", { x, y: sy(ref[i]), width: w, height: sy(0) - sy(ref[i]), fill: "none", stroke: "#222", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
-    el("text", { x: x + w / 2, y: sy(Math.max(cur[i], ref[i])) - 6, "text-anchor": "middle", class: "tick" }, svg).textContent = fmt(cur[i], 2);
+    const y = Math.max(sy(1) - 6, Math.min(sy(Math.max(cur[i], ref[i])) - 6, got ? sy(got[i]) - 8 : Infinity));
+    el("text", { x: x + w / 2, y, "text-anchor": "middle", class: "tick" }, svg)
+      .textContent = fmt(cur[i], 2);
   });
+  if (got) markBars(svg, rects[0], sy, got);
+  shareLine(sim, LABELS, cur, got);
 }
 
 // P(correct) along three ways of changing the response set from the current composition, each running
@@ -257,7 +267,10 @@ model <- m3(resp_cats = c(${cats}),
 # log likelihood of response counts per category; here 100 trials split as predicted.
 # pars are on the natural scale${link ? `; bmm() estimates ${link}` : ""}.
 dm3(x = c(${expectedCounts(pr).join(", ")}), pars = c(a = ${p.a}, c = ${p.c}${cs ? `, f = ${p.f}` : ""}), m3_model = model)
-
+${sim.on ? `
+# simulate ${sim.n} trials: the response counts per category, in the order ${CODE_CATS[v].join(", ")}
+rm3(n = 1, size = ${sim.n}, pars = c(a = ${p.a}, c = ${p.c}${cs ? `, f = ${p.f}` : ""}), m3_model = model)
+` : ""}
 # fit: one row per participant and condition, columns ${CODE_CATS[v].join(", ")} with the counts
 ${empty.length
   ? `# bmm() stops on this design: a category with no candidates in every row of the data
@@ -302,7 +315,7 @@ function draw() {
     : `N = 1 correct + ${p.n_other} other + ${p.n_npl} lures = ${totalN(p, v)}`;
   $("m3-range-hint").textContent = RULE_HINT[r] + (GH ? "" : " The gaussian rule is off: bmm's quadrature nodes did not load.");
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   drawTask(p, v);
   drawBars(pred.cur, pred.refCur, v);
   drawAcross(p, v, r, pred);
@@ -335,7 +348,7 @@ function applyVersion() {
 if (!GH) ruleInputs.find(i => i.value === "gaussian").disabled = true;
 ruleInputs.forEach(i => i.addEventListener("change", () => { applyRule(); draw(); }));
 versionInputs.forEach(i => i.addEventListener("change", () => { applyVersion(); draw(); }));
-$("m3-reset").addEventListener("click", () => { setParams(pairs, { ...priorMeans(rule()), ...START_COUNTS }); applyVersion(); draw(); });
+$("m3-reset").addEventListener("click", () => { setParams(pairs, { ...priorMeans(rule()), ...START_COUNTS }); applyVersion(); sim.reset(); draw(); });
 $("m3-copy").addEventListener("click", () => navigator.clipboard?.writeText($("m3-code").textContent));
 pairs.f.setBounds(F_BOUNDS);
 setParams(pairs, { ...START_COUNTS, f: F_START });

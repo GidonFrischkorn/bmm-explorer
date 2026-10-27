@@ -66,3 +66,34 @@ export function histogram(draws, bins) {
   for (const x of draws) counts[Math.floor((x + Math.PI) / w + 0.5) % bins]++;
   return counts.map(k => k / (draws.length * w));
 }
+
+// Counts of trials over categories with probabilities probs, one trial per uniform: a trial falls in the first
+// category whose cumulative probability exceeds its uniform. A slider move shifts the category boundaries under the
+// same uniforms, so only the trials near a boundary change category. probs are renormalised, as dmultinom() does.
+export function categoryCounts(probs, us) {
+  const total = probs.reduce((a, b) => a + b, 0), cum = [];
+  probs.reduce((a, p) => (cum.push(a + p / total), a + p / total), 0);
+  const counts = new Array(probs.length).fill(0);
+  for (const u of us) {
+    const k = cum.findIndex(c => u < c);
+    counts[k < 0 ? probs.length - 1 : k]++;
+  }
+  return counts;
+}
+
+// Noise and signal trials of one sample, alternating, so that a larger sample keeps the trials of a smaller one in
+// both groups.
+export const splitTrials = us => [us.filter((_, i) => i % 2 === 0), us.filter((_, i) => i % 2 === 1)];
+// The share of trials whose uniform falls below p: a rate (P("old"), P(correct)) counted as the pages count it.
+export const shareBelow = (p, us) => us.filter(u => u < p).length / us.length;
+
+// The samples the pages show, one function per kind of page, so the parity test checks the functions the pages sample
+// with (what a page passes them is not tested).
+// Each category's share of the trials (M3, MPT).
+export const categoricalShares = (probs, us) => categoryCounts(probs, us).map(k => k / us.length);
+// Yes/no: the false-alarm and hit rates of the noise and signal halves; rates = [P("old" | noise), P("old" | signal)].
+export const ynSample = (rates, us) => splitTrials(us).map((half, s) => shareBelow(rates[s], half));
+// Ratings: each rating's share on noise and on signal trials; probs = [noise probabilities, signal probabilities].
+export const ratingSample = (probs, us) => splitTrials(us).map((half, s) => categoricalShares(probs[s], half));
+// m-AFC: the proportion correct.
+export const mafcSample = (pc, us) => shareBelow(pc, us);

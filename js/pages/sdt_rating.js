@@ -6,6 +6,8 @@ import { barPlot, el, clipped } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { autoAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
+import { simControls, markBars, simLine, pair } from "../lib/sim-panel.js";
+import { ratingSample } from "../lib/simulate.js";
 
 // bmm's default priors for sdt_rating(), [mean, sd] on the link scale: d normal(1, 1); sdratio, a log ratio,
 // normal(0, 0.3). The threshold sliders span the criterion's prior, normal(0.5, 1.5), mean +- 3 SD.
@@ -82,10 +84,15 @@ const barAxis = autoAxis(draw, { nice: m => {
   const top = Math.max(0.5, Math.ceil(4 * m) / 4);
   return { ylim: [0, top], yticks: [0, 0.25, 0.5, 0.75, 1].filter(y => y <= top) };
 } });
-function drawBars(cur, ref, K) {
+// The simulated sample: half of the trials noise, half signal, each rated by where its uniform falls among the
+// cumulative rating probabilities. Shares per rating, noise then signal.
+const sim = simControls("sdtrating", draw);
+const meanRating = shares => shares.reduce((a, q, j) => a + (j + 1) * q, 0) / shares.reduce((a, q) => a + q, 0);
+
+function drawBars(cur, ref, K, got) {
   const svg = $("sdtrating-bars");
   const { rects, sy } = barPlot(svg, {
-    W: 500, H: 300, margin: { l: 64, r: 10, t: 14, b: 50 }, ...barAxis.next(Math.max(...cur.flat(), ...ref.flat())),
+    W: 500, H: 300, margin: { l: 64, r: 10, t: 14, b: 50 }, ...barAxis.next(Math.max(...cur.flat(), ...ref.flat(), ...(got ?? []).flat())),
     categories: Array.from({ length: K }, (_, j) => String(j + 1)), xlab: "Rating", ylab: "Proportion",
     groups: [{ values: cur[0], color: NOISE }, { values: cur[1], color: SIGNAL }]
   });
@@ -94,12 +101,15 @@ function drawBars(cur, ref, K) {
     el("rect", { x, y: sy(ref[g][j]), width: w, height: sy(0) - sy(ref[g][j]), fill: "none", stroke: "#222", "stroke-width": 1.5, "stroke-dasharray": "5 4",
       ...clipped(svg) }, svg);
   }));
+  if (got) rects.forEach((grp, g) => markBars(svg, grp, sy, got[g]));
+  const m = s => pair(meanRating(cur[s]), meanRating(got[s]));
+  simLine(sim, () => `Expected (this sample of ${sim.n / 2} noise and ${sim.n / 2} signal trials): mean rating ${m(0)} on noise, ${m(1)} on signal trials.`);
 }
 
 // P(rating >= j + 1) for each threshold j: one (false-alarm, hit) pair per threshold.
 const cumulative = cur => cur[0].slice(1).map((_, j) => [0, 1].map(s => cur[s].slice(j + 1).reduce((a, b) => a + b, 0)));
 
-function drawRoc(v, cur, ref) {
+function drawRoc(v, cur, ref, got) {
   const pts = cumulative(cur);
   rocPlot($("sdtrating-roc"), {
     curves: [
@@ -108,7 +118,8 @@ function drawRoc(v, cur, ref) {
     ],
     points: [
       ...cumulative(ref).map(([fa, hit]) => ({ fa, hit, r: 4, color: "#5a6472", fill: "#5a6472" })),
-      ...pts.map(([fa, hit], j) => ({ fa, hit, label: `≥${j + 2}` }))
+      ...pts.map(([fa, hit], j) => ({ fa, hit, label: `≥${j + 2}` })),
+      ...(got ? cumulative(got).map(([fa, hit]) => ({ fa, hit, r: 5, fill: "#000", color: "#000" })) : [])
     ]
   });
   const K = v.K;
@@ -137,7 +148,12 @@ model <- sdt_rating(response = paste0("r", 1:${K}), stimulus = "stimulus",
 # sdratio is the ratio itself; sdt_rating() estimates its log.
 dsdt_rating(counts = rbind(c(${counts[0].join(", ")}), c(${counts[1].join(", ")})), stimulus = c(0, 1),
             d = ${v.d}, thresholds = c(${t.join(", ")}), sdratio = ${v.sdratio}, dist = "${v.dist}", log = TRUE)
-
+${sim.on ? `
+# simulate ${sim.n / 2} noise and ${sim.n / 2} signal trials: the counts per rating, columns r1 to r${K},
+# a row for noise, then one for signal trials
+rsdt_rating(n = 2, n_trials = ${sim.n / 2}, stimulus = c(0, 1),
+            d = ${v.d}, thresholds = c(${t.join(", ")}), sdratio = ${v.sdratio}, dist = "${v.dist}")
+` : ""}
 # fit: one row per participant, condition and stimulus, columns r1 to r${K} with the counts and stimulus.
 # ${v.sdratio === 1 ? "sdratio stays fixed at 1 (equal variance) unless the formula names it" : "sdratio ~ 1 frees the ratio; one condition identifies it"}
 fit <- bmm(formula = bmf(${terms.join(", ")}),
@@ -168,12 +184,13 @@ function draw() {
   $("sdtrating-k-hint").textContent = "Ratings from 1, sure noise, to K, sure signal.";
   $("sdtrating-range-hint").textContent = "t: thresholds from the noise location. sdratio moves on the log scale.";
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const v = { d: p.d, sdratio: p.sdratio, dist: dist(), K: p.K };
   const cur = probs(t, v), ref = probs(parsimoniousThresholds(p.K), { d: 1, sdratio: 1, dist: v.dist });
   drawLatent(v, t);
-  drawBars(cur, ref, p.K);
-  drawRoc(v, cur, ref);
+  const got = sim.on ? ratingSample(cur, sim.us) : null;
+  drawBars(cur, ref, p.K, got);
+  drawRoc(v, cur, ref, got);
   drawCode(v, t, cur);
   $("sdtrating-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
@@ -194,6 +211,7 @@ $("sdtrating-reset").addEventListener("click", () => {
   setParams(pairs, START);
   kPair.value = START.K;
   applyK();
+  sim.reset();
   draw();
 });
 $("sdtrating-copy").addEventListener("click", () => navigator.clipboard?.writeText($("sdtrating-code").textContent));

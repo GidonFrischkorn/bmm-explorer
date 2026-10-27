@@ -4,8 +4,10 @@ import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } fr
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
 import { linspace, log1pExp } from "../lib/math.js";
-import { latentPlot, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
+import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { simControls, pair, simLine } from "../lib/sim-panel.js";
+import { mafcSample } from "../lib/simulate.js";
 
 // bmm's quadrature rules for normal (m > 2) and logistic noise, written from bmm by R/make_fixtures.R. Without
 // them those two distributions are switched off rather than computed on other nodes.
@@ -72,6 +74,8 @@ function drawLatent(p) {
 }
 
 const [dLo, dHi] = [PRIOR_D[0] - 3 * PRIOR_D[1], PRIOR_D[0] + 3 * PRIOR_D[1]];
+// The simulated sample: a trial is correct when its uniform falls below P(correct).
+const sim = simControls("sdtmafc", draw);
 function drawByD(p, cur) {
   const ds = linspace(dLo, dHi, 121);
   const svg = $("sdtmafc-byd");
@@ -86,6 +90,12 @@ function drawByD(p, cur) {
   });
   paths[0].setAttribute("stroke-dasharray", "2 5");
   if (p.d >= dLo && p.d <= dHi) el("circle", { cx: sx(p.d), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
+  const got = sim.on ? mafcSample(cur, sim.us) : null;
+  if (got !== null && p.d >= dLo && p.d <= dHi) {
+    el("circle", { cx: sx(p.d), cy: sy(got), r: 6, fill: "#000" }, svg);
+    pointLabel(svg, sx(p.d), sy(got), "sample", { right: sx(dHi), bottom: sy(0) });
+  }
+  simLine(sim, () => `Expected (this sample of ${sim.n} trials): P(correct) ${pair(cur, got)}.`);
 }
 
 // P(correct) as text, from its logit. Within 0.01 of 0 or 1, two decimals would print 0.00 or 1.00 for every
@@ -144,7 +154,10 @@ model <- sdt_mafc(response = "n_correct", n_trials = "n_trials", m = ${p.m}, dis
 
 # log likelihood of ${k} correct responses in 100 trials, the predicted count (100 x P(correct), rounded)
 dsdt_mafc(n_correct = ${k}, n_trials = 100, m = ${p.m}, d = ${p.d}, dist = "${dist()}", log = TRUE)
-
+${sim.on ? `
+# simulate ${sim.n} trials: the number correct
+rsdt_mafc(n = 1, n_trials = ${sim.n}, m = ${p.m}, d = ${p.d}, dist = "${dist()}")
+` : ""}
 # fit: one row per participant and condition, columns n_correct and n_trials. With m varying
 # between rows, name its column instead: sdt_mafc(..., m = "m")
 fit <- bmm(formula = bmf(d ~ 1), data = my_data, model = model)`;
@@ -167,7 +180,7 @@ function draw() {
   $("sdtmafc-range-hint").textContent = "Slider: bmm's prior mean ± 3 SD." +
     (RULES ? "" : " normal and logistic are off: bmm's quadrature nodes did not load.");
   for (const [, hint, msg] of bad) $(hint).textContent = msg;
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const cur = pc(p.d, p.m);
   drawTiles(p.m);
   drawLatent(p);
@@ -182,7 +195,7 @@ if (!RULES) {
   $("sdtmafc-dist").value = "gumbel_min";
 }
 $("sdtmafc-dist").addEventListener("change", draw);
-$("sdtmafc-reset").addEventListener("click", () => { setParams(pairs, START); draw(); });
+$("sdtmafc-reset").addEventListener("click", () => { setParams(pairs, START); sim.reset(); draw(); });
 $("sdtmafc-copy").addEventListener("click", () => navigator.clipboard?.writeText($("sdtmafc-code").textContent));
 pairs.d.setBounds({ min: dLo, max: dHi, step: 0.05 });
 setParams(pairs, START);

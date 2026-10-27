@@ -10,13 +10,15 @@ next to a control opens a note on what that parameter or setting does, with an e
 An axis that has to change its limit eases to the new one, and it keeps its limit as long as the
 curves fill more than half of it, so a slider moved back and forth does not make the axis jump.
 
-On the continuous-reproduction pages, the simulate switch in the prediction panel draws a number of
-trials from the predicted distribution and shows them as a histogram behind the curve, with the
-expected mean error, circular SD and share near the target next to the same values in the sample. The
-sample keeps its random numbers while the sliders move, and New sample draws other ones; how far a
-sample of 50 or 200 trials strays from the expected values is a view of the noise in a real data set. For
-the circular SD of widely spread errors part of the gap is a bias, not noise: a small sample gives a lower
-value than expected.
+The simulate switch in the prediction panel draws a number of trials from the predicted
+distribution. On the continuous-reproduction pages they appear as a histogram behind the curve, with
+the expected mean error, circular SD and share near the target next to the same values in the sample.
+On the M3, MPT, yes/no and rating pages a black line on each bar marks the sample's share, and on the
+yes/no and rating pages the sample's rates also appear as points on the ROC. On the m-AFC page a black
+dot marks the sample's proportion correct at the current `d`. The sample keeps its random numbers
+while the sliders move, and New sample draws other ones; how far a sample of 50 or 200 trials strays
+from the expected values is a view of the noise in a real data set. For the circular SD of widely
+spread errors part of the gap is a bias, not noise: a small sample gives a lower value than expected.
 
 Below the panels, every page has the same five parts.
 

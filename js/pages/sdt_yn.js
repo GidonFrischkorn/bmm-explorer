@@ -5,6 +5,8 @@ import { bindParams, readParams, setParams, fmt, LINEAR, LOG } from "../lib/widg
 import { barPlot, el } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { simControls, markBars, pair, simLine } from "../lib/sim-panel.js";
+import { ynSample } from "../lib/simulate.js";
 
 // bmm's default priors for sdt_yn(), [mean, sd] on the link scale: identity, log for sdratio. The sliders
 // span mean +- 3 SD; the prior means are the starting values and the dashed reference.
@@ -81,7 +83,10 @@ function drawLatent(v, [fa, hit]) {
   });
 }
 
-function drawBars(cur, ref) {
+// The simulated sample: half of the trials noise, half signal, each "old" when its uniform falls below the rate.
+const sim = simControls("sdtyn", draw);
+
+function drawBars(cur, ref, got) {
   const svg = $("sdtyn-bars");
   const { rects, sy } = barPlot(svg, {
     W: 500, H: 300, margin: { l: 64, r: 10, t: 22, b: 44 }, ylim: [0, 1], yticks: [0, 0.25, 0.5, 0.75, 1],
@@ -91,13 +96,20 @@ function drawBars(cur, ref) {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
     r.setAttribute("fill", [NOISE, SIGNAL][i]);
     el("rect", { x, y: sy(ref[i]), width: w, height: sy(0) - sy(ref[i]), fill: "none", stroke: "#222", "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
-    el("text", { x: x + w / 2, y: sy(Math.max(cur[i], ref[i])) - 6, "text-anchor": "middle", class: "tick" }, svg).textContent = fmt(cur[i], 2);
+    // The value label clears the sample mark's halo and sits no higher than over a full bar (digits have no
+    // descenders, so it still clears a mark at 1).
+    const y = Math.max(sy(1) - 6, Math.min(sy(Math.max(cur[i], ref[i])) - 6, got ? sy(got[i]) - 8 : Infinity));
+    el("text", { x: x + w / 2, y, "text-anchor": "middle", class: "tick" }, svg)
+      .textContent = fmt(cur[i], 2);
   });
+  if (got) markBars(svg, rects[0], sy, got);
+  simLine(sim, () => `Expected (this sample of ${sim.n / 2} noise and ${sim.n / 2} signal trials): ` +
+    `false alarms ${pair(cur[0], got[0])}, hits ${pair(cur[1], got[1])}.`);
 }
 
 // The ROC of the current d and sdratio, the prior means' (dashed) and, under unequal scales, the
 // equal-variance ROC through the current point (dotted): same criterion, d from sdt_d() of the two rates.
-function drawRoc(v, [fa, hit]) {
+function drawRoc(v, [fa, hit], got) {
   const evD = sdtD(hit, fa, v.dist), unequal = v.sdratio !== 1 && Number.isFinite(evD);
   rocPlot($("sdtyn-roc"), {
     curves: [
@@ -105,10 +117,10 @@ function drawRoc(v, [fa, hit]) {
       ...(unequal ? [{ pts: ynRoc({ d: evD, sdratio: 1, dist: v.dist }), color: "#5a6472", dotted: true, width: 2.5 }] : []),
       { pts: ynRoc(v), color: "#222" }
     ],
-    points: [{ fa, hit }]
+    points: [{ fa, hit }, ...(got ? [{ fa: got[0], hit: got[1], r: 6, fill: "#000", color: "#000", label: "sample" }] : [])]
   });
   $("sdtyn-roc-legend").textContent = "Solid: this d and sdratio; circle: the current criterion; dashed: bmm's prior means" +
-    (unequal ? `; dotted: equal variance through the circle (d = ${fmt(evD, 2)})` : "") + "; grey: chance.";
+    (unequal ? `; dotted: equal variance through the circle (d = ${fmt(evD, 2)})` : "") + (got ? "; black: the simulated sample" : "") + "; grey: chance.";
   $("sdtyn-across-now").textContent = !Number.isFinite(evD)
     ? `With the current values a rate rounds to 0 or 1, and sdt_d() has no finite value.`
     : v.sdratio === 1
@@ -134,7 +146,11 @@ model <- sdt_yn(response = "n_old", stimulus = "stimulus", n_trials = "n_trials"
 # counts predicted (one value per row). sdratio is the ratio itself; sdt_yn() estimates its log.
 dsdt_yn(n_old = c(${n.join(", ")}), n_trials = 100, stimulus = c(0, 1),
         d = ${v.d}, ${a} = ${v.k}, sdratio = ${v.sdratio}, dist = "${v.dist}", log = TRUE)
-
+${sim.on ? `
+# simulate ${sim.n / 2} noise and ${sim.n / 2} signal trials: the "old" count on noise, then on signal trials
+rsdt_yn(n = 2, n_trials = ${sim.n / 2}, stimulus = c(0, 1),
+        d = ${v.d}, ${a} = ${v.k}, sdratio = ${v.sdratio}, dist = "${v.dist}")
+` : ""}
 # fit: one row per participant, condition and stimulus, columns n_old, n_trials, stimulus
 ${why}fit <- bmm(formula = ${formula}, data = my_data, model = model)`;
   $("sdtyn-code").dataset.logd = JSON.stringify(n.map((k, stim) => dsdtYn(k, 100, stim, v)));
@@ -151,11 +167,12 @@ function draw() {
   for (const id of ["sdtyn-widget", "sdtyn-code", "sdtyn-across-now"]) $(id).classList.toggle("ex-stale", bad.length > 0);
   $("sdtyn-range-hint").textContent = bad.length ? bad.map(b => b[1]).join(" ")
     : "Sliders: bmm's prior mean ± 3 SD. sdratio moves on the log scale; the box shows the ratio.";
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const cur = rates(v);
   drawLatent(v, cur);
-  drawBars(cur, rates(prior()));
-  drawRoc(v, cur);
+  const got = sim.on ? ynSample(cur, sim.us) : null;
+  drawBars(cur, rates(prior()), got);
+  drawRoc(v, cur, got);
   drawCode(v, cur);
   $("sdtyn-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
@@ -195,6 +212,7 @@ anchorInputs.forEach(i => i.addEventListener("change", () => { applyAnchor(); dr
 $("sdtyn-dist").addEventListener("change", draw);
 $("sdtyn-reset").addEventListener("click", () => {
   setParams(pairs, { d: PRIOR_MEANS.d, k: PRIOR_MEANS[anchor()], sdratio: PRIOR_MEANS.sdratio });
+  sim.reset();
   draw();
 });
 $("sdtyn-copy").addEventListener("click", () => navigator.clipboard?.writeText($("sdtyn-code").textContent));
