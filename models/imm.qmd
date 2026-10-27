@@ -73,7 +73,12 @@ toc: false
   </div>
 
   <section class="ex-panel ex-p-bars" aria-label="Predicted error distribution">
-    <div class="ex-panel-title">Predicted error distribution</div>
+    <div class="ex-panel-title ex-title-row">Predicted error distribution
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="imm-sim"> simulate</label>
+        <select id="imm-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="imm-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="imm-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="imm-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Each bar averages the density over its 10°, so the bars stay below a peak narrower than that. Below the legend: the expected mean |error|, circular SD and share within ±20°, against the same for this sample. The circular SD is √(−2 ln R), with R the length of the mean error vector; it grows without bound as the errors approach uniform, so above 140° only that bound is shown, and in a small sample of widely spread errors it comes out lower than expected. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rimm()</code>, in the code under In bmm; R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="imm-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the prior means"></svg>
     <svg id="imm-weights" role="img" aria-label="Mixture weights of the target, each non-target and guessing, now and at the prior means"></svg>
     <div class="ex-legend">
@@ -81,6 +86,7 @@ toc: false
       <span class="blue">target (T)</span>, <span class="orange">non-targets</span>,
       <span class="grey">guessing (G)</span>. <span id="imm-weights-text"></span>
     </div>
+    <div class="ex-legend ex-sim-text" id="imm-sim-text" hidden></div>
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Across set size">

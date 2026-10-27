@@ -4,6 +4,7 @@ import { integrateExp } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { circularPlot, CIRC_X, DEG } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
+import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { colourWheel, hue } from "../lib/wheel.js";
 import { WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
@@ -49,11 +50,12 @@ const wheel = colourWheel($("sdm-wheel"), () => {});
 const args = p => ({ mu: 0, parametrization: par, ...p });
 const within = p => integrateExp(x => dsdm(x, args(p)), -WINDOW, WINDOW);
 
-const densityAxis = autoAxis(draw), activationAxis = autoAxis(draw);
+const densityAxis = autoAxis(draw), activationAxis = autoAxis(draw), sim = simControls("sdm", draw);
 function drawDensity(p, ref) {
   circularPlot($("sdm-density"), {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: ref.density, color: WEIGHT_COLOR.target, dashed: true }, { y: dsdm(CIRC_X, args(p)).map(Math.exp), color: WEIGHT_COLOR.target }],
+    bars: circularSimulation(sim, x => dsdm(x, args(p)), WINDOW),
     marks: [{ at: 0, color: hue(0), label: 1 }]
   });
 }
@@ -77,7 +79,7 @@ function drawCode(p) {
 x <- seq(-pi, pi, length.out = 361)
 d <- dsdm(x, mu = 0, c = ${p.c}, kappa = ${p.kappa}, parametrization = "${par}")
 plot(x * 180 / pi, d, type = "l", xlab = "response error (degrees)", ylab = "density")
-
+${sim.on ? simCode(sim.n, `rsdm(n, mu = 0, c = ${p.c}, kappa = ${p.kappa}, parametrization = "${par}")`, WINDOW) + "\n" : ""}
 # fit: one row per trial; resp_error is the response error in radians
 model <- sdm(resp_error = "resp_error")
 fit <- bmm(formula = bmf(c ~ 1, kappa ~ 1), data = my_data, model = model)
@@ -144,6 +146,7 @@ $("sdm-reset").addEventListener("click", () => {
   par = "sqrtexp";
   for (const r of document.querySelectorAll('input[name="sdm-par"]')) r.checked = r.value === par;
   setParams(pairs, start(par));
+  sim.reset();
   draw();
 });
 $("sdm-copy").addEventListener("click", () => navigator.clipboard?.writeText($("sdm-code").textContent));

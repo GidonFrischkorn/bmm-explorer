@@ -4,6 +4,7 @@ import { integrateExp } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { circularPlot, CIRC_X, DEG } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
+import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { colourWheel, hue } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
@@ -31,13 +32,14 @@ function problems(p) {
 
 const wheel = colourWheel($("mix2-wheel"), () => {});
 
-const densityAxis = autoAxis(draw);
+const densityAxis = autoAxis(draw), sim = simControls("mix2", draw);
 function drawDensity(p) {
   const total = q => dmixture2p(CIRC_X, q).map(Math.exp);
   const now = total(p), fl = CIRC_X.map(() => floor(p));
   circularPlot($("mix2-density"), {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: total(START), color: WEIGHT_COLOR.target, dashed: true }, { y: now, color: WEIGHT_COLOR.target }],
+    bars: circularSimulation(sim, x => dmixture2p(x, p), WINDOW),
     areas: [{ lo: CIRC_X.map(() => 0), hi: fl, color: WEIGHT_COLOR.guess, opacity: 0.3 }, { lo: fl, hi: now, color: WEIGHT_COLOR.target, opacity: 0.3 }],
     marks: [{ at: 0, color: hue(0), label: 1 }]
   });
@@ -60,7 +62,7 @@ function drawCode(p) {
 x <- seq(-pi, pi, length.out = 361)
 d <- dmixture2p(x, mu = 0, kappa = ${p.kappa}, p_mem = ${p.p_mem})
 plot(x * 180 / pi, d, type = "l", xlab = "response error (degrees)", ylab = "density")
-
+${sim.on ? simCode(sim.n, `rmixture2p(n, mu = 0, kappa = ${p.kappa}, p_mem = ${p.p_mem})`, WINDOW) + "\n" : ""}
 # fit: one row per trial; resp_error is the response error in radians
 model <- mixture2p(resp_error = "resp_error")
 fit <- bmm(formula = bmf(thetat ~ 1, kappa ~ 1), data = my_data, model = model)
@@ -86,7 +88,7 @@ function draw() {
   $("mix2-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
-$("mix2-reset").addEventListener("click", () => { setParams(pairs, START); draw(); });
+$("mix2-reset").addEventListener("click", () => { setParams(pairs, START); sim.reset(); draw(); });
 $("mix2-copy").addEventListener("click", () => navigator.clipboard?.writeText($("mix2-code").textContent));
 
 pairs.p_mem.setBounds({ min: 0, max: 1, step: 0.01 });

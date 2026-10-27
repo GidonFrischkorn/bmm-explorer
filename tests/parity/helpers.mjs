@@ -71,3 +71,27 @@ export function assertCloseRel(got, ref, tol, label) {
   assert.ok(worst <= tol, `${label}: max error ${worst.toExponential(2)} > ${tol} (absolute, per ${REL_FLOOR} of |ref| beyond)`);
   return worst;
 }
+
+// A statistic r of a simulate.json cell's n draws (from bmm's r*() or the explorer's sampler) against the cell's
+// exact expected value, integrate() over bmm's d*(): null within SAMPLE_LIMIT SE, else the reason. One sample against
+// a fixed value, so no second sample's error eats into the limit. The SE of mean_abs, mean_cos and mean_sin is the
+// cell's sample.se (bmm's sample of the same n from the same distribution); a moment whose sample.se is exactly 0
+// has to equal bmm's sample.mean. within is a share of n 0/1 draws: its SE is the binomial sqrt(E (1 - E) / n) of
+// E = expected.within clamped to [0, 1] (integrate() puts it 2e-12 above 1 at sdm c 15), not the sample's own, which
+// at mixture2p kappa 148, p_mem 1 (E n = 2.4 draws outside +-20 deg) rests on one or two draws. Where the limit is
+// below one draw, SAMPLE_LIMIT SE < 1 / n, i.e. n E (1 - E) < 1 / SAMPLE_LIMIT^2 = 0.04, the share has to be round(E),
+// 0 or 1: mixture3p with p_nt 1 (E 4.3e-126) and the SDM cells with kappa 50 (1 - E = 3.0e-14 at c 20, E clamped to 1
+// at c 15). A draw on the other side has probability about n E (1 - E) there, below 3.1e-9 in these cells.
+export const SAMPLE_LIMIT = 5;
+export function sampleError(cell, r, value) {
+  const n = cell.n, E = Math.min(1, Math.max(0, cell.expected.within));
+  const se = r === "within" ? Math.sqrt(E * (1 - E) / n) : cell.sample.se[r];
+  if (r === "within" && SAMPLE_LIMIT * se < 1 / n) {
+    return value === Math.round(E) ? null : `within ${value}, expected ${cell.expected.within}: ${SAMPLE_LIMIT} SE is below one draw, so it must be ${Math.round(E)}`;
+  }
+  if (r !== "within" && se === 0) {
+    return Object.is(value, cell.sample.mean[r]) ? null : `${r} ${value}, bmm's sample ${cell.sample.mean[r]} with SE 0`;
+  }
+  const z = (value - cell.expected[r]) / se;
+  return Math.abs(z) <= SAMPLE_LIMIT ? null : `${r} ${value}, expected ${cell.expected[r]}, ${Number.isNaN(z) ? "NaN" : z.toFixed(2)} SE apart`;
+}
