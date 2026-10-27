@@ -10,13 +10,14 @@ test("inverseCdf inverts a uniform density exactly", () => {
   for (const u of [0, 0.1, 0.5, 0.731, 0.999]) assert.ok(Math.abs(q(u) - (-Math.PI + 2 * Math.PI * u)) < 1e-12, `u = ${u}`);
 });
 
-// The density is taken as linear within each grid cell, so the quantile's probability is off by up to 6.5e-6
-// at kappa 148: far below 1/1000, the resolution of the largest sample a page draws.
+// The density is taken as linear within each grid cell, so the quantile's probability is off by up to about
+// 7.0e-6 at kappa exp(5) = 148.4 (u near 0.84), the top of the pages' kappa sliders: far below 1/1000, the
+// resolution of the largest sample a page draws.
 test("inverseCdf of a von Mises: the integral up to each quantile is its probability", () => {
-  for (const kappa of [0.5, 7.39, 148]) {
+  for (const kappa of [0.5, 7.39, Math.exp(5)]) {
     const logd = x => x.map(v => dvonmises(v, 0, kappa));
     const q = inverseCdf(SIM_GRID, logd(SIM_GRID).map(Math.exp));
-    for (const u of [0.02, 0.25, 0.5, 0.9, 0.995]) {
+    for (const u of [0.02, 0.25, 0.5, 0.841, 0.9, 0.995]) {
       const mass = integrateExp(logd, -Math.PI, q(u), 4000);
       assert.ok(Math.abs(mass - u) < 1e-5, `kappa ${kappa}, u ${u}: mass ${mass}`);
     }
@@ -38,9 +39,14 @@ test("the same seed gives the same uniforms, another seed others", () => {
   assert.ok(u >= 0 && u < 1);
 });
 
-test("histogram heights integrate to 1 and clamp draws at the ends into the end bins", () => {
-  const h = histogram([-Math.PI, -1, 0, 0.5, Math.PI], -Math.PI, Math.PI, 36);
-  const w = 2 * Math.PI / 36;
+test("histogram bins are centred on the target, and the bin at +-180 degrees wraps", () => {
+  const d = Math.PI / 180, draws = [-Math.PI, Math.PI, 179.9 * d, -175.1 * d, 174.9 * d, -174.9 * d, -4.9 * d, 0, 4.9 * d, 5.1 * d, -1];
+  const h = histogram(draws, 36), w = 2 * Math.PI / 36, count = i => Math.round(h[i] * draws.length * w);
   assert.ok(Math.abs(h.reduce((s, v) => s + v * w, 0) - 1) < 1e-12);
-  assert.ok(h[0] > 0 && h[35] > 0);
+  assert.equal(count(18), 3);  // centred on 0: -4.9, 0, 4.9
+  assert.equal(count(19), 1);  // centred on 10: 5.1
+  assert.equal(count(0), 4);   // centred on +-180: -180, 180, 179.9, -175.1
+  assert.equal(count(35), 1);  // centred on 170: 174.9
+  assert.equal(count(1), 1);   // centred on -170: -174.9
+  assert.equal(count(12), 1);  // centred on -60: -1 rad = -57.3
 });

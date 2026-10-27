@@ -14,8 +14,9 @@ const signed = v => String(v).replace("-", "−");
 // spec: { W, H, margin, series: [{ y, color, dashed, width }] on CIRC_X, window (half-width in radians,
 // shaded around 0), areas: [{ lo, hi, color, opacity }] stacked components on CIRC_X, marks: [{ at
 // (radians), color, label }] under the axis, ylab, xlab, axis (an autoAxis that holds the y limit), bars (heights
-// of a histogram over equal bins from -180 to 180 degrees, in density units, drawn over the window band and under
-// the shaded components and the curves) }.
+// of a histogram in density units over equal bins on the circle, bin i centred on -180 + i * 360 / bins degrees;
+// bin 0 straddles +-180 and is drawn as two half bars, one at each end; drawn over the window band and under the
+// shaded components and the curves) }.
 // Returns the paths and scales so a page can add to the plot.
 export function circularPlot(svg, spec) {
   const ymax = Math.max(...spec.series.flatMap(s => s.y).filter(Number.isFinite), ...(spec.bars ?? []));
@@ -35,8 +36,12 @@ export function circularPlot(svg, spec) {
   }
   if (spec.bars) {
     const w = 360 / spec.bars.length;
-    spec.bars.forEach((h, i) => svg.insertBefore(el("rect", { x: sx(-180 + i * w), width: sx(w) - sx(0), y: sy(h), height: y0 - sy(h),
-      class: "sim-bar", ...clipped(svg) }), paths[0]));
+    const bar = (lo, hi, h) => svg.insertBefore(el("rect", { x: sx(lo), width: sx(hi) - sx(lo), y: sy(h), height: y0 - sy(h),
+      class: "sim-bar", ...clipped(svg) }), paths[0]);
+    spec.bars.forEach((h, i) => {
+      const c = -180 + i * w;
+      if (i === 0) { bar(-180, -180 + w / 2, h); bar(180 - w / 2, 180, h); } else bar(c - w / 2, c + w / 2, h);
+    });
   }
   // Stacked components: each area fills between lo and hi (values on CIRC_X), under the curves.
   for (const a of spec.areas ?? []) {

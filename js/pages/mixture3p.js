@@ -75,7 +75,7 @@ function components(mu, p) {
   return { base, top1, top2: top1.map((v, i) => v + tgt[i]) };
 }
 
-// The simulated sample is summarised by the share within +-20 deg of the target, as on the other circular pages.
+// The band and the simulated sample's share within it: +-20 deg around the target, as on the other circular pages.
 const WINDOW = 20 / DEG;
 const densityAxis = autoAxis(draw), sim = simControls("mix3", draw);
 function drawDensity(mu, p) {
@@ -84,7 +84,7 @@ function drawDensity(mu, p) {
   circularPlot($("mix3-density"), {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: total(START), color: WEIGHT_COLOR.target, dashed: true }, { y: total(p), color: WEIGHT_COLOR.target }],
-    bars: circularSimulation(sim, x => dmixture3p(x, { mu, ...p }), WINDOW),
+    window: WINDOW, bars: circularSimulation(sim, x => dmixture3p(x, { mu, ...p }), WINDOW),
     areas: [
       { lo: CIRC_X.map(() => 0), hi: c.base, color: WEIGHT_COLOR.guess, opacity: 0.3 },
       { lo: c.base, hi: c.top1, color: WEIGHT_COLOR.nt, opacity: 0.3 },

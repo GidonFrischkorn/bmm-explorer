@@ -5,7 +5,8 @@
 import { linspace, integrateExp } from "./math.js";
 
 // 4096 intervals on [-pi, pi], 0 on a node: the distribution function and the expected statistics come from
-// the density on this grid. A step of 0.09 degrees is 1/50 of the SD of the narrowest von Mises the pages draw.
+// the density on this grid. A step of 0.088 degrees is about 1/12 of the circular SD of the narrowest density
+// the pages draw, SDM at c 20, kappa 50 (1.09 degrees), and 1/50 of the SD of the narrowest von Mises.
 const N = 4096;
 export const SIM_GRID = linspace(-Math.PI, Math.PI, N + 1);
 
@@ -27,9 +28,9 @@ export function inverseCdf(xs, dens) {
   };
 }
 
-// sqrt(-2 log R) for the mean resultant length R; a uniform density has R = 0 up to round-off (5e-17 from the
-// grid sums) and no finite circular SD.
-const circSd = R => (R < 1e-12 ? Infinity : Math.sqrt(-2 * Math.log(R)));
+// sqrt(-2 log R) for the mean resultant length R. It has no meaning for R near 0: a uniform density sums to
+// R = 1e-16 on the grid, a circular SD of 492 degrees. The page reads R, not this value (sdText in sim-panel.js).
+const circSd = R => Math.sqrt(-2 * Math.log(R));
 
 // Mean absolute error, mean cosine and sine, circular SD (sqrt(-2 log R), R the mean resultant length) and the
 // share within +-window of the target, for a sample.
@@ -57,10 +58,11 @@ export function circularSim(logd, window) {
   };
 }
 
-// Bar heights in density units (count / (n * width)) over equal bins from lo to hi, so a histogram shares the
-// density's axis.
-export function histogram(draws, lo, hi, bins) {
-  const w = (hi - lo) / bins, counts = new Array(bins).fill(0);
-  for (const x of draws) counts[Math.min(bins - 1, Math.max(0, Math.floor((x - lo) / w)))]++;
+// Bar heights in density units (count / (n * width)) over equal bins on the circle, bin i centred on
+// -pi + i * width, so bin 0 wraps around +-pi and the target sits in the middle of a bin, not on an edge.
+// Draws are errors in [-pi, pi].
+export function histogram(draws, bins) {
+  const w = 2 * Math.PI / bins, counts = new Array(bins).fill(0);
+  for (const x of draws) counts[Math.floor((x + Math.PI) / w + 0.5) % bins]++;
   return counts.map(k => k / (draws.length * w));
 }

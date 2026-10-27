@@ -14,7 +14,9 @@ On the continuous-reproduction pages, the simulate switch in the prediction pane
 trials from the predicted distribution and shows them as a histogram behind the curve, with the
 expected mean error, circular SD and share near the target next to the same values in the sample. The
 sample keeps its random numbers while the sliders move, and New sample draws other ones; how far a
-sample of 50 or 200 trials strays from the expected values is a view of the noise in a real data set.
+sample of 50 or 200 trials strays from the expected values is a view of the noise in a real data set. For
+the circular SD of widely spread errors part of the gap is a bias, not noise: a small sample gives a lower
+value than expected.
 
 Below the panels, every page has the same five parts.
 
