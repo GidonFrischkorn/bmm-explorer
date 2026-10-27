@@ -155,3 +155,11 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 .ex-dash.ex-stale > section:has(.ex-info-pop:not([hidden])) { opacity: 1; }
 .ex-info-pop p { margin: 0; }
 .ex-info-pop p + p { margin-top: 0.35rem; }
+/* Simulated data: the switch in the prediction panel's title row, the histogram behind the curves. */
+.ex-title-row:has(.ex-sim) { flex-wrap: wrap; row-gap: 0.15rem; }
+.ex-sim { font-weight: 400; font-size: 0.85em; gap: 0.3rem; margin-left: auto; }
+.ex-sim label { white-space: nowrap; }
+.ex-sim select { font-size: 0.95em; padding: 0 0.15rem; }
+.ex-sim .btn { font-size: 0.9em; padding: 0 0.35rem; }
+.ex-dash .sim-bar { fill: var(--ex-grey); fill-opacity: 0.2; stroke: var(--ex-grey); stroke-opacity: 0.55; stroke-width: 1; }
+.ex-sim-text { color: #222; }

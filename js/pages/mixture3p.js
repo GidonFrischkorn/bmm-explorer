@@ -3,8 +3,9 @@ import { dmixture3p } from "../models/circular.js";
 import { dvonmises } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { linePlot, el } from "../lib/plot.js";
-import { circularPlot, CIRC_X, wrap } from "../lib/circular-plot.js";
+import { circularPlot, CIRC_X, DEG, wrap } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
+import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { colourWheel, hue, TAU } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
@@ -74,13 +75,16 @@ function components(mu, p) {
   return { base, top1, top2: top1.map((v, i) => v + tgt[i]) };
 }
 
-const densityAxis = autoAxis(draw);
+// The simulated sample is summarised by the share within +-20 deg of the target, as on the other circular pages.
+const WINDOW = 20 / DEG;
+const densityAxis = autoAxis(draw), sim = simControls("mix3", draw);
 function drawDensity(mu, p) {
   const total = q => dmixture3p(CIRC_X, { mu, ...q }).map(Math.exp);
   const c = components(mu, p);
   circularPlot($("mix3-density"), {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: total(START), color: WEIGHT_COLOR.target, dashed: true }, { y: total(p), color: WEIGHT_COLOR.target }],
+    bars: circularSimulation(sim, x => dmixture3p(x, { mu, ...p }), WINDOW),
     areas: [
       { lo: CIRC_X.map(() => 0), hi: c.base, color: WEIGHT_COLOR.guess, opacity: 0.3 },
       { lo: c.base, hi: c.top1, color: WEIGHT_COLOR.nt, opacity: 0.3 },
@@ -136,7 +140,8 @@ x <- seq(-pi, pi, length.out = 361)
 d <- dmixture3p(x, mu = ${rvec(mu)}, kappa = ${p.kappa},
                 p_mem = ${p.p_mem}, p_nt = ${atLimit ? `1 - ${p.p_mem}` : p.p_nt})
 plot(x * 180 / pi, d, type = "l", xlab = "response error (degrees)", ylab = "density")
-
+${sim.on ? simCode(sim.n, `rmixture3p(n, mu = ${rvec(mu)}, kappa = ${p.kappa},
+                p_mem = ${p.p_mem}, p_nt = ${atLimit ? `1 - ${p.p_mem}` : p.p_nt})`, WINDOW) + "\n" : ""}
 # fit: one row per trial; resp_error and nt_col* (non-target colours) in radians
 model <- mixture3p(resp_error = "resp_error",
                    nt_features = ${cols},
@@ -179,6 +184,7 @@ $("mix3-reset").addEventListener("click", () => {
   colours = null;
   lastN = START_N;
   setParams(pairs, { ...START, set_size: START_N });
+  sim.reset();
   draw();
 });
 $("mix3-copy").addEventListener("click", () => navigator.clipboard?.writeText($("mix3-code").textContent));

@@ -390,4 +390,45 @@ p <- c(1e-300, 1e-100, 1e-20, 1e-12, exp(-25) * c(.999, 1.001), 1e-6, .001, .074
 write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd = pnorm(x, log.p = TRUE)),
                       list(fn = "lgamma", args = list(), x = xg, logd = lgamma(xg)),
                       list(fn = "qnorm", args = list(), x = p, q = qnorm(p))))
+# --- simulate ----------------------------------------------------------------
+# Simulated data on the circular pages. (a) The expected statistics of the response error by integrate() over
+# bmm's d*(): mean |x|, mean cos x, mean sin x (the circular SD comes from the last two) and P(|x| <= 20 deg).
+# (b) The same four as sample means of n draws from bmm's r*(), each with its Monte Carlo SE, sd / sqrt(n); the
+# explorer's draws are held to these within a few SE. Cells: page starts, a narrow and a wide memory peak, and
+# the IMM page's corner with the narrowest peaks.
+sim_n <- 1e5
+w20 <- 20 * pi / 180
+sim_stats <- function(x) {
+  v <- cbind(mean_abs = abs(x), mean_cos = cos(x), mean_sin = sin(x), within = as.numeric(abs(x) <= w20))
+  list(mean = as.list(colMeans(v)), se = as.list(apply(v, 2, sd) / sqrt(length(x))))
+}
+sim_expected <- function(d) {
+  int <- function(f, lo, hi) integrate(function(x) f(x) * d(x), lo, hi, rel.tol = 1e-12, subdivisions = 2000L)$value
+  list(mean_abs = int(function(x) -x, -pi, 0) + int(function(x) x, 0, pi),
+       mean_cos = int(cos, -pi, 0) + int(cos, 0, pi), mean_sin = int(sin, -pi, 0) + int(sin, 0, pi),
+       within = int(function(x) 1, -w20, 0) + int(function(x) 1, 0, w20))
+}
+sim_cell <- function(fn, args) {
+  d <- function(x) do.call(get(paste0("d", fn)), c(list(x = x), args))
+  set.seed(437)
+  draws <- do.call(get(paste0("r", fn)), c(list(n = sim_n), args))
+  list(fn = fn, args = args, expected = sim_expected(d), n = sim_n, sample = sim_stats(draws))
+}
+cells <- c(
+  lapply(list(list(mu = 0, kappa = 5, p_mem = .6), list(mu = 0, kappa = 148, p_mem = .9), list(mu = 0, kappa = .5, p_mem = .3)),
+         function(a) sim_cell("mixture2p", a)),
+  lapply(list(list(mu = c(0, 2, -1.5), kappa = 5, p_mem = .6, p_nt = .2), list(mu = c(0, 1), kappa = 20, p_mem = .3, p_nt = .6),
+              list(mu = c(0, .5, -.5, 3, -3), kappa = 2, p_mem = .5, p_nt = .05)),
+         function(a) sim_cell("mixture3p", a)),
+  lapply(list(c(equi(4), start), c(spaced(8, .5), start),
+              c(equi(8), list(c = 20.1, a = .0498, b = 1, s = 20.1, kappa = 148)),
+              c(list(mu = c(0, 0.79, -2.36, 3.14), dist = c(0, 0.05, 3.11, 1.2)), modifyList(start, list(kappa = 30)))),
+         function(a) sim_cell("imm", a)),
+  lapply(list(list(mu = 0, c = 7.39, kappa = 5.75, parametrization = "sqrtexp"), list(mu = 0, c = 1, kappa = 2, parametrization = "sqrtexp"),
+              list(mu = 0, c = 15, kappa = 50, parametrization = "sqrtexp"), list(mu = 0, c = 20, kappa = 50, parametrization = "sqrtexp"),
+              list(mu = 0, c = 3, kappa = 5, parametrization = "bessel")),
+         function(a) sim_cell("sdm", a))
+)
+write_fx("simulate", cells)
+
 cat("bmm", version, "->", out, "\n")

@@ -3,22 +3,16 @@
 import { el, clear, linePlot, scales, pathFor } from "./plot.js";
 import { niceAxis } from "./axis.js";
 import { linspace } from "./math.js";
+import { mulberry32, boxMuller } from "./random.js";
 
 export const BLUE = "#0072B2", ORANGE = "#D55E00", GREY = "#595959";
 
-// Standard normal increments from a fixed seed (mulberry32, Box-Muller): the paths keep their noise
-// while a slider moves, so a change in drift tilts the same path instead of drawing a new one.
+// Standard normal increments from a fixed seed: the paths keep their noise while a slider moves, so a change in
+// drift tilts the same path instead of drawing a new one.
 const STEPS = 400, PATHS = 5;
 const NOISE = (() => {
-  let a = 437;
-  const unif = () => {
-    a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  return Array.from({ length: 2 * PATHS }, () => Array.from({ length: STEPS }, () =>
-    Math.sqrt(-2 * Math.log(1 - unif())) * Math.cos(2 * Math.PI * unif())));
+  const unif = mulberry32(437);
+  return Array.from({ length: 2 * PATHS }, () => Array.from({ length: STEPS }, () => boxMuller(unif)));
 })();
 
 // One Euler path of dX = drift dt + s dW from start until it leaves (lo, hi) or the time runs out.

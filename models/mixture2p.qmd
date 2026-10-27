@@ -44,7 +44,12 @@ toc: false
   </div>
 
   <section class="ex-panel ex-p-bars" aria-label="Predicted error distribution">
-    <div class="ex-panel-title">Predicted error distribution</div>
+    <div class="ex-panel-title ex-title-row">Predicted error distribution
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="mix2-sim"> simulate</label>
+        <select id="mix2-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="mix2-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="mix2-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="mix2-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Below the panel: the expected mean |error|, circular SD and share within ±20°, and the same for this sample. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rmixture2p()</code>, in the code under In bmm.</div>
     <svg id="mix2-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the starting values, with the memory and guessing components shaded"></svg>
     <div class="ex-legend">
       Solid: now; dashed: starting values (see Explore); band: ±20° around the target, the window the
@@ -52,6 +57,7 @@ toc: false
       <span class="blue">memory component</span>, stacked on the
       <span class="grey">guessing floor</span>.
     </div>
+    <div class="ex-legend ex-sim-text" id="mix2-sim-text" hidden></div>
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Mixture weights">

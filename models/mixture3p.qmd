@@ -57,7 +57,12 @@ toc: false
   </div>
 
   <section class="ex-panel ex-p-bars" aria-label="Predicted error distribution">
-    <div class="ex-panel-title">Predicted error distribution</div>
+    <div class="ex-panel-title ex-title-row">Predicted error distribution
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="mix3-sim"> simulate</label>
+        <select id="mix3-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="mix3-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="mix3-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="mix3-sim-info" hidden>Draws N trials from the predicted distribution and shows their response errors as bars of 10° behind the curves. Below the panel: the expected mean |error|, circular SD and share within ±20°, and the same for this sample. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rmixture3p()</code>, in the code under In bmm.</div>
     <svg id="mix3-density" role="img" aria-label="Predicted density of the response error from minus 180 to 180 degrees, now and at the starting values, with the target, non-target and guessing components shaded"></svg>
     <svg id="mix3-weights" role="img" aria-label="Mixture weights of memory, each non-target and guessing, now and at the starting values"></svg>
     <div class="ex-legend">
@@ -66,6 +71,7 @@ toc: false
       <span class="blue">target component</span> and the <span class="orange">non-target components</span>,
       stacked on the <span class="grey">guessing floor</span>. <span id="mix3-weights-text"></span>
     </div>
+    <div class="ex-legend ex-sim-text" id="mix3-sim-text" hidden></div>
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Across set size">

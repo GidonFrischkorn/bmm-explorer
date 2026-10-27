@@ -5,6 +5,7 @@ import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
 import { circularPlot, CIRC_X, DEG, wrap } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
+import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { initInfo } from "../lib/info.js";
 
 // bmm's default priors for imm(version = "full"), [mean, sd] on the log link. The sliders span
@@ -217,13 +218,14 @@ function setPosition(i, [x, y]) {
   draw();
 }
 
-const densityAxis = autoAxis(draw);
+const densityAxis = autoAxis(draw), sim = simControls("imm", draw);
 function drawDensity(lay, p, ref) {
   const svg = $("imm-density");
   const y = q => dimm(CIRC_X, { mu: lay.mu, dist: lay.dist, ...q }).map(Math.exp);
   circularPlot(svg, {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, window: WINDOW, ylab: "Density (per radian)", axis: densityAxis,
     series: [{ y: y(ref), color: COLOR.target, dashed: true }, { y: y(p), color: COLOR.target }],
+    bars: circularSimulation(sim, x => dimm(x, { mu: lay.mu, dist: lay.dist, ...p }), WINDOW),
     marks: lay.mu.map((m, i) => ({ at: m, color: hue(m), label: i + 1 }))
   });
 }
@@ -290,7 +292,8 @@ x <- seq(-pi, pi, length.out = 361)
 d <- dimm(x, mu = ${rvec(lay.mu)}, dist = ${rvec(lay.dist)},
           c = ${p.c}, a = ${p.a}, b = ${p.b}, s = ${p.s}, kappa = ${p.kappa})
 plot(x * 180 / pi, d, type = "l", xlab = "response error (degrees)", ylab = "density")
-` + (nt === 0
+` + (sim.on ? simCode(sim.n, `rimm(n, mu = ${rvec(lay.mu)}, dist = ${rvec(lay.dist)},
+          c = ${p.c}, a = ${p.a}, b = ${p.b}, s = ${p.s}, kappa = ${p.kappa})`, WINDOW) + "\n" : "") + (nt === 0
 ? `
 # imm() needs at least one non-target; at set size 1 the model has only target and guessing.`
 : `
@@ -396,6 +399,7 @@ $("imm-reset").addEventListener("click", () => {
   setMode("circle");
   colours = angles = points = null;
   pairs.spacing.value = maxSpacing(START_N);
+  sim.reset();
   draw();
 });
 $("imm-copy").addEventListener("click", () => navigator.clipboard?.writeText($("imm-code").textContent));

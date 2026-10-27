@@ -10,6 +10,12 @@ next to a control opens a note on what that parameter or setting does, with an e
 An axis that has to change its limit eases to the new one, and it keeps its limit as long as the
 curves fill more than half of it, so a slider moved back and forth does not make the axis jump.
 
+On the continuous-reproduction pages, the simulate switch in the prediction panel draws a number of
+trials from the predicted distribution and shows them as a histogram behind the curve, with the
+expected mean error, circular SD and share near the target next to the same values in the sample. The
+sample keeps its random numbers while the sliders move, and New sample draws other ones; how far a
+sample of 50 or 200 trials strays from the expected values is a view of the noise in a real data set.
+
 Below the panels, every page has the same five parts.
 
 1. **What the model says.** The model in a few sentences and its formula, with the parameters named

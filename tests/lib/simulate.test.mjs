@@ -1,0 +1,46 @@
+// The sampler's parts (js/lib/simulate.js, js/lib/random.js): inversion, seeding, histogram.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { inverseCdf, circularSim, histogram, SIM_GRID } from "../../js/lib/simulate.js";
+import { uniforms, mulberry32 } from "../../js/lib/random.js";
+import { dvonmises, integrateExp } from "../../js/lib/math.js";
+
+test("inverseCdf inverts a uniform density exactly", () => {
+  const q = inverseCdf(SIM_GRID, SIM_GRID.map(() => 1 / (2 * Math.PI)));
+  for (const u of [0, 0.1, 0.5, 0.731, 0.999]) assert.ok(Math.abs(q(u) - (-Math.PI + 2 * Math.PI * u)) < 1e-12, `u = ${u}`);
+});
+
+// The density is taken as linear within each grid cell, so the quantile's probability is off by up to 6.5e-6
+// at kappa 148: far below 1/1000, the resolution of the largest sample a page draws.
+test("inverseCdf of a von Mises: the integral up to each quantile is its probability", () => {
+  for (const kappa of [0.5, 7.39, 148]) {
+    const logd = x => x.map(v => dvonmises(v, 0, kappa));
+    const q = inverseCdf(SIM_GRID, logd(SIM_GRID).map(Math.exp));
+    for (const u of [0.02, 0.25, 0.5, 0.9, 0.995]) {
+      const mass = integrateExp(logd, -Math.PI, q(u), 4000);
+      assert.ok(Math.abs(mass - u) < 1e-5, `kappa ${kappa}, u ${u}: mass ${mass}`);
+    }
+  }
+});
+
+test("draws are monotone in the uniforms, so a sample keeps its order as the density changes", () => {
+  const us = uniforms(500, 1).sort((a, b) => a - b);
+  for (const kappa of [1, 20]) {
+    const xs = circularSim(x => x.map(v => dvonmises(v, 0.3, kappa)), 0.35).draw(us);
+    assert.ok(xs.every((x, i) => i === 0 || x >= xs[i - 1]));
+  }
+});
+
+test("the same seed gives the same uniforms, another seed others", () => {
+  assert.deepEqual(uniforms(5, 437), uniforms(5, 437));
+  assert.notDeepEqual(uniforms(5, 437), uniforms(5, 438));
+  const u = mulberry32(437)();
+  assert.ok(u >= 0 && u < 1);
+});
+
+test("histogram heights integrate to 1 and clamp draws at the ends into the end bins", () => {
+  const h = histogram([-Math.PI, -1, 0, 0.5, Math.PI], -Math.PI, Math.PI, 36);
+  const w = 2 * Math.PI / 36;
+  assert.ok(Math.abs(h.reduce((s, v) => s + v * w, 0) - 1) < 1e-12);
+  assert.ok(h[0] > 0 && h[35] > 0);
+});
