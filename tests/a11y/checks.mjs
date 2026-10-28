@@ -3,8 +3,9 @@
 //   domChecks: the screen-reader layer of the dashboard after each state (value texts, plot summaries, the live
 //     region, the stale notice).
 //   expectations: a state's `expect` in states.json, so a step that misses its target's effect fails by design.
-//   tabletChecks: a 1024 x 768 touch window (no horizontal scroll, 44 px targets, (i) hit areas clear of other
-//     controls, rendered svg text size).
+//   recovery: a stale state put back to valid entries leaves the stale state and announces it.
+//   tabletChecks: a touch window, 1024 x 768 and 768 x 1024 (no horizontal scroll, 44 px targets, (i) hit areas clear
+//     of other controls, rendered svg text size).
 //   focusWalk, focusMarks: the keyboard focus ring reached by real Tab presses, and the marks of draggable svg items.
 //   mapLayout: the landing page's model map, cards from 768 px, a plain list below.
 
@@ -53,6 +54,24 @@ export const domChecks = `(async () => {
     while (!/plots keep the last valid values/.test(live[0].textContent) && performance.now() - t0 < 2000) await new Promise(r => setTimeout(r, 50));
     if (!/plots keep the last valid values/.test(live[0].textContent)) out.push('the dashboard is stale and the live region holds "' + live[0].textContent.slice(0, 80) + '", not the stale notice');
   }
+  return out;
+})()`;
+
+// The values of the dashboard's inputs, by id, to put a stale state back afterwards.
+export const inputValues = `Object.fromEntries([...document.querySelectorAll(".ex-dash input[id]")].map(e => [e.id, e.value]))`;
+
+// A stale dashboard fixed back: every number box that differs from its value at load gets that value again, as a user
+// would type it. The dashboard must leave the stale state and the live region must say so (a11y.js, staleNotices).
+export const recovery = initial => `(async () => {
+  const out = [], dash = document.querySelector(".ex-dash"), live = document.querySelector('.ex-sr[aria-live="polite"]');
+  for (const [id, v] of Object.entries(${JSON.stringify(initial)})) {
+    const e = document.getElementById(id);
+    if (e?.type === "number" && e.value !== v) { e.value = v; e.dispatchEvent(new Event("input", { bubbles: true })); }
+  }
+  const t0 = performance.now();
+  while (!/All entries are valid again/.test(live?.textContent) && performance.now() - t0 < 2000) await new Promise(r => setTimeout(r, 50));
+  if (dash.classList.contains("ex-stale")) out.push("the dashboard is still stale after its entries were put back");
+  if (!/All entries are valid again/.test(live?.textContent)) out.push('entries put back, and the live region holds "' + (live?.textContent ?? "").slice(0, 80) + '", not the recovery notice');
   return out;
 })()`;
 

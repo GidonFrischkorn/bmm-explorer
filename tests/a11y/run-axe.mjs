@@ -1,5 +1,6 @@
 // axe-core on every rendered page, in every state listed in states.json, in headless Chrome, and the checks axe does
-// not make (checks.mjs): the screen-reader layer after each state, the keyboard focus marks, and a tablet pass.
+// not make (checks.mjs): the screen-reader layer after each state (and the return from a stale one), the keyboard focus
+// marks, and a tablet pass.
 //   node tests/a11y/run-axe.mjs [--site _site] [--page m3] [--out report.json]
 // Fails (exit 1) on a serious or critical violation, on a failed check, on a rendered page that states.json does
 // not list, on a state step that finds nothing to act on or a state whose `expect` does not hold, and on a script
@@ -9,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { serve, launch } from "./browser.mjs";
 import { verifyAxe } from "./fetch-axe.mjs";
-import { domChecks, expectations, tabletChecks, mapLayout, focusWalk, focusMarks } from "./checks.mjs";
+import { domChecks, expectations, inputValues, recovery, tabletChecks, mapLayout, focusWalk, focusMarks } from "./checks.mjs";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : dflt; };
@@ -50,14 +51,17 @@ const site = await serve(siteDir);
 const { page, close } = await launch();
 const report = [];
 let failed = 0, tabletStates = 0;
+// Dashboard pages, and those that were taken into a stale state and back: each dashboard page needs one.
+const dashboards = new Set(), recovered = new Set();
 const flag = (where, problems) => { for (const p of problems) { console.error(`::error::${where} ${p}`); failed++; } return problems.length; };
 const selected = name => !only || name === only || name.endsWith(`/${only}`);
 const states = entry => [{ name: "default", steps: [] }, ...(entry.states ?? [])];
 
-// Load a page and bring it into a state: its steps, then its expectations.
+// Load a page and bring it into a state: its steps, then its expectations. Returns the inputs' values at load.
 async function enter(name, state) {
   page.logs.length = 0;
   await page.goto(`${site.url}/${name}.html`);
+  const initial = await page.eval(inputValues);
   for (const step of state.steps) {
     try { await page.eval(`(${STEP})(${JSON.stringify(step)})`); }
     catch (e) { flag(`${name} [${state.name}]`, [`step ${JSON.stringify(step)}: ${e.message}`]); }
@@ -65,6 +69,7 @@ async function enter(name, state) {
   }
   await page.sleep(250);
   if (state.expect) flag(`${name} [${state.name}]`, await page.eval(expectations(state.expect)));
+  return initial;
 }
 
 try {
@@ -75,13 +80,17 @@ try {
     if (!selected(name)) continue;
     if (!rendered.includes(name)) { console.error(`::error::states.json lists ${name}, which was not rendered`); failed++; continue; }
     for (const state of states(entry)) {
-      await enter(name, state);
+      const initial = await enter(name, state);
       const res = await page.eval(`(async () => { ${axeSource}
         const r = await axe.run(document, { resultTypes: ["violations", "incomplete"] });
         const pick = x => ({ id: x.id, impact: x.impact, help: x.help, helpUrl: x.helpUrl,
           nodes: x.nodes.map(n => ({ target: n.target.join(" "), summary: n.failureSummary?.split("\\n").slice(1).join(" ").trim() })) });
         return { version: axe.version, violations: r.violations.map(pick), incomplete: r.incomplete.map(pick) }; })()`);
       const checks = await page.eval(domChecks);
+      // After the stale state has been checked as it is, put it back.
+      const [dash, stale] = await page.eval(`[".ex-dash", ".ex-dash.ex-stale"].map(s => !!document.querySelector(s))`);
+      if (dash) dashboards.add(name);
+      if (stale) { checks.push(...await page.eval(recovery(initial))); recovered.add(name); }
       if (name === spec.map?.page && state.name === "default") checks.push(...await page.eval(mapLayout(true)));
       const bad = res.violations.filter(v => FAIL.has(v.impact)), rest = res.violations.filter(v => !FAIL.has(v.impact));
       const errors = page.logs.filter(l => !/favicon/.test(l));
@@ -95,6 +104,8 @@ try {
     }
   }
 
+  for (const name of dashboards) if (!recovered.has(name)) flag(name, ["has no state with an entry out of range, so its stale and recovery notices go unchecked"]);
+
   // Keyboard focus, in the same laptop window: Tab through a dashboard, and the marks of draggable svg items. A
   // headless page does not have the window's focus, and without it :focus matches nothing.
   await page.send("Emulation.setFocusEmulationEnabled", { enabled: true });
@@ -107,20 +118,21 @@ try {
     flag(`focus ${name}`, problems);
   }
 
-  // A tablet: the touch rules apply (44 px targets, the (i) hit areas) and the panels stack.
-  const [tw, th] = spec.tablet.viewport;
-  await page.viewport(tw, th, { touch: true, reducedMotion: true });
-  for (const [name, entry] of Object.entries(spec.pages)) {
-    if (!selected(name)) continue;
-    for (const state of states(entry).filter(s => spec.tablet.states.includes(s.name))) {
-      await enter(name, state);
-      const { out, minText } = await page.eval(tabletChecks);
-      if (name === spec.map?.page && state.name === "default") out.push(...await page.eval(mapLayout(true)));
-      const errors = page.logs.filter(l => !/favicon/.test(l));
-      console.log(`${out.length || errors.length ? "FAIL" : "ok  "} ${tw}x${th} touch ${name} [${state.name}]${minText ? `  smallest svg text ${minText.toFixed(1)} px` : ""}`);
-      for (const l of errors) { failed++; console.log(`  ${l}`); }
-      flag(`${tw}x${th} touch ${name} [${state.name}]`, out);
-      tabletStates++;
+  // A tablet, held either way: the touch rules apply (44 px targets, the (i) hit areas) and the panels stack.
+  for (const [tw, th] of spec.tablet.viewports) {
+    await page.viewport(tw, th, { touch: true, reducedMotion: true });
+    for (const [name, entry] of Object.entries(spec.pages)) {
+      if (!selected(name)) continue;
+      for (const state of states(entry).filter(s => spec.tablet.states.includes(s.name))) {
+        await enter(name, state);
+        const { out, minText } = await page.eval(tabletChecks);
+        if (name === spec.map?.page && state.name === "default") out.push(...await page.eval(mapLayout(true)));
+        const errors = page.logs.filter(l => !/favicon/.test(l));
+        console.log(`${out.length || errors.length ? "FAIL" : "ok  "} ${tw}x${th} touch ${name} [${state.name}]${minText ? `  smallest svg text ${minText.toFixed(2)} px` : ""}`);
+        for (const l of errors) { failed++; console.log(`  ${l}`); }
+        flag(`${tw}x${th} touch ${name} [${state.name}]`, out);
+        tabletStates++;
+      }
     }
   }
   // Below tablet width the model map is a plain list.

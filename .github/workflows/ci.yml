@@ -41,8 +41,8 @@ jobs:
       # axe-core is a test-time tool: it is fetched here, checked against the pins in tests/a11y/axe.json and injected into
       # headless Chrome; it is never part of the site. Serious and critical violations fail the job; the rest are listed.
       # The same run checks what axe does not (tests/a11y/checks.mjs): value texts, plot summaries and the stale notice
-      # in every state, each state's expected effect, the keyboard focus marks, and a 1024 x 768 touch pass (44 px
-      # targets, no horizontal scroll, svg text size, the landing-page map).
+      # in every state, each state's expected effect, the keyboard focus marks, and touch passes at 1024 x 768 and
+      # 768 x 1024 (44 px targets, no horizontal scroll, svg text size, the landing-page map).
       - uses: actions/setup-node@v4
         with:
           node-version: 22

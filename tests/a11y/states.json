@@ -5,10 +5,16 @@
   800
  ],
  "tablet": {
-  "//": "A second pass at tablet size with touch: these states of every page that has them.",
-  "viewport": [
-   1024,
-   768
+  "//": "A second pass at tablet size with touch, landscape and portrait: these states of every page that has them.",
+  "viewports": [
+   [
+    1024,
+    768
+   ],
+   [
+    768,
+    1024
+   ]
   ],
   "states": [
    "default",
@@ -365,6 +371,30 @@
       "#mpt-set-size-num.ex-invalid",
       ".ex-dash.ex-stale"
      ]
+    },
+    {
+     "name": "Pi raised",
+     "//": "Pinned summary: Pi 0.8, Pb 0.5, 4 other list items, 5 lures (N = 10): correct 0.8 * 0.5 + 0.8 * 0.5 / 5 + 0.2 / 10 = 0.50, other 0.8 * 0.5 * 4 / 5 + 0.2 * 4 / 10 = 0.40, lures 0.2 * 5 / 10 = 0.10.",
+     "steps": [
+      {
+       "number": [
+        "#mpt-pi-num",
+        "0.8"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#mpt-pi-num",
+       "value",
+       "0.8"
+      ],
+      [
+       "#mpt-bars > desc",
+       "text",
+       "correct 0.50, other list items 0.40, lures 0.10."
+      ]
+     ]
     }
    ]
   },
@@ -483,6 +513,7 @@
     },
     {
      "name": "set size 1",
+     "//": "Pinned summary: as dimm() weighs them, an item gets c exp(-s dist) + a and guessing b, over their sum; at set size 1 with c, a, b 1: target 2 / 3 = 0.67, guessing 1 / 3 = 0.33.",
      "steps": [
       {
        "number": [
@@ -496,6 +527,11 @@
        "#imm-set-size-num",
        "value",
        "1"
+      ],
+      [
+       "#imm-weights > desc",
+       "text",
+       "target 0.67, guessing 0.33."
       ]
      ]
     },
@@ -573,6 +609,30 @@
       "#mix2-p_mem-num.ex-invalid",
       ".ex-dash.ex-stale"
      ]
+    },
+    {
+     "name": "p_mem raised",
+     "//": "Pinned summary: kappa exp(2): the von Mises mass within 20 degrees is 0.6489, so 0.8 * 0.6489 + 0.2 * 40 / 360 = 0.54.",
+     "steps": [
+      {
+       "number": [
+        "#mix2-p_mem-num",
+        "0.8"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#mix2-p_mem-num",
+       "value",
+       "0.8"
+      ],
+      [
+       "#mix2-density > desc",
+       "text",
+       "memory weight 0.80, guessing 0.20, 0.54 of responses within 20 degrees"
+      ]
+     ]
     }
    ]
   },
@@ -634,6 +694,30 @@
      "expect": [
       "#mix3-p_mem-num.ex-invalid",
       ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "p_nt raised",
+     "//": "Pinned summary: p_nt 0.5 beside p_mem 0.33: guessing 1 - 0.33 - 0.5 = 0.17; 3 non-targets get 0.5 / 3 = 0.17 each.",
+     "steps": [
+      {
+       "number": [
+        "#mix3-p_nt-num",
+        "0.5"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#mix3-p_nt-num",
+       "value",
+       "0.5"
+      ],
+      [
+       "#mix3-weights > desc",
+       "text",
+       "memory 0.33, non-targets 0.50 (0.17 each), guessing 0.17."
+      ]
      ]
     }
    ],
@@ -697,6 +781,7 @@
     },
     {
      "name": "bessel parametrization",
+     "//": "Pinned summary: The summary's c is the converted one the number box shows, 7.57.",
      "steps": [
       {
        "click": "input[name=\"sdm-par\"][value=\"bessel\"]"
@@ -712,6 +797,16 @@
        "#sdm-code",
        "text",
        "c_bessel2sqrtexp"
+      ],
+      [
+       "#sdm-c-num",
+       "value",
+       "7.57"
+      ],
+      [
+       "#sdm-density > desc",
+       "text",
+       "with c 7.57 and kappa 5.75"
       ]
      ]
     },
@@ -856,6 +951,7 @@
     },
     {
      "name": "logistic, bias anchor",
+     "//": "Pinned summary: Logistic noise, d 1, criterion 0.5: false alarms 1 - plogis(0.5) = 0.38, hits plogis(0.5) = 0.62.",
      "steps": [
       {
        "select": [
@@ -883,7 +979,12 @@
        "text",
        "dist = \"logistic\""
       ],
-      "#sdtyn-latent .sdt-drag[aria-label=\"bias\"]"
+      "#sdtyn-latent .sdt-drag[aria-label=\"bias\"]",
+      [
+       "#sdtyn-bars > desc",
+       "text",
+       "false-alarm rate 0.38 on noise trials, hit rate 0.62 on signal trials"
+      ]
      ]
     },
     {
@@ -947,6 +1048,7 @@
     },
     {
      "name": "m 10, simulate on",
+     "//": "Pinned summary: Normal noise, d 1, m 10: P(correct) = integral of dnorm(x - 1) pnorm(x)^9 = 0.341.",
      "steps": [
       {
        "range": [
@@ -978,6 +1080,11 @@
        "#sdtmafc-tiles > desc",
        "text",
        "10 alternatives"
+      ],
+      [
+       "#sdtmafc-byd > desc",
+       "text",
+       "0.34 at d 1.00"
       ]
      ]
     },
@@ -1096,6 +1203,7 @@
     },
     {
      "name": "K 3",
+     "//": "Pinned summary: Thresholds -0.19 and 1.19, d 1: rating 3 gets 1 - pnorm(1.19) = 0.12 of noise and 1 - pnorm(0.19) = 0.42 of signal responses.",
      "steps": [
       {
        "range": [
@@ -1114,6 +1222,11 @@
        "#sdtrating-latent > desc",
        "text",
        "2 rating thresholds"
+      ],
+      [
+       "#sdtrating-bars > desc",
+       "text",
+       "rating 3 gets 0.12 of noise and 0.42 of signal responses"
       ]
      ]
     },
@@ -1260,6 +1373,38 @@
        "#ezdm-code",
        "text",
        "version = \"4par\""
+      ]
+     ]
+    },
+    {
+     "name": "4-parameter version, 3 trials",
+     "//": "Pinned summary: drift 0, bound 1, zr 0.5: from the midpoint either boundary is reached after a time with mean 1/4 and variance 1/24 (exit from (-1/2, 1/2)), plus ndt 0.223: 0.473. At 3 trials P(upper) 0.5 gives 2 upper responses with probability 3/8 and 3 with 1/8: E(1/k | k >= 2) = 11/24, so 0.473 +- 2 sqrt(11) / 24 = 0.473 +- 0.276, 0.20 to 0.75 s (the expected count 1.5 would give 0.14 to 0.81).",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      },
+      {
+       "number": [
+        "#ezdm-n-num",
+        "3"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-n-num",
+       "value",
+       "3"
+      ],
+      [
+       "#ezdm-across > desc",
+       "text",
+       "mean rt of upper responses, in cells with 2 or more, 0.20 to 0.75 s around 0.47 s; mean rt of lower responses, in cells with 2 or more, 0.20 to 0.75 s"
       ]
      ]
     },
@@ -1593,6 +1738,30 @@
        "version = \"crisk\""
       ]
      ]
+    },
+    {
+     "name": "drift raised",
+     "//": "Pinned summary: The summary names the drift that is drawn, 2.00, and the ndt box's 0.135 as 0.14 s.",
+     "steps": [
+      {
+       "number": [
+        "#cswald-drift-num",
+        "2"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-drift-num",
+       "value",
+       "2"
+      ],
+      [
+       "#cswald-task > desc",
+       "text",
+       "drift 2.00, bound 1.00, non-decision time 0.14 s"
+      ]
+     ]
     }
    ]
   },
@@ -1709,6 +1878,35 @@
        "#ddm-sim-info",
        "hidden",
        false
+      ]
+     ]
+    },
+    {
+     "name": "drift raised",
+     "//": "Pinned summary: drift 1, bound 1, zr 0.5: P(upper) 1 / (1 + exp(-1)) = 0.73; either response's mean decision time tanh(0.5) / 2 = 0.231, plus ndt 0.223: 0.45 s.",
+     "steps": [
+      {
+       "number": [
+        "#ddm-drift-num",
+        "1"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-drift-num",
+       "value",
+       "1"
+      ],
+      [
+       "#ddm-readout",
+       "text",
+       "P(upper) = 0.73"
+      ],
+      [
+       "#ddm-density > desc",
+       "text",
+       "P(upper) 0.73; mean rt 0.45 s for upper and 0.45 s for lower responses."
       ]
      ]
     }

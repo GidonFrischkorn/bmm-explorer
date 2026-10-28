@@ -78,6 +78,9 @@ export async function launch() {
     async viewport(width, height, { mobile = false, touch = false, scale = 1, cpu = 1, reducedMotion = false } = {}) {
       await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: scale, mobile });
       await send("Emulation.setTouchEmulationEnabled", { enabled: touch, ...(touch ? { maxTouchPoints: 5 } : {}) });
+      // A touch device's scrollbars overlay the page; a Linux runner's headless Chrome would otherwise take 15 px of the
+      // width, and the text-size bound would hold on one machine and not on another.
+      await send("Emulation.setScrollbarsHidden", { hidden: touch });
       await send("Emulation.setCPUThrottlingRate", { rate: cpu });
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: reducedMotion ? "reduce" : "no-preference" }] });
     },
