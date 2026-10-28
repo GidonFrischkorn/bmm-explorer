@@ -1,7 +1,8 @@
 // The "simulate" switch in a page's prediction panel: whether it is on, how many trials, and the uniforms of the
-// current sample. The uniforms stay until New sample, so a slider move reshapes the same sample; a larger n
-// keeps the first draws and adds to them. Markup ids: <prefix>-sim (checkbox), -sim-n (select), -sim-new
-// (button), -sim-text (the summary line).
+// current sample, perTrial of them for each trial (two on the ddm page: response and rt; a whole cell on the ezdm
+// page). The uniforms stay until New sample, so a slider move reshapes the same sample; a larger n keeps the first
+// draws and adds to them. Markup ids: <prefix>-sim (checkbox), -sim-n (select), -sim-new (button), -sim-text (the
+// summary line).
 import { uniforms, SIM_SEED } from "./random.js";
 import { circularSim, circularStats, histogram } from "./simulate.js";
 import { fmt } from "./widget.js";
@@ -10,22 +11,24 @@ import { DEG } from "./circular-plot.js";
 
 const MAX_N = 1000, BINS = 36;
 
-export function simControls(prefix, redraw) {
+export function simControls(prefix, redraw, perTrial = 1) {
   const $ = id => document.getElementById(`${prefix}-${id}`);
   const box = $("sim"), size = $("sim-n"), again = $("sim-new"), text = $("sim-text");
   const start = [...size.options].find(o => o.defaultSelected).value;
-  let seed = SIM_SEED, us = uniforms(MAX_N, seed);
+  // Made when a sample is first drawn, so a page with the switch off does not make them (504 000 on the ezdm page).
+  let seed = SIM_SEED, us = null;
+  const current = () => (us ??= uniforms(MAX_N * perTrial, seed));
   const sync = () => { size.disabled = again.disabled = !box.checked; };
   // The line hides here too: a page with invalid inputs does not redraw, and the line would stay.
   box.addEventListener("change", () => { sync(); text.hidden = !box.checked; redraw(); });
   size.addEventListener("change", redraw);
-  again.addEventListener("click", () => { us = uniforms(MAX_N, ++seed); redraw(); });
+  again.addEventListener("click", () => { us = null; seed++; redraw(); });
   sync();
   return {
     get on() { return box.checked; },
     get n() { return +size.value; },
-    get us() { return us.slice(0, +size.value); },
-    reset() { box.checked = false; size.value = start; us = uniforms(MAX_N, seed = SIM_SEED); sync(); },
+    get us() { return current().slice(0, +size.value * perTrial); },
+    reset() { box.checked = false; size.value = start; us = null; seed = SIM_SEED; sync(); },
     text
   };
 }
@@ -87,3 +90,18 @@ export function simLine(sim, text) {
 // The summary line of a categorical sample: each category's expected share and, in brackets, the sample's.
 export const shareLine = (sim, labels, expected, shares) =>
   simLine(sim, () => `Expected (this sample of ${sim.n}): ${labels.map((l, i) => `${l} ${pair(expected[i], shares[i])}`).join(", ")}.`);
+
+// The summary line of a response-time sample: P(upper) and each response's mean and SD of rt, expected (from the
+// density) and, in brackets, the sample's, with the sample's count of each response. e and got as ddmSim().expected
+// and rtStats() give them; whose names the expected values ("Expected", "Diffusion model, expected").
+export function rtLine(sim, e, got, whose = "Expected") {
+  const side = r => {
+    if (got[r].n === 0) return `${r}: mean rt ${fmt(e[r].mean)} s, SD ${fmt(e[r].sd)} s (no ${r} responses in the sample)`;
+    return `${r} (${got[r].n}): mean rt ${fmt(e[r].mean)} (${fmt(got[r].mean)}) s, ` +
+      `SD ${fmt(e[r].sd)} (${got[r].n > 1 ? fmt(got[r].sd) : "–"}) s`;
+  };
+  simLine(sim, () => `${whose} (this sample of ${sim.n}): P(upper) ${pair(e.pUpper, got.pUpper)}; ${side("upper")}; ${side("lower")}.`);
+}
+
+// Bins of the rt histograms on the ddm and cswald pages, over the time axis drawn.
+export const RT_BINS = 40;

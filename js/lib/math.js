@@ -146,3 +146,62 @@ export function lgamma(x) {
 
 // plogis(x, log.p = TRUE), which R computes as -log1pexp(-x).
 export const logPlogis = x => -log1pExp(-x);
+
+// log P(a, x) and log Q(a, x), the regularised incomplete gamma function and its complement: the series for P
+// below x = a + 1, the continued fraction for Q (modified Lentz) above, each the other's log1m beyond its range.
+// Both sum to relative 1e-17, so a tail probability keeps its digits where 1 - P would not.
+function logGammaTails(a, x) {
+  if (x <= 0) return { lower: -Infinity, upper: 0 };
+  const front = a * Math.log(x) - x - lgamma(a);
+  if (x < a + 1) {
+    let term = 1 / a, sum = term;
+    for (let n = 1; n < 100000 && term > sum * 1e-17; n++) { term *= x / (a + n); sum += term; }
+    const lower = front + Math.log(sum);
+    return { lower, upper: log1mExp(lower) };
+  }
+  const tiny = 1e-300;
+  let b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
+  for (let i = 1; i < 100000; i++) {
+    const an = -i * (i - a);
+    b += 2;
+    d = an * d + b; if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d;
+    const step = d * c;
+    h *= step;
+    if (Math.abs(step - 1) < 1e-17) break;
+  }
+  const upper = front + Math.log(h);
+  return { lower: log1mExp(upper), upper };
+}
+
+// qgamma(p, shape, rate) as R computes it: the x with P(shape, rate x) = p. Newton's method on log x, against
+// whichever tail is the smaller (p itself below 0.5, 1 - p above, exact there), inside a bracket that halves when a
+// step leaves it; it stops when a step moves log x by less than 1e-14. The start is Wilson and Hilferty's cube, or in
+// the lower tail of a small shape, where that cube is negative, the leading term of the series, x^a / Gamma(a + 1).
+// Held to R's qgamma() by math.test.mjs, 1e-10 on the log scale.
+export function qgamma(p, shape, rate = 1) {
+  if (Number.isNaN(p) || p < 0 || p > 1 || !(shape > 0) || !(rate > 0)) return NaN;
+  if (p === 0) return 0;
+  if (p === 1) return Infinity;
+  const upperTail = p > 0.5, target = Math.log(upperTail ? 1 - p : p);
+  // d g / d y = x f(x) / P (lower) or x f(x) / Q (upper), f the gamma(shape, 1) density.
+  const slope = (y, t) => Math.exp(shape * y - Math.exp(y) - lgamma(shape) - (upperTail ? t.upper : t.lower));
+  const z = qnorm(p), wh = shape * (1 - 1 / (9 * shape) + z / (3 * Math.sqrt(shape))) ** 3;
+  let y = wh > 0 && (shape > 1 || p > 0.1) ? Math.log(wh) : (Math.log(p) + lgamma(shape + 1)) / shape;
+  let lo = -Infinity, hi = Infinity;
+  for (let i = 0; i < 200; i++) {
+    // gy increases with y = log x: log P - log p in the lower tail, log(1 - p) - log Q in the upper one.
+    const t = logGammaTails(shape, Math.exp(y)), gy = upperTail ? target - t.upper : t.lower - target;
+    if (gy === 0) break;
+    if (gy > 0) hi = Math.min(hi, y); else lo = Math.max(lo, y);
+    let next = y - gy / slope(y, t);
+    if (!(next > lo && next < hi)) {
+      if (Number.isFinite(lo) && Number.isFinite(hi)) next = (lo + hi) / 2;
+      else next = gy > 0 ? y - Math.max(1, Math.abs(y)) : y + 1;
+    }
+    if (Math.abs(next - y) < 1e-14 * Math.max(1, Math.abs(y))) { y = next; break; }
+    y = next;
+  }
+  return Math.exp(y) / rate;
+}

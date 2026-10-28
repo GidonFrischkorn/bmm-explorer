@@ -63,10 +63,16 @@ toc: false
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Across trial counts">
-    <div class="ex-panel-title">Across trial counts</div>
+    <div class="ex-panel-title ex-title-row">Across trial counts
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="ezdm-sim"> simulate</label>
+        <select id="ezdm-sim-n" aria-label="Cells to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="ezdm-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="ezdm-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="ezdm-sim-info" hidden>Draws N cells of <code>n_trials</code> trials each, as bmm's <code>rezdm()</code> does: the number of upper responses from a binomial, then the observed variance of the response times from a gamma distribution and their observed mean from a normal distribution given that variance, the sampling distributions <code>dezdm()</code> scores. In <code>4par</code> the upper and the lower responses each get their own mean and variance; a cell with fewer than 2 responses at a boundary has no response-time statistics there (<code>NA</code> in bmm). Points at the dashed line: each cell's proportion of upper responses (top) and observed mean response time (bottom), spread sideways so that they do not hide each other; about 95% should fall inside the bands. Below the legend: the expected values, and in brackets this sample's: P(upper), the mean of the cells' observed mean response times (<code>mean_rt</code>), their SD across cells, and the mean of the observed variances (<code>var_rt</code>). The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="ezdm-across" role="img" aria-label="Range of observed accuracy and observed mean response time, plus or minus two standard deviations, against the number of trials per cell"></svg>
     <div class="ex-legend">Bands: ±2 SD of what one cell of <code>n_trials</code> trials would show, around the
       prediction (line). Dashed: the current <code>n_trials</code>.</div>
+    <div class="ex-legend ex-sim-text" id="ezdm-sim-text" hidden></div>
   </section>
 </div>
 ```
