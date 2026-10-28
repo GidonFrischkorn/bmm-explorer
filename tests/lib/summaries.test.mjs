@@ -103,32 +103,53 @@ test("m-AFC P(correct) texts: the page's tail notation and the spoken bound", ()
 test("ezdm: bands of 2 SD, clipped to [0, 1], P(upper) not accuracy, the mean-rt bands included", () => {
   // 3par, P(upper) 0.5, mean rt 0.47 s with VRT 0.0625 (SD 0.25 s): at 100 trials P(upper) 0.5 +- 2 sqrt(0.25 / 100) =
   // 0.40 to 0.60, mean rt 0.47 +- 2 * 0.25 / 10 = 0.42 to 0.52 s; at 3 trials +- 0.58, clipped to 0 and 1.
-  const s = { pC: 0.5, rows: [{ name: "all", mean: 0.47, vrt: 0.0625, share: 1, count: n => n }] };
-  const at = n => S.ezdmSummaries({ q: { drift: 0, bound: 1, ndt: 0.22, zr: 0.5, n_trials: n }, version: "3par", s, bands: ezdmBands(s, 500), cells: 0, nMax: 500 });
+  const s = { pC: 0.5, rows: [{ name: "all", mean: 0.47, vrt: 0.0625 }] };
+  const at = n => S.ezdmSummaries({ q: { drift: 0, bound: 1, ndt: 0.22, zr: 0.5, n_trials: n }, version: "3par", s, bands: ezdmBands(s, n), cells: null, nMax: 500 });
   assert.equal(at(100)["ezdm-across"], "One cell's observed statistics against n_trials from 3 to 500 (log scale), with bands of 2 SD either side " +
     "of the prediction. At 100 trials: P(upper) 0.40 to 0.60 around 0.50; mean rt 0.42 to 0.52 s around 0.47 s.");
   assert.match(at(3)["ezdm-across"], /P\(upper\) 0\.00 to 1\.00 around 0\.50/);
-  assert.doesNotMatch(at(3)["ezdm-across"], /accuracy|within/);
+  assert.doesNotMatch(at(3)["ezdm-across"], /accuracy|within|95/);
   assert.equal(at(100)["ezdm-stats"], "Predicted P(upper) 0.50; mean rt 0.47 s (SD 0.25 s) over all responses.");
   assert.equal(at(100)["ezdm-task"], "Evidence paths with drift 0.00, boundary separation 1.00, non-decision time 0.22 s.");
 });
 
-test("ezdm 4par: a boundary's band starts where 2 responses are expected, or is not drawn", () => {
-  // Lower share 0.01: n - round(0.99 n) reaches 2 first at n = 151 (round(149.49) = 149).
-  const s = { pC: 0.99, rows: [
-    { name: "upper", mean: 0.5, vrt: 0.04, share: 0.99, count: n => Math.round(0.99 * n) },
-    { name: "lower", mean: 0.6, vrt: 0.04, share: 0.01, count: n => n - Math.round(0.99 * n) }] };
-  const b = ezdmBands(s, 500);
-  assert.deepEqual(b.rows.map(r => [r.n0, r.drawn]), [[3, true], [151, true]]);
-  const q = { drift: 3, bound: 1.5, ndt: 0.3, zr: 0.996, n_trials: 100 };
-  const txt = S.ezdmSummaries({ q, version: "4par", s, bands: b, cells: 50, nMax: 500 });
-  assert.match(txt["ezdm-across"], /mean rt of upper responses 0\.46 to 0\.54 s around 0\.50 s; mean rt of lower responses: no band below 151 trials\. Dots: 50 simulated cells\.$/);
-  assert.equal(txt["ezdm-stats"], "Predicted P(upper) 0.99; mean rt 0.50 s (SD 0.20 s) for upper and 0.60 s (SD 0.20 s) for lower responses.");
-  assert.match(txt["ezdm-task"], /and start point 0\.996\.$/, "a start point near 1 keeps the digits that tell it from 1");
-  const none = ezdmBands({ pC: 0.999, rows: [{ ...s.rows[1], share: 0.001, count: n => n - Math.round(0.999 * n) }] }, 500);
-  assert.equal(none.rows[0].drawn, false);
-  assert.match(S.ezdmSummaries({ q, version: "4par", s: { pC: 0.999, rows: none.rows }, bands: none, cells: 0, nMax: 500 })["ezdm-across"],
-    /mean rt of lower responses: no band, fewer than 2 responses expected\.$/);
+test("ezdm 4par: a boundary's band is 2 sqrt(VRT E(1/k | k >= 2)) over the cells that have it", () => {
+  // n_trials 3, P(upper) 1/2: the upper count k is 2 with probability 3/8 and 3 with 1/8, so P(k >= 2) = 1/2 and
+  // E(1/k | k >= 2) = (3/8 / 2 + 1/8 / 3) / (1/2) = 11/24; the lower count likewise. VRT 0.0024: 2 sqrt(0.0011) = 0.0663,
+  // 0.43 to 0.57 around 0.50; VRT 0.0096: 0.1327, 0.47 to 0.73 around 0.60. Under the old band (expected count n/2)
+  // the upper one would be 0.5 +- 2 sqrt(0.0024 / 1.5) = 0.42 to 0.58.
+  const s = { pC: 0.5, rows: [{ name: "upper", mean: 0.5, vrt: 0.0024 }, { name: "lower", mean: 0.6, vrt: 0.0096 }] };
+  const q = { drift: 0, bound: 1, ndt: 0.3, zr: 0.5, n_trials: 3 };
+  const b = ezdmBands(s, 3);
+  assert.ok(Math.abs(b.rows[0].now - 2 * Math.sqrt(0.0024 * 11 / 24)) < 1e-12);
+  assert.equal(S.ezdmSummaries({ q, version: "4par", s, bands: b, cells: { n: 200, rows: [101, 99] }, nMax: 500 })["ezdm-across"],
+    "One cell's observed statistics against n_trials from 3 to 500 (log scale), with bands of 2 SD either side of the prediction. " +
+    "At 3 trials: P(upper) 0.00 to 1.00 around 0.50; mean rt of upper responses, in cells with 2 or more, 0.43 to 0.57 s around 0.50 s; " +
+    "mean rt of lower responses, in cells with 2 or more, 0.47 to 0.73 s around 0.60 s. " +
+    "Dots: 200 simulated cells; 101 with 2 or more upper responses, 99 with 2 or more lower responses.");
+});
+
+test("ezdm 4par: a rare boundary's band starts where 1 cell in 1000 has 2 responses there, or is not drawn", () => {
+  // P(upper) 0.999: P(lower count >= 2) = 1 - 0.999^n - 0.001 n 0.999^(n - 1) first reaches 1e-3 at n = 46; the
+  // panel's grid (every n to 30, then 30 log-even steps: 30, 33, 36, 40, 44, 48, ...) starts the band at 48.
+  // At 20 trials: P(upper) 0.999 +- 2 sqrt(0.000999 / 20) = +- 0.014, 0.98 to 1.00; the upper count is >= 2 in every
+  // cell, E(1/k) = 0.05005, 0.5 +- 2 sqrt(0.04 * 0.05005) = 0.41 to 0.59. At 500 trials P(lower count >= 2) = 0.090 and
+  // E(1/k | k >= 2) = 0.4718: 0.6 +- 2 sqrt(0.04 * 0.4718) = 0.6 +- 0.275, 0.33 to 0.87.
+  const s = { pC: 0.999, rows: [{ name: "upper", mean: 0.5, vrt: 0.04 }, { name: "lower", mean: 0.6, vrt: 0.04 }] };
+  const q = n => ({ drift: 3, bound: 1.5, ndt: 0.3, zr: 0.996, n_trials: n });
+  const txt = n => S.ezdmSummaries({ q: q(n), version: "4par", s, bands: ezdmBands(s, n), cells: null, nMax: 500 });
+  assert.deepEqual(ezdmBands(s, 20).rows.map(r => [r.ns[0], r.common]), [[3, true], [48, false]]);
+  assert.deepEqual(ezdmBands(s, 46).rows.map(r => [r.common, Number.isFinite(r.now)]), [[true, true], [true, false]],
+    "at 46 the share is reached, but the drawn band starts at 48 and the text says what is drawn");
+  assert.match(txt(20)["ezdm-across"], /At 20 trials: P\(upper\) 0\.98 to 1\.00 around 1\.00; mean rt of upper responses, in cells with 2 or more, 0\.41 to 0\.59 s around 0\.50 s; mean rt of lower responses: no band below 48 trials\.$/);
+  assert.match(txt(500)["ezdm-across"], /mean rt of lower responses, in cells with 2 or more, 0\.33 to 0\.87 s around 0\.60 s\.$/);
+  assert.equal(txt(20)["ezdm-stats"], "Predicted P(upper) 1.00; mean rt 0.50 s (SD 0.20 s) for upper and 0.60 s (SD 0.20 s) for lower responses.");
+  assert.match(txt(20)["ezdm-task"], /and start point 0\.996\.$/, "a start point near 1 keeps the digits that tell it from 1");
+  // P(upper) 0.99995: at 500 trials P(lower count >= 2) = 3.1e-4, below 1 in 1000 everywhere.
+  const rare = { pC: 0.99995, rows: s.rows };
+  assert.equal(ezdmBands(rare, 100).rows[1].ns.length, 0);
+  assert.match(S.ezdmSummaries({ q: q(100), version: "4par", s: rare, bands: ezdmBands(rare, 100), cells: null, nMax: 500 })["ezdm-across"],
+    /mean rt of lower responses: no band, fewer than 1 cell in 1000 has 2 lower responses up to 500 trials\.$/);
 });
 
 test("DDM: the speed-accuracy point is the mean rt over all responses, where the plot puts its circle", () => {

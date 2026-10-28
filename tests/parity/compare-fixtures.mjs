@@ -51,12 +51,14 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // that, to 1e-9 relative, not against the committed SE, which would repeat the mean check.
   // simulate_rt.json is held one sample at a time too, against the committed cell's exact expected values, but each
   // statistic is scaled by the fresh sample's own SE (rtSampleError(); binomial SE of expected.p_upper for P(upper)), as
-  // simulate_rt.test.mjs does with BMM_FIXTURES. Its variances, and the variance and covariance of an ezdm cell's mean_rt
-  // with var_rt, have SEs that rest on fourth moments of skewed rts: over 1000 other streams these moved from 0.71 to
-  // 2.35 times the committed SE (2 or 3 lower rts per 4par cell at n_trials 10 and 20), the means' SEs by 8% at most.
-  // So an SE is only held within a factor of RT_SE_FACTOR of the committed one, which catches a broken SE, not a new
-  // stream; sample.se.p_upper is sqrt(m (1 - m) / trials) of its own mean m. Over those streams no statistic came within
-  // 5 SE (largest 4.46, the variance of the lower rts at ddm drift -1, bound 2, zr 0.3).
+  // simulate_rt.test.mjs does with BMM_FIXTURES. Its variances, the variance and covariance of an ezdm cell's mean_rt
+  // with var_rt and the mean of (var_rt - VRT)^2 have SEs that rest on fourth (for the last, eighth) moments of skewed
+  // rts: over 1000 other streams these moved from 0.68 to 2.68 times the committed SE (the mean of (var_rt - VRT)^2 at
+  // both ends; without it 0.71 to 2.35, 2 or 3 lower rts per 4par cell at n_trials 10 and 20), the means' SEs by 8% at
+  // most. So an SE is only held within a factor of RT_SE_FACTOR of the committed one, which catches a broken SE, not a
+  // new stream; sample.se.p_upper is sqrt(m (1 - m) / trials) of its own mean m. Over those streams no statistic reached
+  // 5 SE: largest 4.81, the mean of (var_rt - VRT)^2 of the upper rts at ezdm n_trials 10, bound 0.223, zr 0.3; 4.46
+  // for every other statistic (the variance of the lower rts at ddm drift -1, bound 2, zr 0.3); 14 of 108000 beyond 4.
   const SAMPLE_REL = 0.15, WITHIN_REL = 1e-9, RT_SE_FACTOR = 4, rt = f === "simulate_rt.json";
   const sampleOk = (key, x, y, ca, cb) => {
     const m = /^sample\.(mean|se)\.(.+)$/.exec(key);

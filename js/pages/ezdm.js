@@ -35,18 +35,16 @@ const problems = (p, v) => [
 const nUpperOf = (pC, n) => Math.round(pC * n);
 
 // The forward map: P(upper), and mean and SD of the rt (ndt plus the decision time) for each row the
-// version has: one for all responses in 3par, one per boundary in 4par. count(n) is the number of
-// responses the row's rt statistics come from in the printed call for n trials.
+// version has: one for all responses in 3par, one per boundary in 4par.
 function stats(p, v) {
   if (v === "3par") {
     const m = ezdmMoments3par(p);
-    return { pC: m.pC, rows: [{ label: "rt, all", name: "all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT, share: 1, count: n => n }] };
+    return { pC: m.pC, rows: [{ label: "rt, all", name: "all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT }] };
   }
   const m = ezdmMoments4par(p);
   return { pC: m.pC, rows: [
-    { label: "rt, upper", name: "upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper, share: m.pC, count: n => nUpperOf(m.pC, n) },
-    { label: "rt, lower", name: "lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower, share: 1 - m.pC,
-      count: n => n - nUpperOf(m.pC, n) }] };
+    { label: "rt, upper", name: "upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper },
+    { label: "rt, lower", name: "lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower }] };
 }
 
 const W = 500, H = 300;
@@ -87,10 +85,9 @@ function drawStats(p, s, ref, axis) {
   svg.setAttribute("viewBox", `0 0 ${W} ${yAxis + 60}`);
 }
 
-// How far the observed statistics of one cell scatter around the predicted ones as n_trials changes: the bands of
-// ezdmBands(). Under bmm's sampling model the observed mean has variance VRT / n (normal given the observed variance,
-// which is gamma with mean VRT); in 4par n is the expected count at that boundary.
-const NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
+// How far the observed statistics of one cell scatter around the predicted ones as n_trials changes, drawn with or
+// without a sample: the bands of ezdmBands() (+-2 SD; in 4par for the cells with 2 responses at that boundary,
+// starting where 1 cell in 1000 has them). A sample's rare cells below that start are still drawn as points.
 const timeAuto = autoAxis(draw, { nice: niceAxis }), rtAuto = autoAxis(draw, { nice: niceAxis });
 // The simulated cells: one block of EZ_STRIDE uniforms per cell (simulate-rt.js, ezdmCells()).
 const sim = simControls("ezdm", draw, EZ_STRIDE);
@@ -110,11 +107,11 @@ function drawAcross(p, s, bands, cells) {
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   // Sample points are cut at the edge of their panel.
   const defs = el("defs", {}, svg);
-  const clipTo = (name, sc, ylim) => {
+  const clipTo = (name, sc, ylim, pad = 3) => {
     const cp = el("clipPath", { id: `ezdm-across-${name}` }, defs);
     // 10 px beyond the ends of the n_trials axis, so that the sideways spread of up to 7 px + r keeps all points at
-    // n_trials 3 and 500.
-    el("rect", { x: sc.sx(lx(3)) - 10, y: sc.sy(ylim[1]) - 3, width: sc.sx(lx(N_MAX)) - sc.sx(lx(3)) + 20, height: sc.sy(ylim[0]) - sc.sy(ylim[1]) + 6 }, cp);
+    // n_trials 3 and 500; pad px above and below the range.
+    el("rect", { x: sc.sx(lx(3)) - 10, y: sc.sy(ylim[1]) - pad, width: sc.sx(lx(N_MAX)) - sc.sx(lx(3)) + 20, height: sc.sy(ylim[0]) - sc.sy(ylim[1]) + 2 * pad }, cp);
     return `url(#ezdm-across-${name})`;
   };
   const m = { l: 64, r: 12 }, lx = n => Math.log(n);
@@ -128,20 +125,24 @@ function drawAcross(p, s, bands, cells) {
       transform: `rotate(-90 16 ${(sc.sy(ylim[0]) + sc.sy(ylim[1])) / 2})` }, svg).textContent = ylab;
     return sc;
   };
-  // centre +- half(n) from n0 to N_MAX, clipped to the panel's range.
-  const band = (sc, centre, half, color, n0, [ymin, ymax] = [-Infinity, Infinity]) => {
-    const ns = [n0, ...NS.filter(n => n > n0)];
+  // centre +- half[i] at n_trials ns[i], clipped to the panel's range (clip, if given, cuts the line there too).
+  const band = (sc, centre, ns, half, color, [ymin, ymax] = [-Infinity, Infinity], clip) => {
+    const n0 = ns[0];
     const at = (n, y) => sc.sx(lx(n)).toFixed(1) + "," + sc.sy(Math.min(ymax, Math.max(ymin, y))).toFixed(1);
-    const up = ns.map(n => at(n, centre + half(n))), lo = ns.map(n => at(n, centre - half(n))).reverse();
-    el("path", { d: "M" + up.join("L") + "L" + lo.join("L") + "Z", fill: color, "fill-opacity": 0.22, stroke: color, "stroke-width": 1.5 }, svg);
-    el("line", { x1: sc.sx(lx(n0)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5 }, svg);
+    const up = ns.map((n, i) => at(n, centre + half[i])), lo = ns.map((n, i) => at(n, centre - half[i])).reverse();
+    const cut = clip ? { "clip-path": clip } : {};
+    el("path", { d: "M" + up.join("L") + "L" + lo.join("L") + "Z", fill: color, "fill-opacity": 0.22, stroke: color, "stroke-width": 1.5, ...cut }, svg);
+    el("line", { x1: sc.sx(lx(n0)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5, ...cut }, svg);
   };
   const pSc = panel(14, 178, [0, 1], [0, 0.5, 1], "P(upper)");
-  band(pSc, s.pC, bands.p.half, GREY, 3, [0, 1]);
+  band(pSc, s.pC, bands.p.ns, bands.p.half, GREY, [0, 1]);
   if (cells) points(svg, pSc, lx(p.n_trials), cells.map(c => c.n_upper / p.n_trials), "#222", clipTo("p", pSc, [0, 1]));
-  // Lower panel: observed mean rt for each row whose band is drawn, axis from the widest band drawn.
-  const shown = bands.rows.filter(row => row.drawn);
-  const lo = Math.min(...shown.map(r => r.mean - r.half(r.n0))), hi = Math.max(...shown.map(r => r.mean + r.half(r.n0)));
+  // Lower panel: observed mean rt for each row whose band is drawn. The axis is sized from the widest band of the rows
+  // that 1 cell in 1000 has at the current n_trials (all drawn rows if none): a boundary that is rare there would
+  // otherwise stretch it to a band that starts at a larger n_trials. Bands beyond the axis are cut at its edge.
+  const shown = bands.rows.filter(row => row.ns.length > 0), common = shown.filter(row => row.common);
+  const sized = common.length ? common : shown;
+  const lo = Math.min(...sized.map(r => r.mean - Math.max(...r.half))), hi = Math.max(...sized.map(r => r.mean + Math.max(...r.half)));
   const { ylim, yticks } = rtAuto.next(hi);
   // While the top eases up from far below, the axis can hold its 0 tick only; the step is then the top.
   const tick = yticks[1] - yticks[0] || ylim[1];
@@ -149,11 +150,13 @@ function drawAcross(p, s, bands, cells) {
   // While the top eases up to a jump in the bands, it can still be below their floor for a few frames.
   const rtTop = Math.max(ylim[1], rtFloor + tick);
   const rtSc = panel(146, 50, [rtFloor, rtTop], yticks.filter(v => v >= rtFloor - 1e-9 && v <= rtTop + 1e-9), "mean rt (s)");
-  shown.forEach(row => band(rtSc, row.mean, row.half, row.color, row.n0, [rtFloor, rtTop]));
-  // Points for the rows whose band is drawn: the axis is sized to those bands.
+  const bandClip = clipTo("rt-band", rtSc, [rtFloor, rtTop], 1.5);
+  shown.forEach(row => band(rtSc, row.mean, row.ns, row.half, row.color, [rtFloor, rtTop], bandClip));
+  // Points for every row, also where its band is not drawn (a rare cell with 2 responses); a point beyond the axis is
+  // cut at the edge.
   if (cells) {
     const clip = clipTo("rt", rtSc, [rtFloor, rtTop]);
-    shown.forEach(row => points(svg, rtSc, lx(p.n_trials), cells.map(c => (s.rows.length > 1 ? c.mean_rt[row.j] : c.mean_rt)), row.color, clip));
+    s.rows.forEach((row, j) => points(svg, rtSc, lx(p.n_trials), cells.map(c => (s.rows.length > 1 ? c.mean_rt[j] : c.mean_rt)), row.color, clip));
   }
   [3, 10, 30, 100, 300].forEach(n => {
     el("text", { x: rtSc.sx(lx(n)), y: H - 26, "text-anchor": "middle", class: "tick" }, svg).textContent = String(n);
@@ -197,8 +200,8 @@ fit <- bmm(formula = bmf(drift ~ 1, bound ~ 1, ndt ~ 1${four ? ", zr ~ 1" : ""})
 // The summary line of the simulated cells: expected and, in brackets, this sample's P(upper), and per row the mean of
 // the observed mean rts, their SD across cells and the mean observed variance. In 4par a boundary with fewer than 2
 // responses in a cell has no statistics there; the line counts such cells.
-function cellLine(p, v, cells) {
-  const e = ezdmExpected(p, v, p.n_trials), got = ezdmCellStats(cells, p.n_trials, v);
+function cellLine(p, v, cells, got) {
+  const e = ezdmExpected(p, v, p.n_trials);
   const s = x => (Number.isFinite(x) ? fmt(x, 3) : "–");
   const names = v === "4par" ? ["upper", "lower"] : [""];
   simLine(sim, () => `Expected (these ${sim.n} cells of ${p.n_trials} trials): P(upper) ${pair(e.pUpper, got.pUpper)}; ` +
@@ -231,12 +234,13 @@ function draw() {
   drawDiffusion($("ezdm-task"), { mode: "ddm", ...q, ...axis });
   drawStats(q, s, ref, axis);
   const cells = sim.on ? ezdmCells(q, v, p.n_trials, sim.us, sim.n) : null;
-  const bands = ezdmBands(s, N_MAX);
+  const bands = ezdmBands(s, p.n_trials), got = cells && ezdmCellStats(cells, p.n_trials, v);
   drawAcross(q, s, bands, cells);
-  if (cells) cellLine(q, v, cells);
+  if (cells) cellLine(q, v, cells, got);
   else sim.text.hidden = true;
   drawCode(q, s, v);
-  for (const [id, text] of Object.entries(ezdmSummaries({ q, version: v, s, bands, cells: cells ? cells.length : 0, nMax: N_MAX }))) describePlot($(id), text);
+  for (const [id, text] of Object.entries(ezdmSummaries({ q, version: v, s, bands, nMax: N_MAX,
+    cells: cells && { n: cells.length, rows: got.rows.map(r => r.count) } }))) describePlot($(id), text);
   $("ezdm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

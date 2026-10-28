@@ -149,15 +149,17 @@ export const logPlogis = x => -log1pExp(-x);
 
 // log P(a, x) and log Q(a, x), the regularised incomplete gamma function and its complement: the series for P
 // below x = a + 1, the continued fraction for Q (modified Lentz) above, each the other's log1m beyond its range.
-// Both sum to relative 1e-17, so a tail probability keeps its digits where 1 - P would not.
+// Both sum to relative 1e-17, so a tail probability keeps its digits where 1 - P would not. Also d log P / d log x
+// and d log Q / d log x (in absolute value), x f(x) / P and x f(x) / Q with f the gamma(a, 1) density: x f(x) is
+// exp(front), so the one the branch sums is 1 / sum or 1 / h; written so, -x does not cancel against log Q's own -x.
 function logGammaTails(a, x) {
-  if (x <= 0) return { lower: -Infinity, upper: 0 };
+  if (x <= 0) return { lower: -Infinity, upper: 0, dlower: Infinity, dupper: 0 };
   const front = a * Math.log(x) - x - lgamma(a);
   if (x < a + 1) {
     let term = 1 / a, sum = term;
     for (let n = 1; n < 100000 && term > sum * 1e-17; n++) { term *= x / (a + n); sum += term; }
-    const lower = front + Math.log(sum);
-    return { lower, upper: log1mExp(lower) };
+    const lower = front + Math.log(sum), upper = log1mExp(lower);
+    return { lower, upper, dlower: 1 / sum, dupper: Math.exp(lower - upper) / sum };
   }
   const tiny = 1e-300;
   let b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
@@ -171,37 +173,61 @@ function logGammaTails(a, x) {
     h *= step;
     if (Math.abs(step - 1) < 1e-17) break;
   }
-  const upper = front + Math.log(h);
-  return { lower: log1mExp(upper), upper };
+  const upper = front + Math.log(h), lower = log1mExp(upper);
+  return { lower, upper, dlower: Math.exp(upper - lower) / h, dupper: 1 / h };
 }
 
-// qgamma(p, shape, rate) as R computes it: the x with P(shape, rate x) = p. Newton's method on log x, against
-// whichever tail is the smaller (p itself below 0.5, 1 - p above, exact there), inside a bracket that halves when a
-// step leaves it; it stops when a step moves log x by less than 1e-14. The start is Wilson and Hilferty's cube, or in
-// the lower tail of a small shape, where that cube is negative, the leading term of the series, x^a / Gamma(a + 1).
+// qgamma(p, shape, rate) as R computes it: the x with P(shape, rate x) = p. Newton's method on y = log x, against
+// whichever tail is the smaller (p itself below 0.5, 1 - p above, exact there). The root is kept in a bracket: a step
+// that leaves it, or one after which |g| has not halved, is replaced by bisection, and while one side of the bracket
+// is still open a step moves y by at most 2. It stops when a step moves y by less than 1e-14 (below the smallest
+// normal double, also by less than the grid of 2^-1074 there) and returns NaN if 200 steps do not get there. The start
+// is Wilson and Hilferty's cube for shape >= 1 (or, in the lower tail where that cube is negative, the leading term of
+// the series). Below shape 1 it is the series' leading term, x^a / Gamma(a + 1) = p,
+// which lies below the root because that term bounds P from above; in the upper tail the larger of it and the root of
+// Q's leading asymptotic term, x^(a - 1) e^-x / Gamma(a) = 1 - p, which lies above the root for a < 1.
 // Held to R's qgamma() by math.test.mjs, 1e-10 on the log scale.
 export function qgamma(p, shape, rate = 1) {
   if (Number.isNaN(p) || p < 0 || p > 1 || !(shape > 0) || !(rate > 0)) return NaN;
   if (p === 0) return 0;
   if (p === 1) return Infinity;
-  const upperTail = p > 0.5, target = Math.log(upperTail ? 1 - p : p);
-  // d g / d y = x f(x) / P (lower) or x f(x) / Q (upper), f the gamma(shape, 1) density.
-  const slope = (y, t) => Math.exp(shape * y - Math.exp(y) - lgamma(shape) - (upperTail ? t.upper : t.lower));
-  const z = qnorm(p), wh = shape * (1 - 1 / (9 * shape) + z / (3 * Math.sqrt(shape))) ** 3;
-  let y = wh > 0 && (shape > 1 || p > 0.1) ? Math.log(wh) : (Math.log(p) + lgamma(shape + 1)) / shape;
-  let lo = -Infinity, hi = Infinity;
-  for (let i = 0; i < 200; i++) {
-    // gy increases with y = log x: log P - log p in the lower tail, log(1 - p) - log Q in the upper one.
-    const t = logGammaTails(shape, Math.exp(y)), gy = upperTail ? target - t.upper : t.lower - target;
-    if (gy === 0) break;
-    if (gy > 0) hi = Math.min(hi, y); else lo = Math.max(lo, y);
-    let next = y - gy / slope(y, t);
-    if (!(next > lo && next < hi)) {
-      if (Number.isFinite(lo) && Number.isFinite(hi)) next = (lo + hi) / 2;
-      else next = gy > 0 ? y - Math.max(1, Math.abs(y)) : y + 1;
+  const upperTail = p > 0.5, target = upperTail ? Math.log1p(-p) : Math.log(p);
+  const series = (Math.log(p) + lgamma(shape + 1)) / shape;
+  let y;
+  if (shape >= 1) {
+    const z = qnorm(p), wh = shape * (1 - 1 / (9 * shape) + z / (3 * Math.sqrt(shape))) ** 3;
+    y = wh > 0 ? Math.log(wh) : series;
+  } else {
+    y = series;
+    if (upperTail) {
+      let x = -target - lgamma(shape);
+      for (let k = 0; k < 3 && x > 1; k++) x = -target + (shape - 1) * Math.log(x) - lgamma(shape);
+      if (x > Math.exp(y)) y = Math.log(x);
     }
-    if (Math.abs(next - y) < 1e-14 * Math.max(1, Math.abs(y))) { y = next; break; }
+  }
+  // A series start below the smallest double is the root to that precision (the leading term is exact there): 0, as R.
+  if (Math.exp(y) === 0) return 0;
+  let lo = -Infinity, hi = Infinity, last = Infinity;
+  for (let i = 0; i < 200; i++) {
+    // g increases with y: log P - log p in the lower tail, log(1 - p) - log Q in the upper one; dg its slope.
+    // Below the smallest normal double x lies on a grid of 2^-1074, and g is evaluated there: y moves to log x, so that
+    // the step starts where g was evaluated, and the root is scaled by the rate before it is rounded to the grid.
+    const x = Math.exp(y), sub = x > 0 && x < 2.2250738585072014e-308;
+    if (sub) y = Math.log(x);
+    const t = logGammaTails(shape, x), root = v => (sub ? Math.exp(v - Math.log(rate)) : Math.exp(v) / rate);
+    const gy = upperTail ? target - t.upper : t.lower - target, dg = upperTail ? t.dupper : t.dlower;
+    if (gy === 0) return root(y);
+    if (gy > 0) hi = Math.min(hi, y); else lo = Math.max(lo, y);
+    const closed = Number.isFinite(lo) && Number.isFinite(hi);
+    const tol = 1e-14 * Math.max(1, Math.abs(y));
+    let next = y - gy / dg;
+    // A step shorter than that grid would leave x, and so g, where they are, or return to it: the root is that close.
+    if (Math.abs(next - y) < tol || (sub && Math.abs(next - y) < Number.MIN_VALUE / x)) return root(next);
+    if (closed && (!(next > lo && next < hi) || Math.abs(gy) > 0.5 * last)) next = (lo + hi) / 2;
+    else if (!closed) next = Math.min(y + 2, Math.max(y - 2, Number.isNaN(next) ? (gy > 0 ? -Infinity : Infinity) : next));
+    last = Math.abs(gy);
+    if (Math.abs(next - y) < tol) return root(next);
     y = next;
   }
-  return Math.exp(y) / rate;
+  return NaN;
 }

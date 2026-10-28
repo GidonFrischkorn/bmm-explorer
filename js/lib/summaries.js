@@ -176,26 +176,28 @@ export function sdtMafcSummaries({ p, dist, lg, dRange, maxM }) {
   };
 }
 
-// q: the parameters drawn; s: { pC, rows: [{ name, mean, vrt }] }; bands: ezdmBands(s, ...); cells: the number of
-// simulated cells shown, or 0.
+// q: the parameters drawn; s: { pC, rows: [{ name, mean, vrt }] }; bands: ezdmBands(s, q.n_trials), as drawn; cells:
+// { n, rows: [cells with that row's statistics] } of the sample shown, or null. The bands are ±2 SD, not a bound, so
+// the text says so and does not promise a coverage: in 4par a row's mean rt mixes cells of different counts.
 export function ezdmSummaries({ q, version, s, bands, cells, nMax }) {
-  const n = q.n_trials, sd = row => fmt(Math.sqrt(row.vrt));
-  const pLo = Math.max(0, s.pC - bands.p.half(n)), pHi = Math.min(1, s.pC + bands.p.half(n));
+  const n = q.n_trials, sd = row => fmt(Math.sqrt(row.vrt)), four = version === "4par";
+  const pLo = Math.max(0, s.pC - bands.p.now), pHi = Math.min(1, s.pC + bands.p.now);
   const rt = bands.rows.map(r => {
-    const what = version === "4par" ? `mean rt of ${r.name} responses` : "mean rt";
-    if (!r.drawn) return `${what}: no band, fewer than 2 responses expected`;
-    if (n < r.n0) return `${what}: no band below ${r.n0} trials`;
-    return `${what} ${fmt(Math.max(0, r.mean - r.half(n)))} to ${fmt(r.mean + r.half(n))} s around ${fmt(r.mean)} s`;
+    const what = four ? `mean rt of ${r.name} responses` : "mean rt";
+    if (!r.ns.length) return `${what}: no band, fewer than 1 cell in 1000 has 2 ${r.name} responses up to ${nMax} trials`;
+    if (!Number.isFinite(r.now)) return `${what}: no band below ${r.ns[0]} trials`;
+    return `${what}${four ? ", in cells with 2 or more," : ""} ${fmt(Math.max(0, r.mean - r.now))} to ${fmt(r.mean + r.now)} s around ${fmt(r.mean)} s`;
   });
+  const dots = !cells ? "" : ` Dots: ${plural(cells.n, "simulated cell")}` +
+    (four ? `; ${cells.rows.map((k, j) => `${k} with 2 or more ${s.rows[j].name} responses`).join(", ")}.` : ".");
   return {
     "ezdm-task": `Evidence paths with drift ${fmt(q.drift)}, boundary separation ${fmt(q.bound)}, non-decision time ${fmt(q.ndt)} s` +
-      (version === "4par" ? ` and start point ${prob(q.zr)}.` : "."),
-    "ezdm-stats": `Predicted P(upper) ${fmt(s.pC)}; ` + (version === "4par"
+      (four ? ` and start point ${prob(q.zr)}.` : "."),
+    "ezdm-stats": `Predicted P(upper) ${fmt(s.pC)}; ` + (four
       ? `mean rt ${list(s.rows.map(r => `${fmt(r.mean)} s (SD ${sd(r)} s) for ${r.name}`))} responses.`
       : `mean rt ${fmt(s.rows[0].mean)} s (SD ${sd(s.rows[0])} s) over all responses.`),
     "ezdm-across": `One cell's observed statistics against n_trials from 3 to ${nMax} (log scale), with bands of 2 SD either side of ` +
-      `the prediction. At ${n} trials: P(upper) ${fmt(pLo)} to ${fmt(pHi)} around ${fmt(s.pC)}; ${rt.join("; ")}.` +
-      (cells ? ` Dots: ${cells} simulated cells.` : "")
+      `the prediction. At ${n} trials: P(upper) ${fmt(pLo)} to ${fmt(pHi)} around ${fmt(s.pC)}; ${rt.join("; ")}.` + dots
   };
 }
 

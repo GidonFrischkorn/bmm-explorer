@@ -95,9 +95,10 @@ dddm(rt = c(${rts.join(", ")}), response = c(1, 0),
      drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr})
 # ${ll.map(v => v.toFixed(4)).join("  ")}
 
-${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response (0 lower, 1 upper)
+${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response, upper first (NA where none)
 y <- rddm(n = ${sim.n}, drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr})
-c(p_upper = mean(y$response), mean_rt = tapply(y$rt, y$response, mean), sd_rt = tapply(y$rt, y$response, sd))
+r <- factor(y$response, levels = c(1, 0), labels = c("upper", "lower"))
+c(p_upper = mean(y$response), mean_rt = tapply(y$rt, r, mean), sd_rt = tapply(y$rt, r, sd))
 
 ` : ""}# fit: one row per trial, rt in seconds, response 0 or 1
 fit <- bmm(formula = bmf(drift ~ 1, bound ~ 1, ndt ~ 1${freeZr ? ", zr ~ 1" : ""}), data = my_data, model = model)${freeZr
