@@ -63,10 +63,16 @@ toc: false
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Across trial counts">
-    <div class="ex-panel-title">Across trial counts</div>
+    <div class="ex-panel-title ex-title-row">Across trial counts
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="ezdm-sim"> simulate</label>
+        <select id="ezdm-sim-n" aria-label="Cells to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="ezdm-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="ezdm-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="ezdm-sim-info" hidden>Draws N cells of <code>n_trials</code> trials each, as bmm's <code>rezdm()</code> does: the number of upper responses from a binomial, then the observed variance of the response times from a gamma distribution and their observed mean from a normal distribution given that variance, the sampling distributions <code>dezdm()</code> scores. In <code>4par</code> the upper and the lower responses each get their own mean and variance; a cell with fewer than 2 responses at a boundary has no response-time statistics there (<code>NA</code> in bmm). Points at the dashed line: each cell's proportion of upper responses (top) and observed mean response time (bottom), spread sideways so that they do not hide each other; about 95% should fall inside the bands. In <code>4par</code> a boundary's band is for the cells with at least 2 responses there, the ones that have points, and starts from about the first <code>n_trials</code> at which 1 cell in 1000 has them; a rare cell below that start is still drawn. Below the legend: the expected values, and in brackets this sample's: P(upper), the mean of the cells' observed mean response times (<code>mean_rt</code>), their SD across cells, and the mean of the observed variances (<code>var_rt</code>). The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="ezdm-across" role="img" aria-label="Range of observed accuracy and observed mean response time, plus or minus two standard deviations, against the number of trials per cell"></svg>
     <div class="ex-legend">Bands: ±2 SD of what one cell of <code>n_trials</code> trials would show, around the
       prediction (line). Dashed: the current <code>n_trials</code>.</div>
+    <div class="ex-legend ex-sim-text" id="ezdm-sim-text" hidden></div>
   </section>
 </div>
 ```
@@ -141,13 +147,15 @@ distribution, and the third cumulant, divided by the same number, is the covaria
 mean of that normal shifts with the observed variance. The panel *Across trial counts* shows the result: ±2 standard deviations of the
 observed P(upper) and of the observed mean response time around the prediction. Both bands narrow with
 the square root of `n_trials`, so a cell with more trials pins the parameters down more tightly. In
-`4par`, each response's mean comes from the trials that ended at that boundary only (the panel uses
-the expected count, `n_trials` × P(upper) or its complement), so a rare response has a wide band.
-A boundary reached fewer than twice has no variance; `dezdm()` then drops that boundary's response-time
-terms and keeps the binomial term for `n_upper` and, if the other boundary has at least 2 responses, the
-other boundary's response-time terms. A response's band therefore starts at the first `n_trials` for which the call in *In bmm* has at least 2
-responses at that boundary. That call rounds the expected count of upper responses to give `n_upper` and
-leaves `n_trials` − `n_upper` for the lower, so the band starts at an expected count of about 1.5.
+`4par`, each response's mean comes from the trials that ended at that boundary only, so a rare response
+has a wide band. A boundary reached fewer than twice has no variance; `dezdm()` then drops that
+boundary's response-time terms and keeps the binomial term for `n_upper` and, if the other boundary has
+at least 2 responses, the other boundary's response-time terms (`rezdm()` returns `NA` for them). The
+number of responses at a boundary is itself binomial, so a response's band is for the cells that have at
+least 2 of them: its variance is VRT times the mean of 1 / count over those cells, the same SD as the
+"SD across cells" below the legend. Where such cells are rare it narrows less than the square root of
+`n_trials` says. The band starts from about the first `n_trials` at which at least 1 cell in 1000 has 2
+responses at that boundary (exactly up to 30 trials, at the next of the panel's steps above that).
 
 ## In bmm
 

@@ -5,6 +5,8 @@ import { linePlot } from "../lib/plot.js";
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { simControls, rtLine, RT_BINS } from "../lib/sim-panel.js";
+import { ddmSim, rtStats, rtHistogram, cswaldDdmPars } from "../lib/simulate-rt.js";
 
 // bmm's default priors for cswald(version = ...), [mean, sd, scale, step] on the link scale; the sliders
 // span mean +- 3 SD and start at the means. drift has a log link in simple (it is positive there) and an
@@ -33,9 +35,10 @@ const problems = (p, v) => [
   ["zr", v === "simple" || (p.zr > 0 && p.zr < 1), "zr between 0 and 1"]
 ].filter(([, ok]) => !ok).map(([k, , msg]) => [k, msg]);
 
-// The diffusion model the version approximates: simple's bound is half the boundary separation, with the
-// start in the middle; crisk shares the diffusion model's parameters.
-const ddmPars = (p, v) => (v === "simple" ? { drift: p.drift, bound: 2 * p.bound, ndt: p.ndt, zr: 0.5 } : { ...p });
+// The diffusion model the version approximates, and the one rcswald() draws from (simulate-rt.js, cswaldDdmPars()):
+// simple's bound is half the boundary separation, with the start in the middle; crisk shares the diffusion model's
+// parameters.
+const ddmPars = cswaldDdmPars;
 
 // The end of the time axis: the Wald mean plus 3 SD in simple (bound / drift and bound / drift^3, s = 1),
 // the diffusion model's moments in crisk.
@@ -49,6 +52,9 @@ const dens = (x, p, response, v) => dcswald(x, { ...p, response, version: v }).m
 const MARGIN = { l: 64, r: 10, t: 12, b: 50 };
 // The time axis is shared by the task drawing and both density panels.
 const timeAuto = autoAxis(draw, { nice: niceAxis }), densityAxis = autoAxis(draw), compareAxis = autoAxis(draw);
+// The simulated sample, drawn as rcswald() draws it: from the diffusion model of the comparison panel, two uniforms
+// per trial (response and rt).
+const sim = simControls("cswald", draw, 2);
 // simple: the axis reaches 1 at least, the probability of no correct response by rt 0.
 const simpleAxis = autoAxis(draw, { nice: m => niceAxis(Math.max(1, m) * 1.05) });
 
@@ -70,7 +76,13 @@ function drawDensity(p, v, axis, x) {
 
 function drawCompare(p, v, axis, x) {
   const d = ddmPars(p, v), ddm = r => dddm(x, { ...d, response: r }).map(Math.exp);
-  mirroredDensity($("cswald-ddm"), { W: 500, H: 300, margin: MARGIN, ...axis, x, axis: compareAxis,
+  let bars;
+  if (sim.on) {
+    const model = ddmSim(d), draws = model.draw(sim.us);
+    rtLine(sim, model.expected, rtStats(draws), "Diffusion model, expected");
+    bars = rtHistogram(draws, axis.xlim, RT_BINS);
+  } else sim.text.hidden = true;
+  mirroredDensity($("cswald-ddm"), { W: 500, H: 300, margin: MARGIN, ...axis, x, axis: compareAxis, bars,
     upper: [{ y: ddm(1), color: DDM_BAND, width: 5 }, { y: dens(x, p, 1, v), color: BLUE, width: 2.5 }],
     lower: [{ y: ddm(0), color: DDM_BAND, width: 5 }, ...(v === "crisk" ? [{ y: dens(x, p, 0, v), color: ORANGE, width: 2.5 }] : [])],
     lowerLabel: v === "simple" ? "lower (0), DDM only" : "lower (0)" });
@@ -103,7 +115,13 @@ dcswald(rt = c(${rt}, ${rt}), response = c(1, 0),
         drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""}, version = "${v}")
 # ${ll.map(x => x.toFixed(4)).join("  ")}
 
-# fit: one row per trial, rt in seconds, response 0 or 1
+${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response, upper first (NA where none). rcswald()
+# draws from the diffusion model in both versions${crisk ? "" : `; its bound is the boundary separation, twice the simple version's bound`}
+y <- rcswald(n = ${sim.n}, drift = ${q.drift}, bound = ${crisk ? q.bound : 2 * q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""})
+r <- factor(y$response, levels = c(1, 0), labels = c("upper", "lower"))
+c(p_upper = mean(y$response), mean_rt = tapply(y$rt, r, mean), sd_rt = tapply(y$rt, r, sd))
+
+` : ""}# fit: one row per trial, rt in seconds, response 0 or 1
 fit <- bmm(formula = bmf(drift ~ 1, bound ~ 1, ndt ~ 1${freeZr ? ", zr ~ 1" : ""}), data = my_data, model = model)${freeZr
   ? "\n# zr ~ 1 estimates the starting point; without it bmm fixes zr at 0.5" : ""}`;
 }
@@ -124,7 +142,7 @@ function draw() {
   }
   for (const id of ["cswald-widget", "cswald-code"]) $(id).classList.toggle("ex-stale", bad.length > 0);
   $("cswald-hint").textContent = bad.length ? `Needed: ${bad.map(([, msg]) => msg).join(", ")}.` : HINT[v];
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const q = v === "simple" ? { ...p, zr: 0.5 } : p;
   const axis = timeAxis(Math.min(T_CAP, Math.max(tEnd(q, v), tEnd(start(v), v))), timeAuto), x = rtGrid(axis.xlim);
   drawDiffusion($("cswald-task"), { mode: v, ...q, ...axis });
@@ -149,7 +167,7 @@ function applyVersion() {
 }
 
 versionInputs.forEach(i => i.addEventListener("change", () => { applyVersion(); draw(); }));
-$("cswald-reset").addEventListener("click", () => { setParams(pairs, start(version())); draw(); });
+$("cswald-reset").addEventListener("click", () => { setParams(pairs, start(version())); sim.reset(); draw(); });
 $("cswald-copy").addEventListener("click", () => navigator.clipboard?.writeText($("cswald-code").textContent));
 pairs.zr.setBounds({ min: -0.9, max: 0.9, step: 0.02, scale: LOGIT });
 applyVersion();

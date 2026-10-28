@@ -81,12 +81,17 @@ const binomialLogit = (k, n, logitPc) => lchoose(n, k) + k * logPlogis(logitPc) 
 const logDgamma = (x, shape, rate) => shape * Math.log(rate) + (shape - 1) * Math.log(x) - rate * x - lgamma(shape);
 const logDnorm = (x, mean, sd) => -0.5 * LOG2PI - Math.log(sd) - 0.5 * ((x - mean) / sd) ** 2;
 
-// The sampling distribution of the observed mean and variance of n RTs (bmm's .ez_rt_terms): the variance
-// gamma, the mean normal given the variance.
-function rtTerms(meanRt, varRt, n, ndt, MDT, VRT, k3, k4) {
+// The sampling distribution of the observed mean and variance of n RTs, bmm's .ez_rt_terms(): the variance is
+// gamma(shape, rate) with mean VRT, the mean normal given the variance, with mean ndt + MDT + slope (var - VRT)
+// and SD sd. dezdm() and rezdm() both use it.
+export function ezRtTerms(VRT, k3, k4, n) {
   const W = k4 / n + 2 * VRT ** 2 / (n - 1), shape = VRT ** 2 / W, cov = k3 / n;
-  return logDgamma(varRt, shape, shape / VRT) +
-    logDnorm(meanRt, ndt + MDT + cov / W * (varRt - VRT), Math.sqrt(VRT / n - cov ** 2 / W));
+  return { shape, rate: shape / VRT, slope: cov / W, sd: Math.sqrt(VRT / n - cov ** 2 / W) };
+}
+
+function rtTerms(meanRt, varRt, n, ndt, MDT, VRT, k3, k4) {
+  const t = ezRtTerms(VRT, k3, k4, n);
+  return logDgamma(varRt, t.shape, t.rate) + logDnorm(meanRt, ndt + MDT + t.slope * (varRt - VRT), t.sd);
 }
 
 // logit P(upper) in 4par, bmm's .ezdm_logit_pc(), stable for either sign of the drift.

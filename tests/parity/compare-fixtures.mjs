@@ -3,7 +3,7 @@
 // bmm's r*() that differs but agrees in distribution prints a line without failing (below).
 import fs from "node:fs";
 import path from "node:path";
-import { absentReason, parseFixture, closeError, relScale, sampleError, SAMPLE_LIMIT } from "./helpers.mjs";
+import { absentReason, parseFixture, closeError, relScale, sampleError, rtSampleError, rtTrials, SAMPLE_LIMIT } from "./helpers.mjs";
 const [committed, fresh, tolArg] = process.argv.slice(2);
 const tol = +(tolArg ?? 1e-10);
 let bad = 0, sampled = 0;
@@ -49,15 +49,26 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // sampler is reported, not absorbed. The expected statistics (integrate() over d*()) stay at tol. A sample's
   // sample.se.within is sqrt(m (1 - m) / (n - 1)) of its own mean m (sd() over 0/1 values), so it is checked against
   // that, to 1e-9 relative, not against the committed SE, which would repeat the mean check.
-  const SAMPLE_REL = 0.15, WITHIN_REL = 1e-9;
+  // simulate_rt.json is held one sample at a time too, against the committed cell's exact expected values, but each
+  // statistic is scaled by the fresh sample's own SE (rtSampleError(); binomial SE of expected.p_upper for P(upper)), as
+  // simulate_rt.test.mjs does with BMM_FIXTURES. Its variances, the variance and covariance of an ezdm cell's mean_rt
+  // with var_rt and the mean of (var_rt - VRT)^2 have SEs that rest on fourth (for the last, eighth) moments of skewed
+  // rts: over 1000 other streams these moved from 0.68 to 2.68 times the committed SE (the mean of (var_rt - VRT)^2 at
+  // both ends; without it 0.71 to 2.35, 2 or 3 lower rts per 4par cell at n_trials 10 and 20), the means' SEs by 8% at
+  // most. So an SE is only held within a factor of RT_SE_FACTOR of the committed one, which catches a broken SE, not a
+  // new stream; sample.se.p_upper is sqrt(m (1 - m) / trials) of its own mean m. Over those streams no statistic reached
+  // 5 SE: largest 4.81, the mean of (var_rt - VRT)^2 of the upper rts at ezdm n_trials 10, bound 0.223, zr 0.3; 4.46
+  // for every other statistic (the variance of the lower rts at ddm drift -1, bound 2, zr 0.3); 14 of 108000 beyond 4.
+  const SAMPLE_REL = 0.15, WITHIN_REL = 1e-9, RT_SE_FACTOR = 4, rt = f === "simulate_rt.json";
   const sampleOk = (key, x, y, ca, cb) => {
     const m = /^sample\.(mean|se)\.(.+)$/.exec(key);
-    if (f !== "simulate.json" || !m || y.length !== 1) return false;
-    if (m[1] === "mean") return sampleError(ca, m[2], y[0]) === null;
-    if (m[2] === "within") {
-      const n = ca.n, mb = cb.sample.mean.within;
-      return cb.n === n && closeError(y[0], Math.sqrt(mb * (1 - mb) / (n - 1)), Math.abs(y[0]) || 1) <= WITHIN_REL;
+    if ((f !== "simulate.json" && !rt) || !m || y.length !== 1) return false;
+    if (m[1] === "mean") return (rt ? rtSampleError(ca, m[2], y[0], cb.sample.se[m[2]]) : sampleError(ca, m[2], y[0])) === null;
+    if (m[2] === (rt ? "p_upper" : "within")) {
+      const n = rt ? rtTrials(ca) : ca.n, mb = cb.sample.mean[m[2]];
+      return cb.n === ca.n && closeError(y[0], Math.sqrt(mb * (1 - mb) / (rt ? n : n - 1)), Math.abs(y[0]) || 1) <= WITHIN_REL;
     }
+    if (rt) return y[0] > 0 && y[0] / x[0] <= RT_SE_FACTOR && x[0] / y[0] <= RT_SE_FACTOR;
     return closeError(y[0], x[0], Math.abs(x[0]) || 1) <= SAMPLE_REL;
   };
   // simulate_counts.json holds one sample of n trials from bmm's r*() per cell, as shares p with their SE. Any change
@@ -89,7 +100,8 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
         const z = Math.max(0, ...x.map((v, k) => (se[k] > 0 ? Math.abs(y[k] - v) / se[k] : Object.is(v, y[k]) ? 0 : Infinity)));
         return [key, z <= 4 * Math.SQRT2 ? "sample" : `max diff ${worst.toExponential(2)}, ${z.toFixed(2)} SE`];
       }
-      const why = f === "simulate.json" && /^sample\.mean\./.test(key) && y.length === 1 ? ` (${sampleError(ca, key.slice(12), y[0])})` : "";
+      const why = /^sample\.mean\./.test(key) && y.length === 1
+        ? f === "simulate.json" ? ` (${sampleError(ca, key.slice(12), y[0])})` : rt ? ` (${rtSampleError(ca, key.slice(12), y[0], cb.sample.se[key.slice(12)])})` : "" : "";
       return [key, `max diff ${worst.toExponential(2)}${why}`];
     }).filter(([, d]) => d !== null);
     const fails = diffs.filter(([, d]) => d !== "sample");
@@ -99,7 +111,9 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
     } else if (diffs.length) {
       sampled++;
       console.log(`${f} cell ${i} ${ca.fn}: bmm's ${counts ? "r*()" : `r${ca.fn}()`} draws a different stream; the sample agrees (`
-        + (counts ? "shares within 4 sqrt(2) SE of the committed sample" : `means within ${SAMPLE_LIMIT} SE of the expected values, binomial for within; SEs within ${SAMPLE_REL}`)
+        + (counts ? "shares within 4 sqrt(2) SE of the committed sample"
+          : rt ? `means within ${SAMPLE_LIMIT} of their own SEs of the expected values, binomial for p_upper; SEs within a factor of ${RT_SE_FACTOR}`
+          : `means within ${SAMPLE_LIMIT} SE of the expected values, binomial for within; SEs within ${SAMPLE_REL}`)
         + `) (${diffs.map(([k]) => k).join(", ")}; bmm ${a.bmm_version} vs ${b.bmm_version})`);
     }
   });
