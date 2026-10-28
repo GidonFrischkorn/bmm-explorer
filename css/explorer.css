@@ -199,4 +199,27 @@ a > code { color: #0a58ca; }
    size: axis text stays above 11 px. */
 @media (max-width: 1100px) {
   .ex-dash svg, .ex-dash .ex-task-pair svg, .ex-dash .sdt-task-pair svg, #imm-density { max-height: none; }
+
+/* Landing page model map: a nested list (task, then its models) that stays a plain list for screen readers
+   and below tablet width. At 768 px and wider the tasks sit side by side as cards and the models of one task
+   hang on a line; each model after the first names a model above it and what it adds or does differently.
+   Colour only decorates; every line says what it is. */
+.model-map > ul { list-style: none; margin: 0.5rem 0 2rem; padding: 0; }
+.model-map > ul > li { margin: 0 0 1.2rem; font-weight: 600; }
+.model-map > ul > li > ul { list-style: none; margin: 0.4rem 0 0; padding: 0; font-weight: 400; }
+.model-map > ul > li > ul > li { margin: 0.35rem 0; }
+.model-map code { white-space: nowrap; }
+.model-map a code { padding-right: 0; }
+@media (min-width: 768px) {
+  .model-map > ul { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+  .model-map > ul > li { margin: 0; padding: 0.7rem 0.9rem 0.8rem; border: 1px solid var(--ex-border);
+    border-top: 4px solid var(--map-accent, var(--ex-grey)); border-radius: 10px; }
+  .model-map > ul > li:nth-child(1) { --map-accent: var(--ex-blue); }
+  .model-map > ul > li:nth-child(2) { --map-accent: var(--ex-orange); }
+  .model-map > ul > li:nth-child(3) { --map-accent: var(--ex-green); }
+  .model-map > ul > li:nth-child(4) { --map-accent: var(--ex-purple); }
+  .model-map > ul > li > ul { margin-left: 0.5rem; padding-left: 0.9rem; border-left: 2px solid var(--map-accent); }
+  .model-map > ul > li > ul > li { position: relative; margin: 0.7rem 0; line-height: 1.35; }
+  .model-map > ul > li > ul > li::before { content: ""; position: absolute; left: calc(-0.9rem - 5px); top: 0.45em;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--map-accent); }
 }

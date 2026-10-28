@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use these pages, please cite this explorer and the bmm paper."
+title: "bmm model explorer"
+abstract: "Interactive pages for the measurement models in the bmm R package. Move a model's parameters and watch the predicted responses change; the densities are JavaScript ports tested against values that bmm writes."
+type: software
+authors:
+  - family-names: Frischkorn
+    given-names: Gidon T.
+    orcid: "https://orcid.org/0000-0002-5055-9764"
+repository-code: "https://github.com/GidonFrischkorn/bmm-explorer"
+url: "https://www.gfrischkorn.org/bmm-explorer/"
+license: GPL-2.0-only
+references:
+  - type: article
+    title: "A tutorial for estimating Bayesian hierarchical mixture models for visual working memory tasks: Introducing the Bayesian Measurement Modeling (bmm) package for R"
+    authors:
+      - family-names: Frischkorn
+        given-names: Gidon T.
+      - family-names: Popov
+        given-names: Vencislav
+    journal: "Behavior Research Methods"
+    year: 2025
+    volume: 57
+    issue: "5"
+    doi: "10.3758/s13428-025-02643-0"
