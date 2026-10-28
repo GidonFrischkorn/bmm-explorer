@@ -608,6 +608,50 @@
        ]
       }
      ]
+    },
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#ezdm-sim"
+      }
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#ezdm-sim"
+      },
+      {
+       "select": [
+        "#ezdm-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#ezdm-sim-new"
+      }
+     ]
+    },
+    {
+     "name": "note open: simulate",
+     "steps": [
+      {
+       "note": "ezdm-sim-info"
+      }
+     ]
+    },
+    {
+     "name": "4-parameter version, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      },
+      {
+       "click": "#ezdm-sim"
+      }
+     ]
     }
    ]
   },
@@ -647,6 +691,50 @@
        ]
       }
      ]
+    },
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#cswald-sim"
+      }
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#cswald-sim"
+      },
+      {
+       "select": [
+        "#cswald-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#cswald-sim-new"
+      }
+     ]
+    },
+    {
+     "name": "note open: simulate",
+     "steps": [
+      {
+       "note": "cswald-sim-info"
+      }
+     ]
+    },
+    {
+     "name": "competing-risks version, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"cswald-version\"][value=\"crisk\"]"
+      },
+      {
+       "click": "#cswald-sim"
+      }
+     ]
     }
    ]
   },
@@ -676,6 +764,39 @@
         "#ddm-bound-num",
         "0"
        ]
+      }
+     ]
+    },
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#ddm-sim"
+      }
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#ddm-sim"
+      },
+      {
+       "select": [
+        "#ddm-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#ddm-sim-new"
+      }
+     ]
+    },
+    {
+     "name": "note open: simulate",
+     "steps": [
+      {
+       "note": "ddm-sim-info"
       }
      ]
     }
