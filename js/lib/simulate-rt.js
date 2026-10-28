@@ -166,3 +166,19 @@ export function ezdmCellStats(cells, nTrials, version) {
   };
   return { pUpper, rows: four ? [row(0), row(1)] : [row(0)] };
 }
+
+// The bands of the ezdm page's across panel, 2 SD either side of the prediction as n_trials varies: P(upper) is
+// binomial; a row's observed mean rt has variance VRT / (share n), share n being the row's expected count. dezdm()
+// drops a row's rt terms below 2 responses, so a band starts at n0, the first n_trials from 3 whose printed call has
+// 2 responses there (count(n), after rounding), and is not drawn (drawn false) when that is not below nMax.
+// s: { pC, rows: [{ mean, vrt, share, count }] }, as the page's stats().
+export function ezdmBands(s, nMax) {
+  return {
+    p: { centre: s.pC, half: n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n) },
+    rows: s.rows.map((row, j) => {
+      let n0 = 3;
+      while (n0 < nMax && row.count(n0) < 2) n0++;
+      return { ...row, j, n0, drawn: n0 < nMax, half: n => 2 * Math.sqrt(row.vrt / (row.share * n)) };
+    })
+  };
+}

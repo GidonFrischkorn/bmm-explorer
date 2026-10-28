@@ -1,7 +1,8 @@
-// The announcer behind the live summaries (js/lib/a11y.js): what it says and when.
+// The announcer behind the live summaries (js/lib/a11y.js): what it says and when, how the live region repeats a text,
+// the notices of the stale state, and the ARIA values of draggable drawings.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { announcer } from "../../js/lib/a11y.js";
+import { announcer, liveWriter, staleNotices, sliderAria } from "../../js/lib/a11y.js";
 
 // A clock and a timer queue the test advances by hand.
 function harness(opts = {}) {
@@ -73,11 +74,54 @@ test("several plots that changed are announced together, in the order they chang
   assert.deepEqual(h.said, ["a1 b1"]);
 });
 
-test("a notice goes out at once with what was waiting, and nothing is said twice", () => {
+test("a notice goes out at once, ahead of what was waiting, and nothing is said twice", () => {
   const h = harness();
   h.a.update("bars", "a0"); h.a.update("bars", "a1");
-  h.a.say("out of range");
-  assert.deepEqual(h.said, ["a1 out of range"]);
+  h.a.say("valid again");
+  assert.deepEqual(h.said, ["valid again a1"]);
   h.advance(5000);
   assert.equal(h.said.length, 1);
+});
+
+test("the live region gets a new text at once, and a repeated one after a clear, so it is read again", () => {
+  const node = { textContent: "" }, later = [];
+  const write = liveWriter(node, f => later.push(f));
+  write("Not valid: kappa.");
+  assert.equal(node.textContent, "Not valid: kappa.");
+  write("Not valid: kappa.");
+  assert.equal(node.textContent, "", "cleared first");
+  later.shift()();
+  assert.equal(node.textContent, "Not valid: kappa.");
+});
+
+test("a newer text cancels the late write of a repeated one", () => {
+  const node = { textContent: "" }, later = [];
+  const write = liveWriter(node, f => later.push(f));
+  write("a"); write("a"); write("b");
+  later.forEach(f => f());
+  assert.equal(node.textContent, "b");
+});
+
+test("the stale notices: going stale, another entry, one fixed, all fixed, stale again", () => {
+  const next = staleNotices();
+  assert.equal(next(false, []), null, "valid entries say nothing");
+  assert.equal(next(true, ["kappa"]), "Not valid: kappa. The plots keep the last valid values.");
+  assert.equal(next(true, ["kappa"]), null, "a redraw in the same state says nothing");
+  assert.equal(next(true, ["kappa", "c", "a"]), "Also not valid: c and a.");
+  assert.equal(next(true, ["kappa", "a"]), "Still not valid: kappa and a.");
+  assert.equal(next(false, []), "All entries are valid again. The plots show the current values.");
+  assert.equal(next(false, []), null);
+  assert.equal(next(true, ["set size"]), "Not valid: set size. The plots keep the last valid values.");
+  assert.equal(next(true, ["set size", "spacing in radians", "c"]), "Also not valid: spacing in radians and c.");
+});
+
+test("a stale state without a named entry still says so", () => {
+  assert.equal(staleNotices()(true, []), "An entry is not valid. The plots keep the last valid values.");
+});
+
+test("sliderAria rounds the value and limits to two decimals and gives a text", () => {
+  assert.deepEqual(sliderAria(0.6499999999999999, -Math.PI, Math.PI),
+    { "aria-valuenow": 0.65, "aria-valuemin": -3.14, "aria-valuemax": 3.14, "aria-valuetext": "0.65" });
+  assert.equal(sliderAria(-1.5, -4.5, 4.5)["aria-valuetext"], "−1.50");
+  assert.equal(sliderAria(1.57, 0, 3.14, "90 degrees")["aria-valuetext"], "90 degrees");
 });

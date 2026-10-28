@@ -6,6 +6,7 @@ import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { ddmSummaries } from "../lib/summaries.js";
 import { simControls, rtLine, RT_BINS } from "../lib/sim-panel.js";
 import { ddmSim, rtStats, rtHistogram } from "../lib/simulate-rt.js";
 
@@ -121,9 +122,7 @@ function draw() {
   $("ddm-readout").textContent = `P(upper) = ${fmt(s.pC, 2)}; mean rt ${fmt(s.rtUpper, 2)} s upper, ${fmt(s.rtLower, 2)} s lower.`;
   drawSpeedAccuracy(p, s);
   drawCode(p, s);
-  describePlot($("ddm-task"), `Evidence paths with drift ${fmt(p.drift)}, boundary separation ${fmt(p.bound)}, non-decision time ${fmt(p.ndt)} s and start point ${fmt(p.zr)}.`);
-  describePlot($("ddm-density"), `P(upper) ${fmt(s.pC)}; mean rt ${fmt(s.rtUpper)} s for upper and ${fmt(s.rtLower)} s for lower responses.`);
-  describePlot($("ddm-sat"), `P(upper) ${fmt(s.pC)} at mean rt ${fmt(s.rtUpper)} s with boundary separation ${fmt(p.bound)}.`);
+  for (const [id, text] of Object.entries(ddmSummaries(p, s, [BOUNDS[0], BOUNDS.at(-1)]))) describePlot($(id), text);
   $("ddm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

@@ -7,7 +7,8 @@ import { circularPlot, CIRC_X, DEG, wrap } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
 import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { initInfo } from "../lib/info.js";
-import { describePlot, initA11y } from "../lib/a11y.js";
+import { describePlot, initA11y, sliderAria } from "../lib/a11y.js";
+import { immSummaries, colourText, circlePositionText, squarePositionText } from "../lib/summaries.js";
 
 // bmm's default priors for imm(version = "full"), [mean, sd] on the log link. The sliders span
 // mean +- 3 SD; the prior means are the starting values. b has no prior: bmm() fixes it at 1.
@@ -129,17 +130,15 @@ const G = { cx: 220, cy: 192, R: 110, label: 152, W: 440, H: 384 };
 const onCircle = (cx, cy, r, a) => [cx + r * Math.sin(a), cy - r * Math.cos(a)];
 
 // Marks an svg element as a draggable, focusable item for the pointer and keyboard handlers. The
-// slider role needs a numeric value and limits; a square position is a pair, so it goes in valuetext.
+// slider role needs a numeric value and limits; the text says it in the page's units, and in the square,
+// where a position is a pair, also where the item is.
 function draggable(node, i, label, value, [min, max], text) {
   node.dataset.item = i;
   node.setAttribute("class", "imm-drag");
   node.setAttribute("tabindex", 0);
   node.setAttribute("role", "slider");
   node.setAttribute("aria-label", label);
-  node.setAttribute("aria-valuemin", min);
-  node.setAttribute("aria-valuemax", max);
-  node.setAttribute("aria-valuenow", value);
-  if (text !== undefined) node.setAttribute("aria-valuetext", text);
+  for (const [k, v] of Object.entries(sliderAria(value, min, max, text))) node.setAttribute(k, v);
 }
 // Limits of the draggable values: a distance along the circle, a colour, a straight line in the square.
 const RANGE = { dist: [0, r2(Math.PI)], mu: [r2(-Math.PI), r2(Math.PI)], square: [0, r2(2 * EDGE * Math.SQRT2)] };
@@ -169,8 +168,8 @@ function drawDisplay(lay) {
     const disc = el("circle", { cx: x, cy: y, r: 22, fill: hue(lay.mu[i]), stroke: "#222", "stroke-width": 1.5 }, svg);
     el("text", { x: lx, y: ly + 8, "text-anchor": "middle", class: "task-bin" }, svg).textContent = i + 1;
     // On the circle the target defines angle 0 and stays at the top; in the square every item moves.
-    if (mode === "square") draggable(disc, i, `position of item ${i + 1}`, lay.dist[i], RANGE.square, `${q[0]}, ${q[1]}`);
-    else if (i > 0) draggable(disc, i, `position of item ${i + 1}`, lay.dist[i], RANGE.dist);
+    if (mode === "square") draggable(disc, i, `position of item ${i + 1}`, lay.dist[i], RANGE.square, squarePositionText(q, lay.dist[i], i === 0));
+    else if (i > 0) draggable(disc, i, `position of item ${i + 1}`, lay.dist[i], RANGE.dist, circlePositionText(lay.dist[i], Math.atan2(q[0], -q[1])));
   });
   el("text", { x: cx, y: G.H - 6, "text-anchor": "middle", class: "task-note" }, svg).textContent = lay.n === 1 ? "the target alone"
     : `item 2: ${fmt(lay.dist[1])} ${mode === "square" ? "radii" : "rad"} from the target`;
@@ -193,7 +192,7 @@ function drawWheel(lay) {
     el("line", { x1: cx, y1: cy, x2: x, y2: y, stroke: i ? "#9aa3ad" : "#222", "stroke-width": i ? 2 : 3 }, svg);
     const dot = el("circle", { cx: x, cy: y, r: i ? 15 : 17, fill: hue(m), stroke: "#222", "stroke-width": i ? 2 : 4 }, svg);
     el("text", { x: lx, y: ly + 8, "text-anchor": "middle", class: "task-bin" }, svg).textContent = i + 1;
-    if (i) draggable(dot, i, `colour of item ${i + 1}, radians from the target`, m, RANGE.mu);
+    if (i) draggable(dot, i, `colour of item ${i + 1}`, m, RANGE.mu, colourText(m));
   });
   el("text", { x: cx, y: G.H - 6, "text-anchor": "middle", class: "task-note" }, svg).textContent = lay.n > 1
     ? "drag a dot, or click it + arrows" : "no other colours";
@@ -255,6 +254,7 @@ function drawWeights(w, wRef) {
   $("imm-weights-text").textContent = `Now: T ${fmt(w[0])}, non-targets ${fmt(nt)}, G ${fmt(w.at(-1))}.`;
 }
 
+// Returns the drawn curves of the current parameters, { target, within } at set sizes 1 to MAX_N.
 function drawAcross(p, ref, n) {
   const ns = Array.from({ length: MAX_N }, (_, i) => i + 1);
   const curve = (q, f) => ns.map(k => f(preset(k), q));
@@ -277,6 +277,7 @@ function drawAcross(p, ref, n) {
   const [w1, w8] = [series[3].y[0], series[3].y[MAX_N - 1]], [q1, q8] = [series[2].y[0], series[2].y[MAX_N - 1]];
   $("imm-across-now").textContent = `With the current parameters, the target's weight falls from ${fmt(w1)} at set size 1 ` +
     `to ${fmt(w8)} at set size ${MAX_N}, and the probability of a response within ±20° of the target from ${fmt(q1)} to ${fmt(q8)}.`;
+  return { target: series[3].y, within: series[2].y };
 }
 
 const rvec = v => (v.length === 1 ? String(v[0]) : `c(${v.join(", ")})`);
@@ -338,16 +339,10 @@ function draw() {
   drawWheel(lay);
   drawDensity(lay, p, start);
   drawWeights(weights(lay, p), weights(lay, start));
-  drawAcross(p, start, v.set_size);
+  const across = drawAcross(p, start, v.set_size);
   drawCode(lay, p);
-  const w = weights(lay, p), n = v.set_size, deg = Math.round(WINDOW * DEG), tw = k => weights(preset(k), p)[0];
-  describePlot($("imm-display"), `Memory display, ${mode} layout: the target and ${n - 1} non-target${n === 2 ? "" : "s"}.`);
-  describePlot($("imm-wheel"), n === 1 ? "Colour wheel with the target's colour at 0 degrees." :
-    `Colour wheel: target at 0 degrees, non-targets at ${lay.mu.slice(1).map(m => fmt(m * DEG, 0)).join(", ")} degrees.`);
-  describePlot($("imm-density"), `Response-error density: target weight ${fmt(w[0])}, guessing ${fmt(w.at(-1))}, ` +
-    `${fmt(pWithin(lay, p))} of responses within ${deg} degrees of the target.`);
-  describePlot($("imm-weights"), `Weights now: target ${fmt(w[0])}, non-targets ${fmt(w.slice(1, -1).reduce((t, x) => t + x, 0))}, guessing ${fmt(w.at(-1))}.`);
-  describePlot($("imm-across"), `Target weight ${fmt(w[0])} at set size ${n}; ${fmt(tw(1))} at set size 1 and ${fmt(tw(MAX_N))} at set size ${MAX_N}.`);
+  const summaries = immSummaries({ lay, mode, w: weights(lay, p), within: pWithin(lay, p), deg: Math.round(WINDOW * DEG), across });
+  for (const [id, text] of Object.entries(summaries)) describePlot($(id), text);
   $("imm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

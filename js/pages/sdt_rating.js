@@ -1,12 +1,13 @@
 // Page script for models/sdt_rating.qmd: confidence-rating signal detection with K - 1 thresholds set one by
 // one, kept in order by the controls.
 import { ratingLogProbs, dsdtRating, ynRoc, evidencePdf, separation, parsimoniousThresholds, toLogDistance, DISTS } from "../models/sdt.js";
-import { bindPair, bindParams, readParams, setParams, fmt, LINEAR, LOG } from "../lib/widget.js";
+import { bindPair, bindParams, readParams, setParams, LINEAR, LOG } from "../lib/widget.js";
 import { barPlot, el, clipped } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { autoAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { sdtRatingSummaries } from "../lib/summaries.js";
 import { simControls, markBars, simLine, pair } from "../lib/sim-panel.js";
 import { ratingSample } from "../lib/simulate.js";
 
@@ -73,7 +74,9 @@ function drawLatent(v, t) {
     xlim: XLIM, xticks: [-4, -2, 0, 2, 4, 6, 8], xlab: "Evidence (noise at 0, noise scale 1)",
     ymax: Math.max(0.5, 1.15 * Math.max(peak(1), peak(v.sdratio))),
     curves: [{ f: x => evidencePdf(x, v, 0), color: NOISE }, { f: x => evidencePdf(x, v, 1), color: SIGNAL }],
-    lines: t.map((x, j) => ({ x, drag: true, width: 2.5, aria: `threshold ${j + 1}` })),
+    // Each threshold moves within the room place() leaves it beside its neighbours (a typed value may lie beyond).
+    lines: t.map((x, j) => ({ x, drag: true, width: 2.5, aria: `threshold ${j + 1}`,
+      min: Math.min(x, T_MIN + STEP * j), max: Math.max(x, T_MAX - STEP * (v.K - 2 - j)) })),
     // the rating numbers centred in their intervals, where the interval is visible and wide enough
     notes: edges.slice(1).flatMap((hi, j) => (hi - edges[j] > 0.3 ? [{ x: (hi + edges[j]) / 2, y: 22, text: String(j + 1), color: "#5a6472" }] : []))
       .concat([{ x: 0, density: peak(1), text: "noise", color: NOISE }, { x: delta, density: peak(v.sdratio), text: "signal", color: SIGNAL }])
@@ -193,10 +196,7 @@ function draw() {
   drawBars(cur, ref, p.K, got);
   drawRoc(v, cur, ref, got);
   drawCode(v, t, cur);
-  const K = p.K, mode = row => row.indexOf(Math.max(...row)) + 1;
-  describePlot($("sdtrating-latent"), `Noise and signal evidence densities with d ${fmt(p.d)} and ${K - 1} rating thresholds at ${t.map(x => fmt(x)).join(", ")}.`);
-  describePlot($("sdtrating-bars"), `Most likely rating: ${mode(cur[0])} on noise trials, ${mode(cur[1])} on signal trials; rating ${K} gets ${fmt(cur[0][K - 1])} of noise and ${fmt(cur[1][K - 1])} of signal responses.`);
-  describePlot($("sdtrating-roc"), `ROC with ${K - 1} points; the strictest threshold gives hit rate ${fmt(cur[1][K - 1])} at false-alarm rate ${fmt(cur[0][K - 1])}.`);
+  for (const [id, text] of Object.entries(sdtRatingSummaries(p, t, cur))) describePlot($(id), text);
   $("sdtrating-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

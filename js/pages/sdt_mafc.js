@@ -3,10 +3,11 @@
 import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } from "../models/sdt.js";
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
-import { linspace, log1pExp } from "../lib/math.js";
+import { linspace } from "../lib/math.js";
 import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_TEXT, DIST_DASH, DIST_NAMES } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { sdtMafcSummaries, pcText } from "../lib/summaries.js";
 import { simControls, pair, simLine } from "../lib/sim-panel.js";
 import { mafcSample } from "../lib/simulate.js";
 
@@ -100,20 +101,6 @@ function drawByD(p, cur) {
   simLine(sim, () => `Expected (this sample of ${sim.n} trials): P(correct) ${pair(cur, got)}.`);
 }
 
-// P(correct) as text, from its logit. Within 0.01 of 0 or 1, two decimals would print 0.00 or 1.00 for every
-// distribution, so the distance to that end is shown instead (ε or 1 − ε), to two significant digits, read off
-// log10 of it so it does not underflow.
-const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
-const pow10 = e => `10${[...String(e)].map(c => SUP[c]).join("")}`;
-function pcText(lg) {
-  if (!Number.isFinite(lg)) return lg > 0 ? "1" : "0";
-  if (Math.abs(lg) < Math.log(99)) return fmt(1 / (1 + Math.exp(-lg)), 2);
-  const l10 = -log1pExp(Math.abs(lg)) / Math.LN10, e = Math.floor(l10), mant = 10 ** (l10 - e);
-  // a mantissa that rounds up to 10.0 moves to the next power
-  const tail = l10 >= -3 ? fmt(10 ** l10, 1 - e) : mant >= 9.95 ? `1.0 × ${pow10(e + 1)}` : `${fmt(mant, 1)} × ${pow10(e)}`;
-  return lg > 0 ? `1 − ${tail}` : tail;
-}
-
 // P(correct) across m with d fixed: the chosen distribution (solid) and the other three, each at the d that
 // gives the same accuracy at the current m (dotted). A distribution whose logit cannot reach the current one
 // (mafcMatchD gives NaN) gets no curve.
@@ -191,11 +178,8 @@ function draw() {
   drawByD(p, cur);
   drawAcross(p, cur);
   drawCode(p, cur);
-  const lg = mafcLogitPc(p.d, p.m, dist(), RULES), far = p.m === M_MAX ? 2 : M_MAX;
-  describePlot($("sdtmafc-tiles"), `One trial with ${p.m} alternatives, one of them holding the signal.`);
-  describePlot($("sdtmafc-latent"), `Evidence densities under ${dist()} noise at d ${fmt(p.d)}: the signal alternative, one distractor and the strongest of ${p.m - 1} distractors.`);
-  describePlot($("sdtmafc-byd"), `P(correct) ${pcText(lg)} at d ${fmt(p.d)} and ${p.m} alternatives.`);
-  describePlot($("sdtmafc-across"), `P(correct) ${pcText(lg)} at m = ${p.m}; ${pcText(mafcLogitPc(p.d, far, dist(), RULES))} at m = ${far}.`);
+  const summaries = sdtMafcSummaries({ p, dist: dist(), lg: (d, m) => mafcLogitPc(d, m, dist(), RULES), dRange: [dLo, dHi], maxM: M_MAX });
+  for (const [id, text] of Object.entries(summaries)) describePlot($(id), text);
   $("sdtmafc-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
