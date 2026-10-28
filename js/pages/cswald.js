@@ -115,10 +115,11 @@ dcswald(rt = c(${rt}, ${rt}), response = c(1, 0),
         drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""}, version = "${v}")
 # ${ll.map(x => x.toFixed(4)).join("  ")}
 
-${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response (0 lower, 1 upper). rcswald()
+${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response, upper first (NA where none). rcswald()
 # draws from the diffusion model in both versions${crisk ? "" : `; its bound is the boundary separation, twice the simple version's bound`}
 y <- rcswald(n = ${sim.n}, drift = ${q.drift}, bound = ${crisk ? q.bound : 2 * q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""})
-c(p_upper = mean(y$response), mean_rt = tapply(y$rt, y$response, mean), sd_rt = tapply(y$rt, y$response, sd))
+r <- factor(y$response, levels = c(1, 0), labels = c("upper", "lower"))
+c(p_upper = mean(y$response), mean_rt = tapply(y$rt, r, mean), sd_rt = tapply(y$rt, r, sd))
 
 ` : ""}# fit: one row per trial, rt in seconds, response 0 or 1
 fit <- bmm(formula = bmf(drift ~ 1, bound ~ 1, ndt ~ 1${freeZr ? ", zr ~ 1" : ""}), data = my_data, model = model)${freeZr

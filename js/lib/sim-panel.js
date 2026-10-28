@@ -93,12 +93,14 @@ export const shareLine = (sim, labels, expected, shares) =>
 
 // The summary line of a response-time sample: P(upper) and each response's mean and SD of rt, expected (from the
 // density) and, in brackets, the sample's, with the sample's count of each response. e and got as ddmSim().expected
-// and rtStats() give them; whose names the expected values ("Expected", "Diffusion model, expected").
+// and rtStats() give them; whose names the expected values ("Expected", "Diffusion model, expected"). Seconds to 3
+// decimals, as on the ezdm page: at a narrow boundary the SD is a few ms.
 export function rtLine(sim, e, got, whose = "Expected") {
+  const s = x => fmt(x, 3);
   const side = r => {
-    if (got[r].n === 0) return `${r}: mean rt ${fmt(e[r].mean)} s, SD ${fmt(e[r].sd)} s (no ${r} responses in the sample)`;
-    return `${r} (${got[r].n}): mean rt ${fmt(e[r].mean)} (${fmt(got[r].mean)}) s, ` +
-      `SD ${fmt(e[r].sd)} (${got[r].n > 1 ? fmt(got[r].sd) : "–"}) s`;
+    if (got[r].n === 0) return `${r}: mean rt ${s(e[r].mean)} s, SD ${s(e[r].sd)} s (no ${r} responses in the sample)`;
+    return `${r} (${got[r].n}): mean rt ${s(e[r].mean)} (${s(got[r].mean)}) s, ` +
+      `SD ${s(e[r].sd)} (${got[r].n > 1 ? s(got[r].sd) : "–"}) s`;
   };
   simLine(sim, () => `${whose} (this sample of ${sim.n}): P(upper) ${pair(e.pUpper, got.pUpper)}; ${side("upper")}; ${side("lower")}.`);
 }

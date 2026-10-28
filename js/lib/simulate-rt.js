@@ -126,31 +126,49 @@ export function ezdmCells(p, version, nTrials, us, nCells) {
 }
 
 
+// For cells of n trials with P(upper) pC, per boundary [upper, lower]: share, P(count >= 2), the probability that a
+// cell has that boundary's rt statistics, inv, E(1 / count | count >= 2), and inv1, E(1 / (count - 1) | count >= 2)
+// (both NaN where no cell has them). Given k rts the observed mean has variance VRT / k, so over the cells that have the
+// row its variance is VRT * inv; the observed variance has variance k4 / k + 2 VRT^2 / (k - 1). The binomial
+// weights come by recursion out from the mode, set to 1, and are divided by their sum: no tail underflows before the
+// bulk, and no factorial is needed.
+export function ezdmCountTerms(pC, n) {
+  const w = new Float64Array(n + 1);
+  if (pC <= 0 || pC >= 1) w[pC >= 1 ? n : 0] = 1;
+  else {
+    const mode = Math.min(n, Math.floor((n + 1) * pC)), odds = pC / (1 - pC);
+    w[mode] = 1;
+    for (let k = mode; k > 0; k--) w[k - 1] = w[k] * k / ((n - k + 1) * odds);
+    for (let k = mode; k < n; k++) w[k + 1] = w[k] * (n - k) * odds / (k + 1);
+  }
+  const sums = [0, 1].map(() => ({ share: 0, inv: 0, inv1: 0 }));
+  let total = 0;
+  for (let k = 0; k <= n; k++) {
+    total += w[k];
+    [k, n - k].forEach((c, b) => {
+      if (c >= 2) { sums[b].share += w[k]; sums[b].inv += w[k] / c; sums[b].inv1 += w[k] / (c - 1); }
+    });
+  }
+  return sums.map(({ share, inv, inv1 }) => ({ share: share / total, inv: share > 0 ? inv / share : NaN, inv1: share > 0 ? inv1 / share : NaN }));
+}
+
 // The exact expected values for cells of n_trials trials: P(upper) and, per row (one in 3par; upper, lower in 4par),
 // the mean of mean_rt (ndt plus the mean decision time), the mean of var_rt (the decision-time variance), the SD of
 // mean_rt over cells and the covariance of mean_rt and var_rt. Given k rts the mean has variance VRT / k (the normal's
 // sd^2 plus slope^2 times the gamma's variance W) and covariance k3 / k with the variance (slope times W); in 4par k is
 // binomial, and a cell enters a row only with k >= 2, so the SD is sqrt(VRT E(1 / k | k >= 2)) and the covariance
-// k3 E(1 / k | k >= 2), with share, P(k >= 2), the expected share of cells that have the row.
+// k3 E(1 / k | k >= 2), with share, P(k >= 2), the expected share of cells that have the row (ezdmCountTerms()).
+// varVar, the mean of (var_rt - VRT)^2, is the gamma's variance W = k4 / k + 2 VRT^2 / (k - 1) averaged the same way;
+// the pages do not show it, the parity test holds the sampler's dispersion to it.
 export function ezdmExpected(p, version, nTrials) {
   if (version !== "4par") {
-    const m = ezdmMoments3par(p);
-    return { pUpper: m.pC, rows: [{ mean: p.ndt + m.MDT, varRt: m.VRT, sdMean: Math.sqrt(m.VRT / nTrials), cov: m.k3 / nTrials, share: 1 }] };
+    const m = ezdmMoments3par(p), n = nTrials;
+    return { pUpper: m.pC, rows: [{ mean: p.ndt + m.MDT, varRt: m.VRT, sdMean: Math.sqrt(m.VRT / n), cov: m.k3 / n, varVar: m.k4 / n + 2 * m.VRT ** 2 / (n - 1), share: 1 }] };
   }
-  const m = ezdmMoments4par(p), n = nTrials;
-  // log k! for k = 0..n, summed once, for the binomial weights.
-  const lf = [0];
-  for (let i = 1; i <= n; i++) lf.push(lf[i - 1] + Math.log(i));
-  const pmf = k => Math.exp(lf[n] - lf[k] - lf[n - k] + (k ? k * Math.log(m.pC) : 0) + (n - k ? (n - k) * Math.log1p(-m.pC) : 0));
-  const row = (mdt, vrt, k3, count) => {
-    let share = 0, inv = 0;
-    for (let k = 0; k <= n; k++) {
-      const c = count(k);
-      if (c >= 2) { const w = pmf(k); share += w; inv += w / c; }
-    }
-    return { mean: p.ndt + mdt, varRt: vrt, sdMean: Math.sqrt(vrt * inv / share), cov: k3 * inv / share, share };
-  };
-  return { pUpper: m.pC, rows: [row(m.mdt_upper, m.vrt_upper, m.k3_upper, k => k), row(m.mdt_lower, m.vrt_lower, m.k3_lower, k => n - k)] };
+  const m = ezdmMoments4par(p), [up, lo] = ezdmCountTerms(m.pC, nTrials);
+  const row = (mdt, vrt, k3, k4, { share, inv, inv1 }) =>
+    ({ mean: p.ndt + mdt, varRt: vrt, sdMean: Math.sqrt(vrt * inv), cov: k3 * inv, varVar: k4 * inv + 2 * vrt ** 2 * inv1, share });
+  return { pUpper: m.pC, rows: [row(m.mdt_upper, m.vrt_upper, m.k3_upper, m.k4_upper, up), row(m.mdt_lower, m.vrt_lower, m.k3_lower, m.k4_lower, lo)] };
 }
 
 // The same statistics for a sample of cells from ezdmCells(): P(upper) as the mean of n_upper / n_trials, and per row

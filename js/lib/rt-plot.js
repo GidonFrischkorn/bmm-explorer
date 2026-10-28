@@ -121,9 +121,9 @@ export function drawDiffusion(svg, spec) {
 // highest curve: in a small sample of a narrow density one bin can hold several times its share, and an axis set by it
 // would flatten the curves; a bar above that is cut at the edge.
 export function mirroredDensity(svg, spec) {
-  const curves = Math.max(1e-9, ...[...spec.upper, ...spec.lower].flatMap(s => s.y.filter(Number.isFinite)));
+  const curves = [...spec.upper, ...spec.lower].flatMap(s => s.y);
   const bars = spec.bars ? [...spec.bars.upper, ...spec.bars.lower] : [];
-  const ymax = Math.max(curves, Math.min(1.5 * curves, ...bars));
+  const ymax = densityLimit(curves, bars);
   const { ylim, yticks } = spec.axis ? spec.axis.next(ymax) : niceAxis(ymax * 1.05);
   const ticks = [...yticks.slice(1).reverse().map(v => -v), ...yticks];
   const fin = v => (Number.isFinite(v) ? v : 0);
@@ -146,6 +146,14 @@ export function mirroredDensity(svg, spec) {
   el("text", { x: out.sx(spec.xlim[1]) - 6, y: out.sy(-ylim[1]) - 8, "text-anchor": "end", class: "task-note", fill: ORANGE }, svg)
     .textContent = spec.lowerLabel ?? "lower (0)";
   return out;
+}
+
+// The height the density axis must reach: the highest curve, raised to the highest bar but by no more than half
+// again. Without bars it is the highest curve. Non-finite values are skipped.
+export function densityLimit(curves, bars = []) {
+  const top = ys => ys.reduce((m, v) => (Number.isFinite(v) && v > m ? v : m), 0);
+  const c = Math.max(1e-9, top(curves));
+  return Math.max(c, Math.min(1.5 * c, top(bars)));
 }
 
 export const rtGrid = (xlim, n = 200) => linspace(xlim[0], xlim[1], n + 1).slice(1);

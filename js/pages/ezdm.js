@@ -7,7 +7,7 @@ import { drawDiffusion, timeAxis, BLUE, ORANGE, GREY } from "../lib/rt-plot.js";
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
 import { simControls, simLine, pair } from "../lib/sim-panel.js";
-import { ezdmCells, ezdmExpected, ezdmCellStats, EZ_STRIDE, EZ_MAX_TRIALS } from "../lib/simulate-rt.js";
+import { ezdmCells, ezdmExpected, ezdmCellStats, ezdmCountTerms, EZ_STRIDE, EZ_MAX_TRIALS } from "../lib/simulate-rt.js";
 
 // bmm's default priors for ezdm(), [mean, sd, scale, step] on the link scale; the sliders span mean +- 3 SD
 // and start at the means. drift's cauchy(0, 1) has no SD; its slider spans location +- 3 scale.
@@ -33,18 +33,16 @@ const problems = (p, v) => [
 const nUpperOf = (pC, n) => Math.round(pC * n);
 
 // The forward map: P(upper), and mean and SD of the rt (ndt plus the decision time) for each row the
-// version has: one for all responses in 3par, one per boundary in 4par. count(n) is the number of
-// responses the row's rt statistics come from in the printed call for n trials.
+// version has: one for all responses in 3par, one per boundary in 4par.
 function stats(p, v) {
   if (v === "3par") {
     const m = ezdmMoments3par(p);
-    return { pC: m.pC, rows: [{ label: "rt, all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT, share: 1, count: n => n }] };
+    return { pC: m.pC, rows: [{ label: "rt, all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT }] };
   }
   const m = ezdmMoments4par(p);
   return { pC: m.pC, rows: [
-    { label: "rt, upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper, share: m.pC, count: n => nUpperOf(m.pC, n) },
-    { label: "rt, lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower, share: 1 - m.pC,
-      count: n => n - nUpperOf(m.pC, n) }] };
+    { label: "rt, upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper },
+    { label: "rt, lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower }] };
 }
 
 const W = 500, H = 300;
@@ -85,13 +83,20 @@ function drawStats(p, s, ref, axis) {
   svg.setAttribute("viewBox", `0 0 ${W} ${yAxis + 60}`);
 }
 
-// How far the observed statistics of one cell scatter around the predicted ones as n_trials changes:
-// +-2 SD of the proportion of upper responses (binomial) and of each observed mean rt. Under bmm's
-// sampling model the observed mean has variance VRT / n (normal given the observed variance, which is
-// gamma with mean VRT); in 4par n is the expected count at that boundary. dezdm() drops a boundary's rt
-// terms below 2 responses, so its band starts at the first n_trials whose printed call has 2 responses
-// there (after rounding, an expected count of about 1.5), or is not drawn.
+// How far the observed statistics of one cell scatter around the predicted ones as n_trials changes, drawn with or
+// without a sample: +-2 SD of the proportion of upper responses (binomial) and of each observed mean rt. Under bmm's
+// sampling model the observed mean of k rts has variance VRT / k (normal given the observed variance, which is gamma
+// with mean VRT). In 3par k is n_trials. In 4par k is the binomial count at that boundary, and a cell has the
+// boundary's statistics only with k >= 2 (rezdm() gives NA, dezdm() drops the terms), so the band is +-2
+// sqrt(VRT E(1 / k | k >= 2)), the SD of the points and of the summary line's "SD across cells" (ezdmCountTerms()).
+// It starts at the first n_trials of NS4 where at least 1 cell in 1000 has 2 responses there (BAND_SHARE), or is not
+// drawn; a sample's rare cells below that are still drawn as points.
 const NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
+// 4par: every n_trials up to 30, where the SD bends as cells with 2 responses become common, then 30 steps even on
+// the log axis.
+const NS4 = [...new Set([...Array.from({ length: 28 }, (_, i) => i + 3),
+  ...Array.from({ length: 30 }, (_, i) => Math.round(30 * (N_MAX / 30) ** ((i + 1) / 30)))])];
+const BAND_SHARE = 1e-3;
 const timeAuto = autoAxis(draw, { nice: niceAxis }), rtAuto = autoAxis(draw, { nice: niceAxis });
 // The simulated cells: one block of EZ_STRIDE uniforms per cell (simulate-rt.js, ezdmCells()).
 const sim = simControls("ezdm", draw, EZ_STRIDE);
@@ -111,11 +116,11 @@ function drawAcross(p, s, cells) {
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   // Sample points are cut at the edge of their panel.
   const defs = el("defs", {}, svg);
-  const clipTo = (name, sc, ylim) => {
+  const clipTo = (name, sc, ylim, pad = 3) => {
     const cp = el("clipPath", { id: `ezdm-across-${name}` }, defs);
     // 10 px beyond the ends of the n_trials axis, so that the sideways spread of up to 7 px + r keeps all points at
-    // n_trials 3 and 500.
-    el("rect", { x: sc.sx(lx(3)) - 10, y: sc.sy(ylim[1]) - 3, width: sc.sx(lx(N_MAX)) - sc.sx(lx(3)) + 20, height: sc.sy(ylim[0]) - sc.sy(ylim[1]) + 6 }, cp);
+    // n_trials 3 and 500; pad px above and below the range.
+    el("rect", { x: sc.sx(lx(3)) - 10, y: sc.sy(ylim[1]) - pad, width: sc.sx(lx(N_MAX)) - sc.sx(lx(3)) + 20, height: sc.sy(ylim[0]) - sc.sy(ylim[1]) + 2 * pad }, cp);
     return `url(#ezdm-across-${name})`;
   };
   const m = { l: 64, r: 12 }, lx = n => Math.log(n);
@@ -129,22 +134,30 @@ function drawAcross(p, s, cells) {
       transform: `rotate(-90 16 ${(sc.sy(ylim[0]) + sc.sy(ylim[1])) / 2})` }, svg).textContent = ylab;
     return sc;
   };
-  // centre +- half(n) from n0 to N_MAX, clipped to the panel's range.
-  const band = (sc, centre, half, color, n0, [ymin, ymax] = [-Infinity, Infinity]) => {
-    const ns = [n0, ...NS.filter(n => n > n0)];
+  // centre +- half[i] at n_trials ns[i], clipped to the panel's range (clip, if given, cuts the line there too).
+  const band = (sc, centre, ns, half, color, [ymin, ymax] = [-Infinity, Infinity], clip) => {
+    const n0 = ns[0];
     const at = (n, y) => sc.sx(lx(n)).toFixed(1) + "," + sc.sy(Math.min(ymax, Math.max(ymin, y))).toFixed(1);
-    const up = ns.map(n => at(n, centre + half(n))), lo = ns.map(n => at(n, centre - half(n))).reverse();
-    el("path", { d: "M" + up.join("L") + "L" + lo.join("L") + "Z", fill: color, "fill-opacity": 0.22, stroke: color, "stroke-width": 1.5 }, svg);
-    el("line", { x1: sc.sx(lx(n0)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5 }, svg);
+    const up = ns.map((n, i) => at(n, centre + half[i])), lo = ns.map((n, i) => at(n, centre - half[i])).reverse();
+    const cut = clip ? { "clip-path": clip } : {};
+    el("path", { d: "M" + up.join("L") + "L" + lo.join("L") + "Z", fill: color, "fill-opacity": 0.22, stroke: color, "stroke-width": 1.5, ...cut }, svg);
+    el("line", { x1: sc.sx(lx(n0)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5, ...cut }, svg);
   };
   const pSc = panel(14, 178, [0, 1], [0, 0.5, 1], "P(upper)");
-  band(pSc, s.pC, n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n), GREY, 3, [0, 1]);
+  band(pSc, s.pC, NS, NS.map(n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n)), GREY, [0, 1]);
   if (cells) points(svg, pSc, lx(p.n_trials), cells.map(c => c.n_upper / p.n_trials), "#222", clipTo("p", pSc, [0, 1]));
-  // Lower panel: observed mean rt for each row whose band is drawn, axis from the widest band drawn.
-  const shown = s.rows.map((row, j) => ({ ...row, j, n0: Array.from({ length: N_MAX - 2 }, (_, i) => i + 3).find(n => row.count(n) >= 2) ?? N_MAX }))
-    .filter(row => row.n0 < N_MAX);
-  const spread = row => n => 2 * Math.sqrt(row.vrt / (row.share * n));
-  const lo = Math.min(...shown.map(r => r.mean - spread(r)(r.n0))), hi = Math.max(...shown.map(r => r.mean + spread(r)(r.n0)));
+  // Lower panel: observed mean rt for each row whose band is drawn. The axis is sized from the widest band of the rows
+  // that 1 cell in 1000 has at the current n_trials (all drawn rows if none): a boundary that is rare there would
+  // otherwise stretch it to a band that starts at a larger n_trials. Bands beyond the axis are cut at its edge.
+  const terms = s.rows.length > 1 ? NS4.map(n => ezdmCountTerms(s.pC, n)) : null;
+  const shown = s.rows.map((row, j) => {
+    if (!terms) return { ...row, j, ns: NS, half: NS.map(n => 2 * Math.sqrt(row.vrt / n)) };
+    const at = NS4.map((n, i) => [n, terms[i][j]]).filter(([, t]) => t.share >= BAND_SHARE && Number.isFinite(t.inv));
+    return { ...row, j, ns: at.map(([n]) => n), half: at.map(([, t]) => 2 * Math.sqrt(row.vrt * t.inv)) };
+  }).filter(row => row.ns.length > 0);
+  const now = terms && ezdmCountTerms(s.pC, p.n_trials), common = shown.filter(r => !now || now[r.j].share >= BAND_SHARE);
+  const sized = common.length ? common : shown;
+  const lo = Math.min(...sized.map(r => r.mean - Math.max(...r.half))), hi = Math.max(...sized.map(r => r.mean + Math.max(...r.half)));
   const { ylim, yticks } = rtAuto.next(hi);
   // While the top eases up from far below, the axis can hold its 0 tick only; the step is then the top.
   const tick = yticks[1] - yticks[0] || ylim[1];
@@ -152,11 +165,13 @@ function drawAcross(p, s, cells) {
   // While the top eases up to a jump in the bands, it can still be below their floor for a few frames.
   const rtTop = Math.max(ylim[1], rtFloor + tick);
   const rtSc = panel(146, 50, [rtFloor, rtTop], yticks.filter(v => v >= rtFloor - 1e-9 && v <= rtTop + 1e-9), "mean rt (s)");
-  shown.forEach(row => band(rtSc, row.mean, spread(row), row.color, row.n0, [rtFloor, rtTop]));
-  // Points for the rows whose band is drawn: the axis is sized to those bands.
+  const bandClip = clipTo("rt-band", rtSc, [rtFloor, rtTop], 1.5);
+  shown.forEach(row => band(rtSc, row.mean, row.ns, row.half, row.color, [rtFloor, rtTop], bandClip));
+  // Points for every row, also where its band is not drawn (a rare cell with 2 responses); a point beyond the axis is
+  // cut at the edge.
   if (cells) {
     const clip = clipTo("rt", rtSc, [rtFloor, rtTop]);
-    shown.forEach(row => points(svg, rtSc, lx(p.n_trials), cells.map(c => (s.rows.length > 1 ? c.mean_rt[row.j] : c.mean_rt)), row.color, clip));
+    s.rows.forEach((row, j) => points(svg, rtSc, lx(p.n_trials), cells.map(c => (s.rows.length > 1 ? c.mean_rt[j] : c.mean_rt)), row.color, clip));
   }
   [3, 10, 30, 100, 300].forEach(n => {
     el("text", { x: rtSc.sx(lx(n)), y: H - 26, "text-anchor": "middle", class: "tick" }, svg).textContent = String(n);

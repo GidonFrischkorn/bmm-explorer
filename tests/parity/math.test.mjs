@@ -44,7 +44,9 @@ qcell.x.forEach((p, i) => {
 
 // qgamma against R's qgamma(p, shape), on the log scale: 1e-10 in log q, the contract for every density, from shapes
 // below 0.5 (an ezdm boundary with 2 rts) to 1000 and quantiles out to 2^-33 and 1 - 2^-33, the uniforms a page can
-// pass. Measured: 5.7e-14 (shape 0.05, p 2^-33, q 1e-193).
+// pass, then two points where an earlier port returned about 1e17, 2000 seeded points at shapes 0.04 to 0.3 and four
+// subnormal answers (R/make_fixtures.R § math), which the port hits exactly. Measured: 1.7e-13 (shape 0.0434, p 8.7e-8,
+// q 9.2e-164).
 const gcell = loadFixture("math").cells.find(c => c.fn === "qgamma");
 if (!gcell?.x?.length || gcell.x.length !== gcell.q?.length || gcell.x.length !== gcell.shape?.length) {
   throw new Error("math.json: no qgamma cell with matching x, shape and q");
