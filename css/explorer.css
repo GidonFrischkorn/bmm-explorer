@@ -178,7 +178,9 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 /* A link set in code: Bootstrap's link blue on the code background is 4.0:1, the text rule asks for 4.5. */
 a > code { color: #0a58ca; }
 /* Touch: every control is a 44 px target on a coarse pointer or a tablet-width window. The visible slider thumb stays 24 px;
-   its transparent border carries the rest of the target. The (i) button grows its hit area, not its size. */
+   its transparent border carries the rest of the target. The (i) button grows its hit area, not its size, and the area
+   stays clear of every other control and label: margins beside the button, and a 44 px label row above a stacked slider
+   with the slack on top, so the label stays next to its own slider. */
 @media (pointer: coarse), (max-width: 1100px) {
   .ex-dash input[type="range"] { -webkit-appearance: none; appearance: none; height: 44px; background: transparent; margin: 0; }
   .ex-dash input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #7c8793; }
@@ -191,14 +193,17 @@ a > code { color: #0a58ca; }
   .ex-dash .ex-options label, .ex-dash .ex-sim label, .ex-dash .ex-select, .ex-dash .ex-legend label {
     display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; }
   .ex-dash input[type="radio"], .ex-dash input[type="checkbox"] { width: 1.3rem; height: 1.3rem; margin: 0; }
-  .ex-info { position: relative; }
-  .ex-info::after { content: ""; position: absolute; inset: -14px; }
+  .ex-info { position: relative; margin: 0 6px 0 8px; }
+  .ex-info::after { content: ""; position: absolute; left: calc(50% - 22px); top: calc(50% - 22px); width: 44px; height: 44px; }
+  .ex-dash .ex-controls:not(.ex-inline) > .ex-label { min-height: 44px; padding-top: calc(44px - 1.1rem); }
+  .ex-dash .ex-controls:not(.ex-inline) > .ex-label .ex-info::after { top: auto; bottom: 0; }
 }
 /* Tablet width: the panels stack from 1100 px (the docked sidebar leaves about 760 px of a 1024 px window, so three columns
    would draw every plot at under half size). The page scrolls here, so the one-screen height caps go and the plots keep their
    size: axis text stays above 11 px. */
 @media (max-width: 1100px) {
   .ex-dash svg, .ex-dash .ex-task-pair svg, .ex-dash .sdt-task-pair svg, #imm-density { max-height: none; }
+}
 
 /* Landing page model map: a nested list (task, then its models) that stays a plain list for screen readers
    and below tablet width. At 768 px and wider the tasks sit side by side as cards and the models of one task
