@@ -9,6 +9,50 @@ The pages below belong to the measurement models in the
 predicted responses change, shows the task the model is written for, and, where the model has
 something to say about it, what happens when the task changes while the parameters do not. Nothing
 is installed and nothing is sent anywhere: the curves are computed in your browser.
+New here? Read [how to read a page](about.qmd) first.
+
+## Start from your response
+
+What does one response in your task look like? Find it below. The first model under each kind of
+response is the simplest; each later one says what it adds to the model named in its line, or what it is
+an alternative to.
+
+::: {.model-map role="navigation" aria-label="Model map: from the kind of response to a model"}
+- **A position on a circle**, such as a colour reproduced on a colour wheel
+  - [`mixture2p`](models/mixture2p.qmd): is a response a memory of the target or a guess? The share of
+    memory responses and how precise they are.
+  - [`mixture3p`](models/mixture3p.qmd): adds to `mixture2p` responses to the other items on the display.
+    Do some responses go to a non-target?
+  - [`imm`](models/imm.qmd): adds to `mixture3p` the distance between the items. Do items closer to the
+    cued location draw more of the responses?
+  - [`sdm`](models/sdm.qmd): an alternative to the mixture models that has no guessing parameter. How
+    strong is memory and how precise, in one distribution?
+- **A choice among candidates**, such as recalling a cued item from a list when the response set is
+  shown
+  - [`m3`](models/m3.qmd): recall as a competition of activations. How strongly do the correct item, the
+    other list items, distractors and lures each draw a response, and how does recall change with the
+    number of candidates?
+  - [`mpt`](models/mpt.qmd): the same recall task as discrete states instead of activations. Is the cued
+    item in memory, is its position retrieved, or is the response a guess among the candidates?
+- **A yes/no answer, a choice among m alternatives, or a confidence rating**, such as old/new
+  recognition
+  - [`sdt_yn`](models/sdt_yn.qmd): how far apart are the evidence for noise and for signal, and where
+    does the observer put the criterion, the point above which the answer is yes?
+  - [`sdt_mafc`](models/sdt_mafc.qmd): a variant for a choice among `m` alternatives, which has no
+    criterion. How does accuracy fall as `m` grows?
+  - [`sdt_rating`](models/sdt_rating.qmd): adds to `sdt_yn` ratings on `K` levels. Where do `K` − 1
+    thresholds cut the evidence axis, and what ROC (receiver operating characteristic) curve do they
+    trace?
+- **A response time**, such as a reaction time, with a choice or without
+  - [`ezdm`](models/ezdm.qmd): what accuracy and what mean and variance of the response times follow
+    from the drift, the boundary and the non-decision time?
+  - [`ddm`](models/ddm.qmd): the diffusion model that `ezdm` summarises, adding the whole response-time
+    distribution of both responses. How do speed and accuracy trade as the boundary moves?
+  - [`cswald`](models/cswald.qmd): a simpler alternative to `ddm` for tasks with few errors. Evidence for
+    the correct response runs to one boundary; how are the errors treated?
+:::
+
+The same models by family, with what each page shows:
 
 ## Categorical decision tasks
 
@@ -50,5 +94,3 @@ is installed and nothing is sent anywhere: the curves are computed in your brows
   accumulates to one boundary, errors censored or racing; compared with the diffusion model.
 - [Diffusion Decision Model (`ddm`)](models/ddm.qmd): response-time densities of both responses, and how
   speed and accuracy trade as the boundary separation changes.
-
-New here? Read [how to read a page](about.qmd) first.
