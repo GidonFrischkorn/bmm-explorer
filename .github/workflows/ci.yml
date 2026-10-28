@@ -40,12 +40,15 @@ jobs:
           test -f _site/js/models/circular.js || { echo "::error::js/ not copied into _site"; exit 1; }
       # axe-core is a test-time tool: it is fetched here, checked against the pins in tests/a11y/axe.json and injected into
       # headless Chrome; it is never part of the site. Serious and critical violations fail the job; the rest are listed.
+      # The same run checks what axe does not (tests/a11y/checks.mjs): value texts, plot summaries and the stale notice
+      # in every state, each state's expected effect, the keyboard focus marks, and a 1024 x 768 touch pass (44 px
+      # targets, no horizontal scroll, svg text size, the landing-page map).
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Fetch axe-core (pinned, checksum-verified)
         run: node tests/a11y/fetch-axe.mjs
-      - name: Accessibility check (axe-core on every page state)
+      - name: Accessibility check (axe-core and DOM checks on every page state, focus, tablet)
         run: node tests/a11y/run-axe.mjs --out axe-report.json
       - name: Keep the axe report
         if: always()

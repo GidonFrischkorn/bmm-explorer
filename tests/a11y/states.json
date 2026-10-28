@@ -1,9 +1,28 @@
 {
- "//": "One entry per rendered page; every page is checked in its default state plus the states listed here. A step is { click: selector } | { note: info id } | { range: [selector, value] } | { number: [selector, value] } | { select: [selector, value] }. A new page needs an entry (run-axe.mjs fails without one).",
+ "//": "One entry per rendered page; every page is checked in its default state plus the states listed here. A step is { click: selector } | { note: info id } | { range: [selector, value] } | { number: [selector, value] } | { select: [selector, value] }. A state's optional expect lists what must hold after its steps: a selector that must match, or [selector, property, value] ('visible': takes up space; 'text': its text contains the value). An out-of-range state expects .ex-dash.ex-stale, and the run then checks that the stale notice was announced. A page's optional focus: { walk: Tab through the dashboard, marks: draggable svg items whose focus mark is checked }. A new page needs an entry (run-axe.mjs fails without one).",
  "viewport": [
   1280,
   800
  ],
+ "tablet": {
+  "//": "A second pass at tablet size with touch: these states of every page that has them.",
+  "viewport": [
+   1024,
+   768
+  ],
+  "states": [
+   "default",
+   "simulate on"
+  ]
+ },
+ "map": {
+  "//": "The landing page model map: cards in the laptop and tablet passes, a plain list at this narrow size.",
+  "page": "index",
+  "narrow": [
+   760,
+   1000
+  ]
+ },
  "pages": {
   "index": {},
   "about": {},
@@ -15,6 +34,18 @@
       {
        "click": "#m3-sim"
       }
+     ],
+     "expect": [
+      [
+       "#m3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -23,6 +54,13 @@
       {
        "note": "m3-a-info"
       }
+     ],
+     "expect": [
+      [
+       "#m3-a-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -31,6 +69,13 @@
       {
        "note": "m3-version-info"
       }
+     ],
+     "expect": [
+      [
+       "#m3-version-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -39,6 +84,23 @@
       {
        "click": "input[name=\"m3-version\"][value=\"cs\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-version\"][value=\"cs\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-f",
+       "visible",
+       true
+      ],
+      [
+       "#m3-code",
+       "text",
+       "version = \"cs\""
+      ]
      ]
     },
     {
@@ -53,6 +115,66 @@
       {
        "note": "m3-f-info"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-version\"][value=\"cs\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#m3-f-info",
+       "hidden",
+       false
+      ],
+      [
+       "#m3-f",
+       "visible",
+       true
+      ],
+      [
+       "#m3-code",
+       "text",
+       "version = \"cs\""
+      ]
+     ]
+    },
+    {
+     "name": "c raised",
+     "steps": [
+      {
+       "range": [
+        "#m3-c",
+        "3.5"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#m3-c",
+       "value",
+       "3.5"
+      ],
+      [
+       "#m3-c-num",
+       "value",
+       "33.1"
+      ],
+      [
+       "#m3-bars > desc",
+       "text",
+       "correct 0.87,"
+      ]
      ]
     },
     {
@@ -61,6 +183,18 @@
       {
        "click": "input[name=\"m3-rule\"][value=\"softmax\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-rule\"][value=\"softmax\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-code",
+       "text",
+       "choice_rule = \"softmax\""
+      ]
      ]
     },
     {
@@ -72,6 +206,28 @@
       {
        "click": "#m3-sim"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-rule\"][value=\"gaussian\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#m3-code",
+       "text",
+       "choice_rule = \"gaussian\""
+      ]
      ]
     },
     {
@@ -83,6 +239,10 @@
         "-5"
        ]
       }
+     ],
+     "expect": [
+      "#m3-a-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     },
     {
@@ -94,9 +254,16 @@
         "99"
        ]
       }
+     ],
+     "expect": [
+      "#m3-set-size-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
-   ]
+   ],
+   "focus": {
+    "walk": true
+   }
   },
   "models/mpt": {
    "states": [
@@ -106,6 +273,18 @@
       {
        "click": "#mpt-sim"
       }
+     ],
+     "expect": [
+      [
+       "#mpt-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mpt-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -123,6 +302,23 @@
       {
        "click": "#mpt-sim-new"
       }
+     ],
+     "expect": [
+      [
+       "#mpt-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mpt-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#mpt-sim-n",
+       "value",
+       "1000"
+      ]
      ]
     },
     {
@@ -131,6 +327,13 @@
       {
        "note": "mpt-n-other-info"
       }
+     ],
+     "expect": [
+      [
+       "#mpt-n-other-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -139,6 +342,13 @@
       {
        "note": "mpt-pi-info"
       }
+     ],
+     "expect": [
+      [
+       "#mpt-pi-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -150,6 +360,10 @@
         "99"
        ]
       }
+     ],
+     "expect": [
+      "#mpt-set-size-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
    ]
@@ -162,6 +376,18 @@
       {
        "click": "#imm-sim"
       }
+     ],
+     "expect": [
+      [
+       "#imm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -170,6 +396,13 @@
       {
        "note": "imm-set-size-info"
       }
+     ],
+     "expect": [
+      [
+       "#imm-set-size-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -178,6 +411,18 @@
       {
        "click": "input[name=\"imm-layout\"][value=\"square\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"imm-layout\"][value=\"square\"]",
+       "checked",
+       true
+      ],
+      [
+       "#imm-display > desc",
+       "text",
+       "square layout"
+      ]
      ]
     },
     {
@@ -189,6 +434,28 @@
       {
        "click": "#imm-sim"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"imm-layout\"][value=\"square\"]",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#imm-display > desc",
+       "text",
+       "square layout"
+      ]
      ]
     },
     {
@@ -200,6 +467,18 @@
       {
        "click": "#imm-sim"
       }
+     ],
+     "expect": [
+      [
+       "#imm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -211,6 +490,13 @@
         "1"
        ]
       }
+     ],
+     "expect": [
+      [
+       "#imm-set-size-num",
+       "value",
+       "1"
+      ]
      ]
     },
     {
@@ -222,9 +508,19 @@
         "99"
        ]
       }
+     ],
+     "expect": [
+      "#imm-set-size-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
-   ]
+   ],
+   "focus": {
+    "walk": true,
+    "marks": [
+     "#imm-wheel .imm-drag"
+    ]
+   }
   },
   "models/mixture2p": {
    "states": [
@@ -234,6 +530,18 @@
       {
        "click": "#mix2-sim"
       }
+     ],
+     "expect": [
+      [
+       "#mix2-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mix2-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -242,6 +550,13 @@
       {
        "note": "mix2-kappa-info"
       }
+     ],
+     "expect": [
+      [
+       "#mix2-kappa-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -253,6 +568,10 @@
         "2"
        ]
       }
+     ],
+     "expect": [
+      "#mix2-p_mem-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
    ]
@@ -265,6 +584,18 @@
       {
        "click": "#mix3-sim"
       }
+     ],
+     "expect": [
+      [
+       "#mix3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mix3-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -273,6 +604,13 @@
       {
        "note": "mix3-p_nt-info"
       }
+     ],
+     "expect": [
+      [
+       "#mix3-p_nt-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -292,9 +630,18 @@
         "2"
        ]
       }
+     ],
+     "expect": [
+      "#mix3-p_mem-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
-   ]
+   ],
+   "focus": {
+    "marks": [
+     "#mix3-wheel .ex-drag"
+    ]
+   }
   },
   "models/sdm": {
    "states": [
@@ -304,6 +651,18 @@
       {
        "click": "#sdm-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -312,6 +671,13 @@
       {
        "note": "sdm-c-info"
       }
+     ],
+     "expect": [
+      [
+       "#sdm-c-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -320,6 +686,13 @@
       {
        "note": "sdm-par-info"
       }
+     ],
+     "expect": [
+      [
+       "#sdm-par-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -328,6 +701,18 @@
       {
        "click": "input[name=\"sdm-par\"][value=\"bessel\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"sdm-par\"][value=\"bessel\"]",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-code",
+       "text",
+       "c_bessel2sqrtexp"
+      ]
      ]
     },
     {
@@ -339,6 +724,28 @@
       {
        "click": "#sdm-sim"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"sdm-par\"][value=\"bessel\"]",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdm-code",
+       "text",
+       "c_bessel2sqrtexp"
+      ]
      ]
     },
     {
@@ -350,6 +757,10 @@
         "-1"
        ]
       }
+     ],
+     "expect": [
+      "#sdm-kappa-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
    ]
@@ -362,6 +773,18 @@
       {
        "click": "#sdtyn-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtyn-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtyn-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -370,6 +793,13 @@
       {
        "note": "sdtyn-d-info"
       }
+     ],
+     "expect": [
+      [
+       "#sdtyn-d-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -378,6 +808,14 @@
       {
        "click": "input[name=\"sdtyn-anchor\"][value=\"bias\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"sdtyn-anchor\"][value=\"bias\"]",
+       "checked",
+       true
+      ],
+      "#sdtyn-latent .sdt-drag[aria-label=\"bias\"]"
      ]
     },
     {
@@ -392,6 +830,28 @@
       {
        "click": "#sdtyn-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtyn-dist",
+       "value",
+       "gumbel_min"
+      ],
+      [
+       "#sdtyn-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtyn-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtyn-code",
+       "text",
+       "dist = \"gumbel_min\""
+      ]
      ]
     },
     {
@@ -406,6 +866,24 @@
       {
        "click": "input[name=\"sdtyn-anchor\"][value=\"bias\"]"
       }
+     ],
+     "expect": [
+      [
+       "#sdtyn-dist",
+       "value",
+       "logistic"
+      ],
+      [
+       "input[name=\"sdtyn-anchor\"][value=\"bias\"]",
+       "checked",
+       true
+      ],
+      [
+       "#sdtyn-code",
+       "text",
+       "dist = \"logistic\""
+      ],
+      "#sdtyn-latent .sdt-drag[aria-label=\"bias\"]"
      ]
     },
     {
@@ -417,9 +895,18 @@
         "0"
        ]
       }
+     ],
+     "expect": [
+      "#sdtyn-s-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
-   ]
+   ],
+   "focus": {
+    "marks": [
+     "#sdtyn-latent .sdt-drag"
+    ]
+   }
   },
   "models/sdt_mafc": {
    "states": [
@@ -429,6 +916,18 @@
       {
        "click": "#sdtmafc-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtmafc-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -437,6 +936,13 @@
       {
        "note": "sdtmafc-m-info"
       }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-m-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -451,6 +957,28 @@
       {
        "click": "#sdtmafc-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-m",
+       "value",
+       "10"
+      ],
+      [
+       "#sdtmafc-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtmafc-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtmafc-tiles > desc",
+       "text",
+       "10 alternatives"
+      ]
      ]
     },
     {
@@ -462,6 +990,18 @@
         "gumbel_max"
        ]
       }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-dist",
+       "value",
+       "gumbel_max"
+      ],
+      [
+       "#sdtmafc-code",
+       "text",
+       "dist = \"gumbel_max\""
+      ]
      ]
     },
     {
@@ -476,6 +1016,28 @@
       {
        "click": "#sdtmafc-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-dist",
+       "value",
+       "logistic"
+      ],
+      [
+       "#sdtmafc-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtmafc-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtmafc-code",
+       "text",
+       "dist = \"logistic\""
+      ]
      ]
     },
     {
@@ -487,6 +1049,10 @@
         "11"
        ]
       }
+     ],
+     "expect": [
+      "#sdtmafc-m-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
    ]
@@ -499,6 +1065,18 @@
       {
        "click": "#sdtrating-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtrating-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrating-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -507,6 +1085,13 @@
       {
        "note": "sdtrating-k-info"
       }
+     ],
+     "expect": [
+      [
+       "#sdtrating-k-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -518,6 +1103,18 @@
         "3"
        ]
       }
+     ],
+     "expect": [
+      [
+       "#sdtrating-k",
+       "value",
+       "3"
+      ],
+      [
+       "#sdtrating-latent > desc",
+       "text",
+       "2 rating thresholds"
+      ]
      ]
     },
     {
@@ -532,6 +1129,28 @@
       {
        "click": "#sdtrating-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtrating-k",
+       "value",
+       "8"
+      ],
+      [
+       "#sdtrating-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrating-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrating-latent > desc",
+       "text",
+       "7 rating thresholds"
+      ]
      ]
     },
     {
@@ -546,6 +1165,28 @@
       {
        "click": "#sdtrating-sim"
       }
+     ],
+     "expect": [
+      [
+       "#sdtrating-dist",
+       "value",
+       "gumbel_min"
+      ],
+      [
+       "#sdtrating-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrating-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrating-code",
+       "text",
+       "dist = \"gumbel_min\""
+      ]
      ]
     },
     {
@@ -557,6 +1198,10 @@
         "5"
        ]
       }
+     ],
+     "expect": [
+      "#sdtrating-t1-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     }
    ]
@@ -569,6 +1214,13 @@
       {
        "note": "ezdm-version-info"
       }
+     ],
+     "expect": [
+      [
+       "#ezdm-version-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -577,6 +1229,13 @@
       {
        "note": "ezdm-n-info"
       }
+     ],
+     "expect": [
+      [
+       "#ezdm-n-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -585,6 +1244,23 @@
       {
        "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-zr",
+       "visible",
+       true
+      ],
+      [
+       "#ezdm-code",
+       "text",
+       "version = \"4par\""
+      ]
      ]
     },
     {
@@ -596,6 +1272,23 @@
       {
        "note": "ezdm-zr-info"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-zr-info",
+       "hidden",
+       false
+      ],
+      [
+       "#ezdm-zr",
+       "visible",
+       true
+      ]
      ]
     },
     {
@@ -607,6 +1300,10 @@
         "2"
        ]
       }
+     ],
+     "expect": [
+      "#ezdm-n-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     },
     {
@@ -615,6 +1312,18 @@
       {
        "click": "#ezdm-sim"
       }
+     ],
+     "expect": [
+      [
+       "#ezdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -632,6 +1341,23 @@
       {
        "click": "#ezdm-sim-new"
       }
+     ],
+     "expect": [
+      [
+       "#ezdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#ezdm-sim-n",
+       "value",
+       "1000"
+      ]
      ]
     },
     {
@@ -640,6 +1366,13 @@
       {
        "note": "ezdm-sim-info"
       }
+     ],
+     "expect": [
+      [
+       "#ezdm-sim-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -651,6 +1384,33 @@
       {
        "click": "#ezdm-sim"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#ezdm-zr",
+       "visible",
+       true
+      ],
+      [
+       "#ezdm-code",
+       "text",
+       "version = \"4par\""
+      ]
      ]
     }
    ]
@@ -663,6 +1423,13 @@
       {
        "note": "cswald-version-info"
       }
+     ],
+     "expect": [
+      [
+       "#cswald-version-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -671,6 +1438,13 @@
       {
        "note": "cswald-drift-info"
       }
+     ],
+     "expect": [
+      [
+       "#cswald-drift-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -679,6 +1453,23 @@
       {
        "click": "input[name=\"cswald-version\"][value=\"crisk\"]"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"cswald-version\"][value=\"crisk\"]",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-zr",
+       "visible",
+       true
+      ],
+      [
+       "#cswald-code",
+       "text",
+       "version = \"crisk\""
+      ]
      ]
     },
     {
@@ -690,6 +1481,10 @@
         "0"
        ]
       }
+     ],
+     "expect": [
+      "#cswald-bound-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     },
     {
@@ -698,6 +1493,18 @@
       {
        "click": "#cswald-sim"
       }
+     ],
+     "expect": [
+      [
+       "#cswald-sim",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -715,6 +1522,23 @@
       {
        "click": "#cswald-sim-new"
       }
+     ],
+     "expect": [
+      [
+       "#cswald-sim",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#cswald-sim-n",
+       "value",
+       "1000"
+      ]
      ]
     },
     {
@@ -723,6 +1547,13 @@
       {
        "note": "cswald-sim-info"
       }
+     ],
+     "expect": [
+      [
+       "#cswald-sim-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -734,6 +1565,33 @@
       {
        "click": "#cswald-sim"
       }
+     ],
+     "expect": [
+      [
+       "input[name=\"cswald-version\"][value=\"crisk\"]",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#cswald-zr",
+       "visible",
+       true
+      ],
+      [
+       "#cswald-code",
+       "text",
+       "version = \"crisk\""
+      ]
      ]
     }
    ]
@@ -746,6 +1604,13 @@
       {
        "note": "ddm-drift-info"
       }
+     ],
+     "expect": [
+      [
+       "#ddm-drift-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -754,6 +1619,13 @@
       {
        "note": "ddm-zr-info"
       }
+     ],
+     "expect": [
+      [
+       "#ddm-zr-info",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -765,6 +1637,10 @@
         "0"
        ]
       }
+     ],
+     "expect": [
+      "#ddm-bound-num.ex-invalid",
+      ".ex-dash.ex-stale"
      ]
     },
     {
@@ -773,6 +1649,18 @@
       {
        "click": "#ddm-sim"
       }
+     ],
+     "expect": [
+      [
+       "#ddm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ddm-sim-text",
+       "hidden",
+       false
+      ]
      ]
     },
     {
@@ -790,6 +1678,23 @@
       {
        "click": "#ddm-sim-new"
       }
+     ],
+     "expect": [
+      [
+       "#ddm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ddm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#ddm-sim-n",
+       "value",
+       "1000"
+      ]
      ]
     },
     {
@@ -798,6 +1703,13 @@
       {
        "note": "ddm-sim-info"
       }
+     ],
+     "expect": [
+      [
+       "#ddm-sim-info",
+       "hidden",
+       false
+      ]
      ]
     }
    ]
