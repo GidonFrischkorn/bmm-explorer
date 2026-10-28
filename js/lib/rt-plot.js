@@ -1,6 +1,6 @@
 // Drawings shared by the response-time pages: the evidence path between the boundaries (the task panel),
 // a time axis, and the two responses' densities mirrored about zero, upper above and lower below.
-import { el, clear, linePlot, scales, pathFor } from "./plot.js";
+import { el, clear, linePlot, scales, pathFor, clipped } from "./plot.js";
 import { niceAxis } from "./axis.js";
 import { linspace } from "./math.js";
 import { mulberry32, boxMuller } from "./random.js";
@@ -114,11 +114,16 @@ export function drawDiffusion(svg, spec) {
 }
 
 // Densities of the two responses over rt (seconds), upper above zero and lower mirrored below.
-// spec: { W, H, margin, xlim, xticks, x, upper: [{ y, color, dashed, width }], lower: [...], lowerLabel }, y on
+// spec: { W, H, margin, xlim, xticks, x, upper: [{ y, color, dashed, width }], lower: [...], lowerLabel, bars }, y on
 // the natural scale. The y axis is symmetric and labelled with absolute values; lowerLabel defaults to "lower (0)";
-// axis, an autoAxis, holds its limit.
+// axis, an autoAxis, holds its limit. bars, a simulated sample (rtHistogram()): { edges, upper, lower } heights in
+// density units, drawn behind the curves, upper above and lower below. The axis makes room for bars up to 1.5 times the
+// highest curve: in a small sample of a narrow density one bin can hold several times its share, and an axis set by it
+// would flatten the curves; a bar above that is cut at the edge.
 export function mirroredDensity(svg, spec) {
-  const ymax = Math.max(1e-9, ...[...spec.upper, ...spec.lower].flatMap(s => s.y.filter(Number.isFinite)));
+  const curves = Math.max(1e-9, ...[...spec.upper, ...spec.lower].flatMap(s => s.y.filter(Number.isFinite)));
+  const bars = spec.bars ? [...spec.bars.upper, ...spec.bars.lower] : [];
+  const ymax = Math.max(curves, Math.min(1.5 * curves, ...bars));
   const { ylim, yticks } = spec.axis ? spec.axis.next(ymax) : niceAxis(ymax * 1.05);
   const ticks = [...yticks.slice(1).reverse().map(v => -v), ...yticks];
   const fin = v => (Number.isFinite(v) ? v : 0);
@@ -128,6 +133,13 @@ export function mirroredDensity(svg, spec) {
     series: [...spec.upper.map(s => ({ ...s, x: spec.x, y: s.y.map(fin) })),
              ...spec.lower.map(s => ({ ...s, x: spec.x, y: s.y.map(v => -fin(v)) }))]
   });
+  if (spec.bars) {
+    const { edges, upper, lower } = spec.bars;
+    const bar = (i, h) => svg.insertBefore(el("rect", { x: out.sx(edges[i]), width: out.sx(edges[i + 1]) - out.sx(edges[i]),
+      y: out.sy(Math.max(h, 0)), height: Math.abs(out.sy(h) - out.sy(0)), class: "sim-bar", ...clipped(svg) }), out.paths[0]);
+    upper.forEach((h, i) => h > 0 && bar(i, h));
+    lower.forEach((h, i) => h > 0 && bar(i, -h));
+  }
   el("line", { x1: out.sx(spec.xlim[0]), x2: out.sx(spec.xlim[1]), y1: out.sy(0), y2: out.sy(0), stroke: "#222", "stroke-width": 1.5 }, svg);
   el("text", { x: out.sx(spec.xlim[1]) - 6, y: out.sy(ylim[1]) + 20, "text-anchor": "end", class: "task-note", fill: BLUE }, svg)
     .textContent = "upper (1)";

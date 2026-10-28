@@ -46,10 +46,16 @@ toc: false
   </div>
 
   <section class="ex-panel ex-p-bars" aria-label="Predicted response-time densities">
-    <div class="ex-panel-title">Predicted response times</div>
+    <div class="ex-panel-title ex-title-row">Predicted response times
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="ddm-sim"> simulate</label>
+        <select id="ddm-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="ddm-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="ddm-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="ddm-sim-info" hidden>Draws N trials from the model: each trial's response with probability P(upper), and its response time from that response's density. Grey bars behind the curves: the sample's response times in 40 bins across the time axis, upper responses above the axis and lower ones below. The bars of a response have that response's share of the trials as their area, as its curve does. A response time beyond the axis has no bar. Below the legend: the expected P(upper) and each response's mean and SD of the response time, and in brackets the same for this sample, with the number of trials in the sample that gave each response after its name; a response with few trials gives values far from the expected ones. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rddm()</code>, in the code under In bmm; R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="ddm-density" role="img" aria-label="Density of the response time for upper responses above the axis and for lower responses below it, now and at the prior means"></svg>
     <div class="ex-legend"><span class="blue">Upper</span> above the axis, <span class="orange">lower</span> below; each
       area is that response's probability. Dashed: prior means. <span id="ddm-readout"></span></div>
+    <div class="ex-legend ex-sim-text" id="ddm-sim-text" hidden></div>
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Speed and accuracy as bound changes">

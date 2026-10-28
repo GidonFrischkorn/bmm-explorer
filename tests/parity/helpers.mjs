@@ -16,7 +16,7 @@ export function loadFixture(name) {
 
 // Fixtures that need a bmm function newer than the oldest bmm the script runs on, with the bmm version
 // that ships it. Only these may be absent, and only when an older bmm wrote the directory.
-export const SINCE = { nodes: "1.4.1", mpt: "1.4.1", sdt: "1.4.1", rt: "1.4.1" };
+export const SINCE = { nodes: "1.4.1", mpt: "1.4.1", sdt: "1.4.1", rt: "1.4.1", simulate_rt: "1.4.1" };
 // Version strings compared numerically per component, so "1.4.1.9000" (develop) counts as >= "1.4.1". A
 // version that is not dotted integers throws: read as older, it would turn a missing fixture into a skip.
 const versionParts = v => {
@@ -94,4 +94,37 @@ export function sampleError(cell, r, value) {
   }
   const z = (value - cell.expected[r]) / se;
   return Math.abs(z) <= SAMPLE_LIMIT ? null : `${r} ${value}, expected ${cell.expected[r]}, ${Number.isNaN(z) ? "NaN" : z.toFixed(2)} SE apart`;
+}
+
+// Where SAMPLE_LIMIT SE of a share is below one trial, a normal limit means nothing: with P(lower) 8e-8 and 1e5 trials a
+// correct sampler draws one lower response in 0.8% of samples. There the count k of trials on the rare side passes if
+// P(K >= k) under Poisson(lambda), lambda = n min(E, 1 - E), is at least the two-sided normal tail at SAMPLE_LIMIT
+// (5.7e-7), so it fails as rarely as the 5 SE limit does: 0 to 2 such trials pass at lambda 0.008, 3 fail.
+export const RARE_TAIL = 5.733e-7;
+export function rareCountOk(k, lambda) {
+  let below = 0, term = Math.exp(-lambda);
+  for (let j = 0; j < k; j++) { below += term; term *= lambda / (j + 1); }
+  return 1 - below >= RARE_TAIL;
+}
+
+// A statistic of a simulate_rt.json cell's sample (bmm's r*() or the explorer's) against the cell's exact expected
+// value: null within SAMPLE_LIMIT SE, else the reason. One sample against a fixed value, as sampleError(). p_upper is a
+// share of trials Bernoulli trials (n for ddm and cswald, n * n_trials for ezdm): its SE is the binomial one of
+// E = expected.p_upper clamped to [0, 1] (integrate() puts it 7.6e-10 above 1 at cswald drift 20.1), and where
+// SAMPLE_LIMIT SE is below one trial the rule of rareCountOk() applies. Every other statistic takes the SE given, by
+// default the cell's sample.se (bmm's sample of the same size from the same distribution).
+export const rtTrials = cell => cell.n * (cell.args.n_trials ?? 1);
+export function rtSampleError(cell, key, value, se = cell.sample.se[key]) {
+  const E = key === "p_upper" ? Math.min(1, Math.max(0, cell.expected.p_upper)) : cell.expected[key];
+  if (key === "p_upper") {
+    const n = rtTrials(cell);
+    se = Math.sqrt(E * (1 - E) / n);
+    if (SAMPLE_LIMIT * se < 1 / n) {
+      const k = Math.round(n * Math.abs(value - Math.round(E)));
+      return rareCountOk(k, n * Math.min(E, 1 - E)) ? null
+        : `p_upper ${value}, expected ${E}: ${k} of ${n} trials on the side of probability ${Math.min(E, 1 - E)}`;
+    }
+  }
+  const z = (value - E) / se;
+  return Math.abs(z) <= SAMPLE_LIMIT ? null : `${key} ${value}, expected ${E}, ${Number.isNaN(z) ? "NaN" : z.toFixed(2)} SE apart`;
 }

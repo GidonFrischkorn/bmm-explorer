@@ -6,6 +6,8 @@ import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { simControls, rtLine, RT_BINS } from "../lib/sim-panel.js";
+import { ddmSim, rtStats, rtHistogram } from "../lib/simulate-rt.js";
 
 // bmm's default priors for ddm(), [mean, sd, scale] on the link scale; the sliders span mean +- 3 SD and
 // start at the means. drift's cauchy(0, 1) has no SD; its slider spans location +- 3 scale.
@@ -32,11 +34,19 @@ function summary(p) {
 
 // The time axis is shared by the task drawing and the densities; the speed-accuracy panel has its own.
 const timeAuto = autoAxis(draw, { nice: niceAxis }), satAuto = autoAxis(draw, { nice: niceAxis }), densityAxis = autoAxis(draw);
+// The simulated sample: two uniforms per trial, one for the response and one for its rt (simulate-rt.js, ddmSim()).
+const sim = simControls("ddm", draw, 2);
 
 function drawDensity(p, axis) {
   const x = rtGrid(axis.xlim), dens = (q, r) => dddm(x, { ...q, response: r }).map(Math.exp);
+  let bars;
+  if (sim.on) {
+    const model = ddmSim(p), draws = model.draw(sim.us);
+    rtLine(sim, model.expected, rtStats(draws));
+    bars = rtHistogram(draws, axis.xlim, RT_BINS);
+  } else sim.text.hidden = true;
   mirroredDensity($("ddm-density"), {
-    W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, ...axis, x, axis: densityAxis,
+    W: 500, H: 300, margin: { l: 64, r: 10, t: 12, b: 50 }, ...axis, x, axis: densityAxis, bars,
     upper: [{ y: dens(START, 1), color: BLUE, dashed: true }, { y: dens(p, 1), color: BLUE }],
     lower: [{ y: dens(START, 0), color: ORANGE, dashed: true }, { y: dens(p, 0), color: ORANGE }]
   });
@@ -84,7 +94,11 @@ dddm(rt = c(${rts.join(", ")}), response = c(1, 0),
      drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr})
 # ${ll.map(v => v.toFixed(4)).join("  ")}
 
-# fit: one row per trial, rt in seconds, response 0 or 1
+${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response (0 lower, 1 upper)
+y <- rddm(n = ${sim.n}, drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr})
+c(p_upper = mean(y$response), mean_rt = tapply(y$rt, y$response, mean), sd_rt = tapply(y$rt, y$response, sd))
+
+` : ""}# fit: one row per trial, rt in seconds, response 0 or 1
 fit <- bmm(formula = bmf(drift ~ 1, bound ~ 1, ndt ~ 1${freeZr ? ", zr ~ 1" : ""}), data = my_data, model = model)${freeZr
   ? "\n# zr ~ 1 estimates the starting point; without it bmm fixes zr at 0.5" : ""}`;
 }
@@ -100,7 +114,7 @@ function draw() {
   for (const id of ["ddm-widget", "ddm-code"]) $(id).classList.toggle("ex-stale", bad.length > 0);
   $("ddm-hint").textContent = bad.length ? `Needed: ${bad.map(([, msg]) => msg).join(", ")}.`
     : "bound, ndt: log scale; zr: logit scale. The boxes show the values.";
-  if (bad.length) return;
+  if (bad.length) { sim.text.hidden = true; return; }
   const s = summary(p), axis = timeAxis(Math.max(s.tEnd, summary(START).tEnd), timeAuto);
   drawDiffusion($("ddm-task"), { mode: "ddm", ...p, ...axis });
   drawDensity(p, axis);
@@ -113,7 +127,7 @@ function draw() {
   $("ddm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
-$("ddm-reset").addEventListener("click", () => { setParams(pairs, START); draw(); });
+$("ddm-reset").addEventListener("click", () => { setParams(pairs, START); sim.reset(); draw(); });
 $("ddm-copy").addEventListener("click", () => navigator.clipboard?.writeText($("ddm-code").textContent));
 setParams(pairs, START);
 draw();

@@ -58,10 +58,16 @@ toc: false
   </section>
 
   <section class="ex-panel ex-p-across" aria-label="Compared with the diffusion model">
-    <div class="ex-panel-title">Compared with the diffusion model</div>
+    <div class="ex-panel-title ex-title-row">Compared with the diffusion model
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="cswald-sim"> simulate</label>
+        <select id="cswald-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="cswald-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="cswald-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="cswald-sim-info" hidden>Draws N trials as bmm's <code>rcswald()</code> does: from the diffusion model in this panel (wide grey), which this model approximates, in both versions (<code>simple</code> and <code>crisk</code>), not from the thin curves of this model. Each trial's response comes with the diffusion model's P(upper), its response time from that response's density. Grey bars: the sample's response times in 40 bins across the time axis, upper responses above the axis and lower ones below; the bars of a response have that response's share of the trials as their area. A response time beyond the axis has no bar. Below the legend: the diffusion model's expected P(upper) and each response's mean and SD of the response time, and in brackets the same for this sample, with the number of trials in the sample that gave each response after its name; a response with few trials gives values far from the expected ones. In <code>simple</code> the diffusion model's boundary separation is twice <code>bound</code>, with the start in the middle, and the <code>rcswald()</code> call under In bmm passes that separation as <code>bound</code>. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. R draws its own sample, so its numbers differ from the page's.</div>
     <svg id="cswald-ddm" role="img" aria-label="The densities of this model drawn over the densities of the diffusion decision model with matching parameters"></svg>
     <div class="ex-legend">Thin: this model, as on the left. Wide grey: the diffusion model with the same
       parameters. <span id="cswald-ddm-readout"></span></div>
+    <div class="ex-legend ex-sim-text" id="cswald-sim-text" hidden></div>
   </section>
 </div>
 ```

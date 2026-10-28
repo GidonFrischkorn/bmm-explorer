@@ -389,9 +389,14 @@ xg <- c(1e-8, .1, .5, 1, 1.5, 2, 2.5, 3, 7.3, 9.99, 10, 10.01, 12.5, 30, 101, 25
 # where |p - 0.5| = 0.425, and p = exp(-25)), out to the tails, where it is steepest.
 p <- c(1e-300, 1e-100, 1e-20, 1e-12, exp(-25) * c(.999, 1.001), 1e-6, .001, .0749, .075, .0751, .2, .5 - 1e-12, .5,
        .6, .9249, .925, .9251, .999, 1 - 1e-6, 1 - 1e-12, 1 - 2^-52)
+# qgamma() in js/lib/math.js draws an ezdm cell's var_rt: shape VRT^2 / W, from below 0.5 (2 rts at a boundary) to the
+# hundreds (500 trials), at quantiles out to the tails a 32-bit uniform reaches (2^-33 and 1 - 2^-33) and beyond.
+gq <- expand.grid(p = c(2^-33, 1e-12, 1e-6, .001, .1, .5, .9, .999, 1 - 1e-6, 1 - 2^-33),
+                  shape = c(.05, .3, 1, 2.5, 10, 50, 249.5, 1000))
 write_fx("math", list(list(fn = "pnorm", args = list(log.p = TRUE), x = x, logd = pnorm(x, log.p = TRUE)),
                       list(fn = "lgamma", args = list(), x = xg, logd = lgamma(xg)),
-                      list(fn = "qnorm", args = list(), x = p, q = qnorm(p))))
+                      list(fn = "qnorm", args = list(), x = p, q = qnorm(p)),
+                      list(fn = "qgamma", args = list(rate = 1), x = gq$p, shape = gq$shape, q = qgamma(gq$p, gq$shape))))
 # --- simulate ----------------------------------------------------------------
 # Simulated data on the circular pages. (a) The expected statistics of the response error by integrate() over
 # bmm's d*(): mean |x|, mean cos x, mean sin x (the circular SD comes from the last two) and P(|x| <= 20 deg).
@@ -504,5 +509,107 @@ if (has_since("rsdt_yn", "1.4.1")) {
       function() do.call(rsdt_rating, c(list(n = 2, n_trials = cnt_n, stimulus = c(0, 1)), g)))
 }
 write_fx("simulate_counts", cells)
+
+# --- simulate_rt -------------------------------------------------------------
+# Simulated data on the response-time pages. Per cell one sample from bmm's r*() and the exact values its statistics
+# estimate; the explorer's sampler and this sample are each held to the exact values within 5 SE, one sample each.
+# ddm and cswald cells: n = 1e5 trials from rddm() or rcswald(), which both draw from rtdists::rdiffusion(). Expected:
+# P(upper) and each response's mean and variance of rt, by integrate() over bmm's dddm() (the decision time split at
+# T / 20 and at T, T the larger mean decision time plus 35 / lambda, beyond which the density falls as exp(-lambda t));
+# sample: the same with their SE (binomial for P(upper), sd / sqrt(k) for a mean of k rts, the sd of the squared
+# deviations / sqrt(k) for a variance). A response with P below 0.05 has no rt statistics in the cell. cswald cells
+# record the page's values (version, bound) beside the rcswald() arguments, which take the simple version's bound
+# twice. ezdm cells: n = 1e5 cells from rezdm(). Expected, from bmm's EZ moments: P(upper); per row (all rts in 3par,
+# each boundary in 4par) the means of mean_rt and var_rt, the mean of (mean_rt - its expectation)^2, which is VRT
+# times E(1 / k | k >= 2) for the k rts a row's statistics come from, and the mean of (mean_rt - expectation) (var_rt -
+# VRT), k3 times E(1 / k | k >= 2). Sample: the same over the cells that have the row, with SEs from the sample
+# (binomial over n * n_trials trials for P(upper)). Cell i draws after set.seed(437 + i).
+# rtdists::rdiffusion() inverts a distribution function it tabulates to precision = 3, which bmm does not change. At
+# the narrowest bound (0.223) that puts the mean rt of a response 1.5e-4 s low, 4 to 7 SE at 1e5 trials, and at drift
+# 10 or more the variance 2 to 9% off (up to 9 SE); precision 4 or 5 removes both. The cells keep away from those
+# corners, so that a 5 SE check of bmm's sample is a check of the model, not of the table; the explorer's sampler is
+# tested there against the exact EZ moments without bmm's sample (simulate_rt.test.mjs).
+if (has_since("rddm", "1.4.1") && has_since("rcswald", "1.4.1") && has_since("rezdm", "1.4.1")) {
+  rt_n <- 1e5
+  cells <- list()
+  stat <- function(x) list(mean = mean(x), se = sd(x) / sqrt(length(x)))
+  rt_cell <- function(fn, args, page = NULL) {
+    seed <- 437 + length(cells) + 1
+    set.seed(seed)
+    y <- do.call(get(paste0("r", fn)), c(list(n = rt_n), args))
+    p <- args; zr <- if (is.null(p$zr)) .5 else p$zr
+    m <- bmm:::.ezdm_moments_4par(p$drift, p$bound, zr, 1)
+    T <- max(m$mdt_upper, m$mdt_lower) + 35 / (pi^2 / (2 * p$bound^2) + p$drift^2 / 2)
+    pu <- mean(y$response)
+    expected <- list(); smean <- list(p_upper = pu); sse <- list(p_upper = sqrt(pu * (1 - pu) / rt_n))
+    for (r in c(1, 0)) {
+      side <- if (r == 1) "upper" else "lower"
+      f <- function(t) exp(dddm(p$ndt + t, rep(r, length(t)), p$drift, p$bound, p$ndt, zr = zr))
+      int <- function(g) sum(vapply(list(c(0, T / 20), c(T / 20, T), c(T, Inf)), function(lim)
+        integrate(function(t) g(t) * f(t), lim[1], lim[2], rel.tol = 1e-12, subdivisions = 2000L)$value, 0))
+      P <- int(function(t) 1)
+      if (r == 1) expected$p_upper <- P
+      if (P < .05) next
+      mu <- int(identity) / P
+      expected[[paste0("mean_", side)]] <- p$ndt + mu
+      expected[[paste0("var_", side)]] <- int(function(t) (t - mu)^2) / P
+      x <- y$rt[y$response == r]
+      a <- stat(x); b <- stat((x - mean(x))^2)
+      smean[[paste0("mean_", side)]] <- a$mean; sse[[paste0("mean_", side)]] <- a$se
+      smean[[paste0("var_", side)]] <- var(x); sse[[paste0("var_", side)]] <- b$se
+    }
+    cells[[length(cells) + 1]] <<- c(list(fn = fn, args = args), if (!is.null(page)) list(page = page),
+      list(n = rt_n, seed = seed, expected = expected, sample = list(mean = smean, se = sse)))
+  }
+  for (a in list(list(drift = 0, bound = 1, ndt = .223, zr = .5), list(drift = 1.5, bound = 1, ndt = .223, zr = .5),
+                 list(drift = -1, bound = 2, ndt = .2, zr = .3), list(drift = .5, bound = 4.48, ndt = .1, zr = .7),
+                 list(drift = 3, bound = .5, ndt = .3, zr = .818), list(drift = 2, bound = 1.5, ndt = .2, zr = .182)))
+    rt_cell("ddm", a)
+  # cswald: the page's start in crisk and in simple, a crisk cell with negative drift and bias, a fast simple cell,
+  # and simple at drift 20.1, where rcswald() draws no lower response (P(lower) 8e-8).
+  for (g in list(list(v = "crisk", drift = 1, bound = 1, ndt = .135, zr = .5), list(v = "crisk", drift = -1, bound = 2.46, ndt = .2, zr = .711),
+                 list(v = "simple", drift = 1, bound = 1, ndt = .135), list(v = "simple", drift = 3, bound = .407, ndt = .055),
+                 list(v = "simple", drift = 20.1, bound = .407, ndt = .055))) {
+    if (g$v == "simple") rt_cell("cswald", list(drift = g$drift, bound = 2 * g$bound, ndt = g$ndt), page = list(version = "simple", bound = g$bound))
+    else rt_cell("cswald", list(drift = g$drift, bound = g$bound, ndt = g$ndt, zr = g$zr), page = list(version = "crisk", bound = g$bound))
+  }
+  ez_cell <- function(args) {
+    seed <- 437 + length(cells) + 1
+    set.seed(seed)
+    y <- do.call(rezdm, c(list(n = rt_n), args))
+    n <- args$n_trials; four <- args$version == "4par"
+    m <- if (four) bmm:::.ezdm_moments_4par(args$drift, args$bound, args$zr, 1) else bmm:::.ezdm_moments_3par(args$drift, args$bound, 1)
+    ph <- y$n_upper / n
+    expected <- list(p_upper = m$pC); smean <- list(p_upper = mean(ph)); sse <- list(p_upper = sqrt(mean(ph) * (1 - mean(ph)) / (rt_n * n)))
+    rows <- if (four) list(list("_upper", m$mdt_upper, m$vrt_upper, m$k3_upper, 0:n),
+                           list("_lower", m$mdt_lower, m$vrt_lower, m$k3_lower, n - 0:n))
+      else list(list("", m$MDT, m$VRT, m$k3, rep(n, n + 1)))
+    w <- dbinom(0:n, n, m$pC)
+    for (r in rows) {
+      k <- r[[5]]; ok <- k >= 2
+      inv <- sum(w[ok] / k[ok]) / sum(w[ok])
+      e <- list(mean_rt = args$ndt + r[[2]], var_rt = r[[3]], var_mean_rt = r[[3]] * inv, cov_mean_var = r[[4]] * inv)
+      mr <- y[[paste0("mean_rt", r[[1]])]]; vr <- y[[paste0("var_rt", r[[1]])]]
+      keep <- !is.na(mr)
+      dm <- mr[keep] - e$mean_rt; dv <- vr[keep] - e$var_rt
+      xs <- list(mean_rt = mr[keep], var_rt = vr[keep], var_mean_rt = dm^2, cov_mean_var = dm * dv)
+      for (key in names(e)) {
+        s <- stat(xs[[key]])
+        expected[[paste0(key, r[[1]])]] <- e[[key]]; smean[[paste0(key, r[[1]])]] <- s$mean; sse[[paste0(key, r[[1]])]] <- s$se
+      }
+    }
+    cells[[length(cells) + 1]] <<- list(fn = "ezdm", args = args, n = rt_n, seed = seed, expected = expected, sample = list(mean = smean, se = sse))
+  }
+  # ezdm: the page's start, the smallest trial count bmm accepts (gamma shapes below 1), the largest the page offers,
+  # and 4par cells where a boundary often has fewer than 2 responses (n_trials 20, P(lower) 0.09; n_trials 10).
+  for (a in list(list(n_trials = 100, drift = 0, bound = 1, ndt = .223, version = "3par"),
+                 list(n_trials = 3, drift = 1.5, bound = 2, ndt = .3, version = "3par"),
+                 list(n_trials = 500, drift = -1, bound = 4.48, ndt = .1, version = "3par"),
+                 list(n_trials = 100, drift = 1, bound = 1.5, ndt = .2, zr = .6, version = "4par"),
+                 list(n_trials = 20, drift = 2, bound = 1, ndt = .2, zr = .7, version = "4par"),
+                 list(n_trials = 10, drift = 0, bound = .223, ndt = .3, zr = .3, version = "4par")))
+    ez_cell(a)
+  write_fx("simulate_rt", cells)
+} else cat("simulate_rt skipped: this bmm lacks rddm(), rcswald() or rezdm()\n")
 
 cat("bmm", version, "->", out, "\n")
