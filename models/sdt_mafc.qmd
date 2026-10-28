@@ -63,8 +63,8 @@ toc: false
     </div>
     <div class="ex-info-pop" id="sdtmafc-sim-info" hidden>Draws N trials at this <code>m</code> and <code>d</code> and marks the sample's proportion correct at the current <code>d</code> (no mark when <code>d</code> is outside the plotted range, −2 to 4). Below the panel: the expected P(correct) and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_mafc()</code>, in the code under In bmm.</div>
     <svg id="sdtmafc-byd" role="img" aria-label="Predicted probability correct against d at the current number of alternatives"></svg>
-    <div class="ex-legend">Circle: the current d. Dotted: chance, 1/m. Dashed: bmm's prior mean of d. Black: the
-      sample.</div>
+    <div class="ex-legend">Circle: the current d. Dotted: chance, 1/m. Dashed: bmm's prior mean of d. Black dot, with
+      simulate on: the sample.</div>
     <div class="ex-legend ex-sim-text" id="sdtmafc-sim-text" hidden></div>
   </section>
 
