@@ -125,18 +125,21 @@ $Z$ has no closed form, and bmm computes it numerically too (with R's `integrate
 the exponential of the activation over 1024 equally spaced points of the circle, which matches
 bmm's integral to better than 10⁻⁹ on the log density in every test of this site's code against bmm.
 
-The `c` slider runs from 0 to 20 and the `kappa` slider from 0.1 to 50, moving evenly in log units for
-`kappa`; the number fields show natural units. These ranges are this page's choice, as the article
-names none. bmm estimates `c` on the log scale too, but its slider moves in natural units, because a
-log scale has no place for `c` = 0, the limit at which every error is equally likely. bmm's default
-priors are student_t(5, 2, 0.75) on log `c` and student_t(5, 1.75, 0.75) on log `kappa`; the starting
-values, which the dashed curves keep, are their centres, $e^{2} = 7.39$ and $e^{1.75} = 5.75$. Typed
-values outside the sliders' ranges are used as long as the density can be computed, and the hint under
-the sliders says when a value lies beyond its slider. The radio buttons switch the parametrization.
-The two give the same family of densities with different values of `c`, so switching converts `c`,
-rounded to three digits in the number field, and the curve stays where it is. At `kappa` = 0 the
-density is uniform for every `c` in both, so switching leaves `c` as it is. bmm converts with
-`c_sqrtexp2bessel()` and `c_bessel2sqrtexp()`. Reset returns everything to the starting values.
+The `c` slider runs from 0 to 20 and the `kappa` slider from 0.1 to 50, moving evenly in log units
+for `kappa`; the number fields show natural units. These ranges are this page's choice and do not
+come from the default priors, which would give 0.78 to 70 for `c` and 0.61 to 55 for `kappa` (the
+prior mean ± 3 times the scale 0.75 on the log scale). The article names no ranges, and these cover
+every value it simulates and fits. Like `kappa`, `c` is estimated on the log scale in bmm, but its
+slider moves in natural units, because a log scale has no place for `c` = 0, the limit at which
+every error is equally likely. bmm's default priors are student_t(5, 2, 0.75) on log `c` and
+student_t(5, 1.75, 0.75) on log `kappa`; the starting values, which the dashed curves keep, are
+their centres, $e^{2} = 7.39$ and $e^{1.75} = 5.75$. Typed values outside the sliders' ranges are
+used as long as the density can be computed, and the hint under the sliders says when a value lies
+beyond its slider. The radio buttons switch the parametrization. The two give the same family of
+densities with different values of `c`, so switching converts `c`, rounded to three digits in the
+number field, and the curve stays where it is. At `kappa` = 0 the density is uniform for every `c`
+in both, so switching leaves `c` as it is. bmm converts with `c_sqrtexp2bessel()` and
+`c_bessel2sqrtexp()`. Reset returns everything to the starting values.
 
 ## Across task settings
 
