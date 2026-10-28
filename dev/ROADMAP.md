@@ -1,6 +1,6 @@
 # bmm model explorer: roadmap
 
-Status 2026-10-27. One milestone is one working session with its own branch and PR. Each milestone
+Status 2026-10-28. One milestone is one working session with its own branch and PR. Each milestone
 ships pages that pass the parity test, render, and read well to someone who has not opened bmm.
 
 ## Decisions that shape everything
@@ -18,7 +18,7 @@ ships pages that pass the parity test, render, and read well to someone who has 
 ## Page template
 
 Dashboard first, one screen at 1280 x 800: task drawing, task settings, parameters (ranges from bmm's
-default priors, mean +- 3 SD), predicted distribution with the prior means dashed, and the prediction
+default priors, mean +- 3 SD; SDM is the exception), predicted distribution with the prior means dashed, and the prediction
 across the design variable. Every parameter, task setting and model choice has an (i) note: what it
 does in the model and an example from the task drawing. Auto-scaled axes hold their round limit while
 the data fill more than half of it and ease to a new limit when they must change (`js/lib/axis.js`).
@@ -55,14 +55,42 @@ Then the five sections:
 | E4 | Categorical siblings | M3 complex span, M3 gaussian rule, MPT (Oberauer span tree) pages; needs bmm develop for `dmpt()` | m3 cs/gaussian, mpt |
 | E5 | Signal detection | yes/no (ROC, criterion vs bias, sdratio, noise distributions), mAFC (`m` panel), rating | sdt_yn, sdt_mafc, sdt_rating; Gauss-Hermite nodes exported from bmm |
 | E6 | Response times | ezdm (forward EZ: drift/bound/ndt to mean, variance, accuracy), cswald, DDM (first-passage series, parity through `dddm()`) | ezdm, cswald, ddm |
-| E7 | Release | landing page with a model map, pkgdown navbar link (PR to bmm), accessibility pass, mobile check, #437 closed | none |
+| E7a | Accessibility | keyboard, screen-reader summaries, contrast table, tablet and phone-configuration checks, axe per page state in CI (laptop and tablet are the target devices) | none |
+| E7b | Release | landing page with a task-first model map, `CITATION.cff`, the policy for new bmm models, README status table, #437 closed (the navbar link is already on bmm's develop) | none |
 | E8 | Reader feedback I | (i) notes on every control, axes that hold and ease, on all pages | none |
 | E9 | Simulated data, circular | a "simulate N trials" overlay on imm, mixture2p, mixture3p, sdm: histogram of draws, expected vs sample statistics, the `r*()` call | expected statistics by `integrate()` over bmm's `d*()`; `r*()` sample statistics |
 | E10a | Simulated data, categorical and SDT | the switch on m3, mpt, sdt_yn, sdt_mafc, sdt_rating: sample shares marked on the bars, sample points on the ROC, the `r*()` call | `r*()` samples of 1e5 trials (`simulate_counts.json`) |
 | E10b | Simulated data, response times | the switch on ddm, cswald, ezdm: rt histograms behind the densities, sampled summary statistics on the ezdm bands | as E9, `r*()` for rt and choice |
+| E11a | Ranking | `sdt_ranking` page (#13): Gauss-Hermite and Gauss-Laguerre rule switch inside the integral | sdt_ranking, bmm's ranking nodes |
+| E11b | Dual process | `sdt_cdp` page (#13): bivariate evidence with a correlation, Remember/Know and confidence | sdt_cdp |
+| E12 | Rating versions | `dpsdt` and `metad` versions on the rating page (#14) | sdt_rating versions |
+| E13a | MPT preset trees | a version switch on the MPT page between commonly specified trees: the two-high-threshold recognition model and a source-monitoring model. Each tree is data for the existing evaluator and the page shows its `mpt_tree()` code | `dmpt()` for every preset |
+| E13b | Custom specification | readers write their own: an MPT tree in bmm's `mpt_from_string()` syntax (a hand-written parser, no `eval`), and the activation formulas of a custom M3 (`version = "custom"`). Gated on E13a and on GF | parser fixtures, `dmpt()`, `dm3()` |
+| E14 | New bmm models | one page per model new in bmm 1.5.0 and 1.6.0 (#18), once it is on CRAN | per model |
+
+Shipped by 2026-10-28: E0-E6, E8, E9, E10a, and E7b with its pull request. Next: E10b, E7a, E11a, E11b, E12, E13a.
 
 Cross-cutting, every milestone: `node --test` green, `quarto render` green, a naive-reader pass over
 the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabulary.
+
+## New bmm models (policy from #18)
+
+- A model gets a deployed page once it is on CRAN.
+- A port may start earlier, against fixtures from bmm's `develop` branch (the non-blocking half of the
+  weekly oracle writes them), on a branch that is not deployed. It merges when CRAN has the model and
+  the fixtures have been regenerated from the CRAN release.
+- A CRAN release that changes a density fails the weekly oracle on the CRAN run, and the fix lands
+  before the next deployment.
+- Each new page answers the question every page answers: which task settings enter the likelihood
+  (for TCC the similarity function and the set size, for the psychometric functions the stimulus level).
+- The circular mixture rewrite renames parameters (`pnt` becomes `ptarget`). The affected pages need a
+  version note or a switch for readers whose fits still use bmm 1.4.
+
+What the workflows do today: the oracle runs weekly (Monday 06:00 UTC) and on pushes and pull requests
+that touch `R/`, `tests/parity/` or `js/models/`; its CRAN job blocks that workflow, its develop job
+reports only. The Pages deployment in `ci.yml` does not wait for it, so a red weekly oracle does not
+stop a deployment, and a push to `main` that touches none of those paths does not run the oracle at all.
+The "fix lands before the next deployment" rule is held by hand until GF decides on gating.
 
 ## Out of scope for now
 
@@ -71,9 +99,14 @@ have no `d*()` function in a released bmm.
 
 ## Open questions
 
-- SDM's `c` and `kappa` ranges on the slider: the article's priors or the recovery grid?
-- Whether the MPT page should later build trees from bmm's `mpt_from_string()` syntax (parsed in JS).
-  E4 ships the span tree only, as a branch list that `js/models/mpt.js` evaluates.
+- SDM's `c` and `kappa` ranges on the slider, settled 2026-10-28: the page keeps its own ranges
+  (`c` 0-20, `kappa` 0.1-50 on a log slider) and says so. They cover every value the bmm article
+  simulates and fits (`c` up to 11.6, `kappa` 0.74 to 7.7), keep `c` = 0 reachable, and no recovery
+  grid for `sdm()` exists to switch to. They do not come from the default priors, and the page says so
+  (prior mean ± 3 times the scale would give `c` 0.78 to 70, `kappa` 0.61 to 55).
+- MPT trees, settled 2026-10-28: no parser for `mpt_from_string()` syntax for now. The page gets a
+  version switch between commonly specified trees first (E13a), and a custom specification later
+  (E13b), for the custom M3 as well. See the milestone table.
 - DDM, settled in E6: ported. `rtdists::ddiffusion()` truncates its series with an absolute error target, so in
   the far tails its log density departs from the exact value; the port repeats fast-dm's term counts and
   matches `dddm()` to 4e-15 down to log densities of -675. No grid needed.
