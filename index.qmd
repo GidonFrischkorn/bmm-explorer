@@ -13,56 +13,52 @@ New here? Read [how to read a page](about.qmd) first.
 
 ## Start from your response
 
-What does one response in your task look like? Find it below. The first model under each kind of
-response is the simplest; each later one says what it adds to the model named in its line, or what it is
-an alternative to.
+What does one response in your task look like? Find it below. Under each kind of response, every model
+after the first names a model above it and says what it adds to that model or does differently.
 
 ::: {.model-map role="navigation" aria-label="Model map: from the kind of response to a model"}
 - **A position on a circle**, such as a colour reproduced on a colour wheel
   - [`mixture2p`](models/mixture2p.qmd): is a response a memory of the target or a guess? The share of
     memory responses and how precise they are.
-  - [`mixture3p`](models/mixture3p.qmd): adds to `mixture2p` responses to the other items on the display.
+  - [`mixture3p`](models/mixture3p.qmd): `mixture2p` plus responses to the other items on the display.
     Do some responses go to a non-target?
-  - [`imm`](models/imm.qmd): adds to `mixture3p` the distance between the items. Do items closer to the
-    cued location draw more of the responses?
-  - [`sdm`](models/sdm.qmd): an alternative to the mixture models that has no guessing parameter. How
-    strong is memory and how precise, in one distribution?
+  - [`imm`](models/imm.qmd): an alternative to `mixture3p`, with activations instead of proportions.
+    Every item adds activation, more the closer it is to the cued location: does the target's share
+    fall as items are added?
+  - [`sdm`](models/sdm.qmd): an alternative to the mixture models, with no separate guessing parameter:
+    guessing is the limit of weak memory. How strong is memory and how precise, in one distribution?
 - **A choice among candidates**, such as recalling a cued item from a list when the response set is
   shown
   - [`m3`](models/m3.qmd): recall as a competition of activations. How strongly do the correct item, the
     other list items, distractors and lures each draw a response, and how does recall change with the
     number of candidates?
-  - [`mpt`](models/mpt.qmd): the same recall task as discrete states instead of activations. Is the cued
-    item in memory, is its position retrieved, or is the response a guess among the candidates?
+  - [`mpt`](models/mpt.qmd): an alternative to `m3` for simple-span recall, with discrete states instead
+    of activations. Is the cued item in memory, is its position retrieved, or is the response a guess?
 - **A yes/no answer, a choice among m alternatives, or a confidence rating**, such as old/new
   recognition
-  - [`sdt_yn`](models/sdt_yn.qmd): how far apart are the evidence for noise and for signal, and where
-    does the observer put the criterion, the point above which the answer is yes?
-  - [`sdt_mafc`](models/sdt_mafc.qmd): a variant for a choice among `m` alternatives, which has no
-    criterion. How does accuracy fall as `m` grows?
-  - [`sdt_rating`](models/sdt_rating.qmd): adds to `sdt_yn` ratings on `K` levels. Where do `K` − 1
-    thresholds cut the evidence axis, and what ROC (receiver operating characteristic) curve do they
-    trace?
-- **A response time**, such as a reaction time, with a choice or without
-  - [`ezdm`](models/ezdm.qmd): what accuracy and what mean and variance of the response times follow
-    from the drift, the boundary and the non-decision time?
+  - [`sdt_yn`](models/sdt_yn.qmd): how far apart are the evidence distributions of noise and signal
+    trials, and where does the observer put the criterion, the point above which the answer is yes?
+  - [`sdt_mafc`](models/sdt_mafc.qmd): a choice among `m` alternatives, with a `d` on the scale of the
+    `d` of `sdt_yn` and no criterion. How does accuracy fall as `m` grows?
+  - [`sdt_rating`](models/sdt_rating.qmd): `sdt_yn` with several criteria at once: ratings on `K`
+    levels. Where do `K` − 1 thresholds cut the evidence axis, and which points of the ROC (receiver
+    operating characteristic) do they give?
+- **A response time and one of two responses**, such as a lexical decision
+  - [`ezdm`](models/ezdm.qmd): what probability of each response and what mean and variance of the
+    response times follow from the drift, the boundary, the non-decision time and, in `4par`, the
+    starting point?
   - [`ddm`](models/ddm.qmd): the diffusion model that `ezdm` summarises, adding the whole response-time
     distribution of both responses. How do speed and accuracy trade as the boundary moves?
-  - [`cswald`](models/cswald.qmd): a simpler alternative to `ddm` for tasks with few errors. Evidence for
-    the correct response runs to one boundary; how are the errors treated?
+  - [`cswald`](models/cswald.qmd): a simpler alternative to `ddm` for tasks with few errors: an error is
+    a censored trial (`simple`) or the response of a second accumulator that wins the race (`crisk`).
+    How far does it part from `ddm` as errors become frequent?
 :::
 
-The same models by family, with what each page shows:
+## Models by family
 
-## Categorical decision tasks
+The same models by family, with what each page shows.
 
-- [Memory Measurement Model (`m3`)](models/m3.qmd): a correct item, other list items, distractors and
-  new lures compete for a response, in simple and complex span, under three choice rules. Candidate
-  counts are part of the model.
-- [Multinomial processing tree, span task (`mpt`)](models/mpt.qmd): recall as discrete states, with
-  guessing rates set by the response set, and how it relates to the M3.
-
-## Continuous reproduction tasks
+### Continuous reproduction tasks
 
 - [Interference Measurement Model (`imm`)](models/imm.qmd): responses on a colour wheel drawn to the
   target, to the other items by their closeness to the cued location, and to noise. Set size and
@@ -75,7 +71,15 @@ The same models by family, with what each page shows:
 - [Signal discrimination model (`sdm`)](models/sdm.qmd): one distribution with a memory strength and a
   precision, and no separate guessing parameter. No task setting enters the likelihood.
 
-## Signal detection
+### Categorical decision tasks
+
+- [Memory Measurement Model (`m3`)](models/m3.qmd): a correct item, other list items, distractors and
+  new lures compete for a response, in simple and complex span, under three choice rules. Candidate
+  counts are part of the model.
+- [Multinomial processing tree, span task (`mpt`)](models/mpt.qmd): recall as discrete states, with
+  guessing rates set by the response set, and how it relates to the M3.
+
+### Signal detection
 
 - [Yes/no (`sdt_yn`)](models/sdt_yn.qmd): noise and signal evidence against one criterion, given from the
   noise location or as a bias from the midpoint, under four evidence distributions, with the ROC and why
@@ -84,12 +88,13 @@ The same models by family, with what each page shows:
   The number of alternatives is part of the model, and accuracy across `m` is what tells the evidence
   distributions apart.
 - [Confidence ratings (`sdt_rating`)](models/sdt_rating.qmd): `K` − 1 thresholds on one evidence axis, the
-  category proportions and the ROC traced by the cumulative rates.
+  category proportions, and the cumulative rates as points on the ROC.
 
-## Response times
+### Response times
 
-- [EZ Diffusion Model (`ezdm`)](models/ezdm.qmd): the diffusion model's accuracy, mean and variance of
-  the response times in closed form, and how much they vary with the number of trials per cell.
+- [EZ Diffusion Model (`ezdm`)](models/ezdm.qmd): the diffusion model's probability of an upper
+  response and the mean and variance of the response times in closed form, and how far the observed
+  ones scatter around them for a given number of trials per cell.
 - [Censored Shifted Wald Model (`cswald`)](models/cswald.qmd): evidence for the correct response
   accumulates to one boundary, errors censored or racing; compared with the diffusion model.
 - [Diffusion Decision Model (`ddm`)](models/ddm.qmd): response-time densities of both responses, and how
