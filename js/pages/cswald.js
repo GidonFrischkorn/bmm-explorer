@@ -6,6 +6,7 @@ import { autoAxis, niceAxis } from "../lib/axis.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { cswaldSummaries } from "../lib/summaries.js";
 import { simControls, rtLine, RT_BINS } from "../lib/sim-panel.js";
 import { ddmSim, rtStats, rtHistogram, cswaldDdmPars } from "../lib/simulate-rt.js";
 
@@ -149,10 +150,7 @@ function draw() {
   drawDensity(q, v, axis, x);
   drawCompare(q, v, axis, x);
   drawCode(q, v);
-  const pars = `drift ${fmt(q.drift)}, boundary ${fmt(q.bound)}, non-decision time ${fmt(q.ndt)} s`;
-  describePlot($("cswald-task"), `${v === "simple" ? "Simple" : "Competing-risks"} version: evidence accumulating toward the boundary, ${pars}.`);
-  describePlot($("cswald-density"), `Response-time densities of the two responses, ${pars}.`);
-  describePlot($("cswald-ddm"), `The densities of this model over those of the diffusion decision model with matching parameters, ${pars}.`);
+  for (const [id, text] of Object.entries(cswaldSummaries(v, q))) describePlot($(id), text);
   $("cswald-legend").innerHTML = v === "simple"
     ? '<span class="blue">Correct (1)</span>: density of the rt. <span class="orange">Error (0)</span>: probability ' +
       "that no correct response has come by that rt, the likelihood of an error then. Dashed: prior means."

@@ -8,7 +8,8 @@ import { autoAxis, niceAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
 import { simControls, simLine, pair } from "../lib/sim-panel.js";
-import { ezdmCells, ezdmExpected, ezdmCellStats, EZ_STRIDE, EZ_MAX_TRIALS } from "../lib/simulate-rt.js";
+import { ezdmCells, ezdmExpected, ezdmCellStats, ezdmBands, EZ_STRIDE, EZ_MAX_TRIALS } from "../lib/simulate-rt.js";
+import { ezdmSummaries } from "../lib/summaries.js";
 
 // bmm's default priors for ezdm(), [mean, sd, scale, step] on the link scale; the sliders span mean +- 3 SD
 // and start at the means. drift's cauchy(0, 1) has no SD; its slider spans location +- 3 scale.
@@ -39,12 +40,12 @@ const nUpperOf = (pC, n) => Math.round(pC * n);
 function stats(p, v) {
   if (v === "3par") {
     const m = ezdmMoments3par(p);
-    return { pC: m.pC, rows: [{ label: "rt, all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT, share: 1, count: n => n }] };
+    return { pC: m.pC, rows: [{ label: "rt, all", name: "all", color: BLUE, mean: p.ndt + m.MDT, vrt: m.VRT, share: 1, count: n => n }] };
   }
   const m = ezdmMoments4par(p);
   return { pC: m.pC, rows: [
-    { label: "rt, upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper, share: m.pC, count: n => nUpperOf(m.pC, n) },
-    { label: "rt, lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower, share: 1 - m.pC,
+    { label: "rt, upper", name: "upper", color: BLUE, mean: p.ndt + m.mdt_upper, vrt: m.vrt_upper, share: m.pC, count: n => nUpperOf(m.pC, n) },
+    { label: "rt, lower", name: "lower", color: ORANGE, mean: p.ndt + m.mdt_lower, vrt: m.vrt_lower, share: 1 - m.pC,
       count: n => n - nUpperOf(m.pC, n) }] };
 }
 
@@ -86,12 +87,9 @@ function drawStats(p, s, ref, axis) {
   svg.setAttribute("viewBox", `0 0 ${W} ${yAxis + 60}`);
 }
 
-// How far the observed statistics of one cell scatter around the predicted ones as n_trials changes:
-// +-2 SD of the proportion of upper responses (binomial) and of each observed mean rt. Under bmm's
-// sampling model the observed mean has variance VRT / n (normal given the observed variance, which is
-// gamma with mean VRT); in 4par n is the expected count at that boundary. dezdm() drops a boundary's rt
-// terms below 2 responses, so its band starts at the first n_trials whose printed call has 2 responses
-// there (after rounding, an expected count of about 1.5), or is not drawn.
+// How far the observed statistics of one cell scatter around the predicted ones as n_trials changes: the bands of
+// ezdmBands(). Under bmm's sampling model the observed mean has variance VRT / n (normal given the observed variance,
+// which is gamma with mean VRT); in 4par n is the expected count at that boundary.
 const NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
 const timeAuto = autoAxis(draw, { nice: niceAxis }), rtAuto = autoAxis(draw, { nice: niceAxis });
 // The simulated cells: one block of EZ_STRIDE uniforms per cell (simulate-rt.js, ezdmCells()).
@@ -106,7 +104,7 @@ function points(svg, sc, x, ys, color, clip) {
 // The mean-rt panel's floor moves in whole ticks; like its top, it stays while the bands keep above it and
 // come within two ticks of it.
 let rtFloor = 0;
-function drawAcross(p, s, cells) {
+function drawAcross(p, s, bands, cells) {
   const svg = $("ezdm-across");
   clear(svg);
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -139,13 +137,11 @@ function drawAcross(p, s, cells) {
     el("line", { x1: sc.sx(lx(n0)), x2: sc.sx(lx(N_MAX)), y1: sc.sy(centre), y2: sc.sy(centre), stroke: color, "stroke-width": 2.5 }, svg);
   };
   const pSc = panel(14, 178, [0, 1], [0, 0.5, 1], "P(upper)");
-  band(pSc, s.pC, n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n), GREY, 3, [0, 1]);
+  band(pSc, s.pC, bands.p.half, GREY, 3, [0, 1]);
   if (cells) points(svg, pSc, lx(p.n_trials), cells.map(c => c.n_upper / p.n_trials), "#222", clipTo("p", pSc, [0, 1]));
   // Lower panel: observed mean rt for each row whose band is drawn, axis from the widest band drawn.
-  const shown = s.rows.map((row, j) => ({ ...row, j, n0: Array.from({ length: N_MAX - 2 }, (_, i) => i + 3).find(n => row.count(n) >= 2) ?? N_MAX }))
-    .filter(row => row.n0 < N_MAX);
-  const spread = row => n => 2 * Math.sqrt(row.vrt / (row.share * n));
-  const lo = Math.min(...shown.map(r => r.mean - spread(r)(r.n0))), hi = Math.max(...shown.map(r => r.mean + spread(r)(r.n0)));
+  const shown = bands.rows.filter(row => row.drawn);
+  const lo = Math.min(...shown.map(r => r.mean - r.half(r.n0))), hi = Math.max(...shown.map(r => r.mean + r.half(r.n0)));
   const { ylim, yticks } = rtAuto.next(hi);
   // While the top eases up from far below, the axis can hold its 0 tick only; the step is then the top.
   const tick = yticks[1] - yticks[0] || ylim[1];
@@ -153,7 +149,7 @@ function drawAcross(p, s, cells) {
   // While the top eases up to a jump in the bands, it can still be below their floor for a few frames.
   const rtTop = Math.max(ylim[1], rtFloor + tick);
   const rtSc = panel(146, 50, [rtFloor, rtTop], yticks.filter(v => v >= rtFloor - 1e-9 && v <= rtTop + 1e-9), "mean rt (s)");
-  shown.forEach(row => band(rtSc, row.mean, spread(row), row.color, row.n0, [rtFloor, rtTop]));
+  shown.forEach(row => band(rtSc, row.mean, row.half, row.color, row.n0, [rtFloor, rtTop]));
   // Points for the rows whose band is drawn: the axis is sized to those bands.
   if (cells) {
     const clip = clipTo("rt", rtSc, [rtFloor, rtTop]);
@@ -235,14 +231,12 @@ function draw() {
   drawDiffusion($("ezdm-task"), { mode: "ddm", ...q, ...axis });
   drawStats(q, s, ref, axis);
   const cells = sim.on ? ezdmCells(q, v, p.n_trials, sim.us, sim.n) : null;
-  drawAcross(q, s, cells);
+  const bands = ezdmBands(s, N_MAX);
+  drawAcross(q, s, bands, cells);
   if (cells) cellLine(q, v, cells);
   else sim.text.hidden = true;
   drawCode(q, s, v);
-  const sd = Math.sqrt(s.pC * (1 - s.pC) / q.n_trials);
-  describePlot($("ezdm-task"), `Evidence paths with drift ${fmt(q.drift)}, boundary separation ${fmt(q.bound)} and non-decision time ${fmt(q.ndt)} s.`);
-  describePlot($("ezdm-stats"), `Predicted P(upper) ${fmt(s.pC)}; mean rt ${s.rows.map(r => `${fmt(r.mean)} s (${r.label.slice(4)})`).join(", ")}.`);
-  describePlot($("ezdm-across"), `At ${q.n_trials} trials per cell, observed accuracy lies within ${fmt(2 * sd)} of ${fmt(s.pC)} (two standard deviations).`);
+  for (const [id, text] of Object.entries(ezdmSummaries({ q, version: v, s, bands, cells: cells ? cells.length : 0, nMax: N_MAX }))) describePlot($(id), text);
   $("ezdm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

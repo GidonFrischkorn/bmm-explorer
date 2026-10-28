@@ -10,6 +10,7 @@ import { colourWheel, hue, TAU } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { mixture3pSummaries } from "../lib/summaries.js";
 
 // kappa has bmm's default prior normal(2, 1) on the log link; its slider spans the mean +- 3 SD.
 // thetat = thetant = 0 (the medians of their logistic(0, 1) priors) give weights of 1/3 each, which
@@ -177,12 +178,7 @@ function draw() {
   drawWeights(n, p);
   drawAcross(p, n);
   drawCode(mu, p, atLimit);
-  describePlot($("mix3-wheel"), n === 1 ? "Colour wheel with the target's colour at 0 degrees." :
-    `Colour wheel: target at 0 degrees, ${n - 1} non-target${n === 2 ? "" : "s"} at ${mu.slice(1).map(m => fmt(m * DEG, 0)).join(", ")} degrees.`);
-  describePlot($("mix3-density"), `Response-error density with ${n} items: memory weight ${fmt(p.p_mem)}, non-targets ${fmt(p.p_nt)}, guessing ${fmt(guess(p))}.`);
-  describePlot($("mix3-weights"), `Weights now: memory ${fmt(p.p_mem)}, non-targets ${fmt(p.p_nt)} (${fmt(p.p_nt / (n - 1))} each), guessing ${fmt(guess(p))}.`);
-  describePlot($("mix3-across"), `At set size ${n}, memory ${fmt(p.p_mem)}, all non-targets ${fmt(p.p_nt)}, one non-target ${fmt(p.p_nt / (n - 1))}, guessing ${fmt(guess(p))}; ` +
-    `one non-target falls to ${fmt(p.p_nt / (MAX_N - 1))} at set size ${MAX_N}.`);
+  for (const [id, text] of Object.entries(mixture3pSummaries({ mu, p_mem: p.p_mem, p_nt: p.p_nt, maxN: MAX_N }))) describePlot($(id), text);
   $("mix3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

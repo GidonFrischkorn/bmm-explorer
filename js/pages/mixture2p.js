@@ -9,6 +9,7 @@ import { colourWheel, hue } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { mixture2pSummaries } from "../lib/summaries.js";
 
 // kappa has bmm's default prior normal(2, 1) on the log link; its slider spans the mean +- 3 SD.
 // p_mem has the whole probability range; its start is the median of the logistic(0, 1) prior on thetat.
@@ -86,10 +87,7 @@ function draw() {
   drawDensity(p);
   drawWeights(p);
   drawCode(p);
-  describePlot($("mix2-wheel"), "Colour wheel with the target's colour at the top; the response error is the distance from it.");
-  describePlot($("mix2-density"), `Response-error density: memory weight ${fmt(p.p_mem)}, guessing ${fmt(1 - p.p_mem)}, ` +
-    `${fmt(within(p))} of responses within ${Math.round(WINDOW * DEG)} degrees of the target.`);
-  describePlot($("mix2-weights"), `Weights now: memory ${fmt(p.p_mem)}, guessing ${fmt(1 - p.p_mem)}.`);
+  for (const [id, text] of Object.entries(mixture2pSummaries({ p_mem: p.p_mem, within: within(p), deg: Math.round(WINDOW * DEG) }))) describePlot($(id), text);
   $("mix2-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

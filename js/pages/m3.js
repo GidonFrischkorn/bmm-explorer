@@ -5,6 +5,7 @@ import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../l
 import { barPlot, linePlot, el, clear, marker, GLYPH } from "../lib/plot.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { m3Summaries } from "../lib/summaries.js";
 import { simControls, markBars, shareLine } from "../lib/sim-panel.js";
 import { categoricalShares } from "../lib/simulate.js";
 
@@ -328,10 +329,7 @@ function draw() {
   drawBars(pred.cur, pred.refCur, v);
   drawAcross(p, v, r, pred);
   drawCode(p, v, r, pred.cur);
-  describePlot($("m3-task"), `${v === "cs" ? "Complex" : "Simple"} span, set size ${p.set_size}: ${totalN(p, v)} candidates, 1 correct, ${p.n_other} other list letters, ` +
-    `${v === "cs" ? `${p.n_dist_context} close and ${p.n_dist_other} far distractors, ` : ""}${p.n_npl} lures.`);
-  describePlot($("m3-bars"), `Predicted proportions: ${VERSION[v].labels.map((l, i) => `${l} ${fmt(pred.cur[i])}`).join(", ")}.`);
-  describePlot($("m3-across"), `P(correct) ${fmt(pred.cur[0])} at N = ${totalN(p, v)}.`);
+  for (const [id, text] of Object.entries(m3Summaries(v, p, totalN(p, v), pred.cur))) describePlot($(id), text);
   $("m3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 

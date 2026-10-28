@@ -13,7 +13,6 @@ export function el(tag, attrs = {}, parent) {
 // The opacity for a dashed reference curve: as faint as 0.6 where the colour keeps 3:1 against white (WCAG 1.4.11 for
 // graphics), else the lowest opacity that does, up to 1 (Okabe-Ito purple is 3.06:1 at full strength).
 const lin = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const lum = hex => [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
 export function dashOpacity(hex, floor = 3.05) {
   for (let a = 0.6; a < 1; a += 0.02) {
     const mixed = [1, 3, 5].map(i => 255 + a * (parseInt(hex.slice(i, i + 2), 16) - 255)).map(v => lin(v / 255)).reduce((s, v, k) => s + v * [0.2126, 0.7152, 0.0722][k], 0);

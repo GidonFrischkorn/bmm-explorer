@@ -6,6 +6,7 @@ import { barPlot, el } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
+import { sdtYnSummaries } from "../lib/summaries.js";
 import { simControls, markBars, pair, simLine } from "../lib/sim-panel.js";
 import { ynSample } from "../lib/simulate.js";
 
@@ -71,7 +72,9 @@ function drawLatent(v, [fa, hit]) {
       { f: x => evidencePdf(x, v, 1), color: SIGNAL, shade: [v.criterion, xlim[1]] }
     ],
     lines: [
-      { x: v.criterion, drag: true, label: `${anchor()} = ${fmt(v.k, 2)}`, aria: anchor() },
+      // The line moves the boundary as the box gives it, within the slider's range or towards it (dragLines below).
+      { x: v.criterion, drag: true, label: `${anchor()} = ${fmt(v.k, 2)}`, aria: anchor(), value: v.k,
+        min: Math.min(+pairs.k.range.min, v.k), max: Math.max(+pairs.k.range.max, v.k) },
       ...(anchor() === "bias" ? [{ x: mid, width: 2, dash: "3 6", color: "#5a6472" }] : [])
     ],
     notes: [
@@ -121,7 +124,7 @@ function drawRoc(v, [fa, hit], got) {
     points: [{ fa, hit }, ...(got ? [{ fa: got[0], hit: got[1], r: 6, fill: "#000", color: "#000", label: "sample" }] : [])]
   });
   $("sdtyn-roc-legend").textContent = "Solid: this d and sdratio; circle: the current criterion; dashed: bmm's prior means" +
-    (unequal ? `; dotted: equal variance through the circle (d = ${fmt(evD, 2)})` : "") + (got ? "; black: the simulated sample" : "") + "; grey: chance.";
+    (unequal ? `; dotted: equal variance through the circle (d = ${fmt(evD, 2)})` : "") + (got ? "; black dot: the simulated sample" : "") + "; grey: chance.";
   $("sdtyn-across-now").textContent = !Number.isFinite(evD)
     ? `With the current values a rate rounds to 0 or 1, and sdt_d() has no finite value.`
     : v.sdratio === 1
@@ -175,10 +178,7 @@ function draw() {
   drawBars(cur, rates(prior()), got);
   drawRoc(v, cur, got);
   drawCode(v, cur);
-  describePlot($("sdtyn-latent"), `Noise and signal evidence densities with d ${fmt(v.d)} and the criterion at ${fmt(v.criterion)}: ` +
-    `false-alarm rate ${fmt(cur[0])}, hit rate ${fmt(cur[1])}.`);
-  describePlot($("sdtyn-bars"), `Predicted false-alarm rate ${fmt(cur[0])} on noise trials, hit rate ${fmt(cur[1])} on signal trials.`);
-  describePlot($("sdtyn-roc"), `Hit rate ${fmt(cur[1])} at false-alarm rate ${fmt(cur[0])} for the current criterion.`);
+  for (const [id, text] of Object.entries(sdtYnSummaries(v, anchor(), v.k, cur))) describePlot($(id), text);
   $("sdtyn-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
