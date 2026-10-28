@@ -5,7 +5,12 @@ import { linspace } from "./math.js";
 
 // The two kinds of trial, and one colour per evidence distribution where a panel compares them.
 export const NOISE = "#0072B2", SIGNAL = "#D55E00";
-export const DIST_COLOR = { normal: "#0072B2", logistic: "#CC79A7", gumbel_min: "#009E73", gumbel_max: "#E69F00" };
+// Okabe-Ito yellow is 2.25:1 on white, too faint for a line (3:1), so the fourth distribution is drawn in black. DIST_TEXT
+// is the same four in shades that read as text (4.5:1), and DIST_DASH gives each a pattern of its own when it is not the
+// solid curve, so the legend does not rest on colour alone.
+export const DIST_COLOR = { normal: "#0072B2", logistic: "#CC79A7", gumbel_min: "#009E73", gumbel_max: "#000000" };
+export const DIST_TEXT = { normal: "#0072B2", logistic: "#9b4475", gumbel_min: "#007353", gumbel_max: "#222222" };
+export const DIST_DASH = { normal: "2 5", logistic: "10 5", gumbel_min: "10 4 2 4", gumbel_max: "18 6" };
 export const DIST_NAMES = ["normal", "logistic", "gumbel_min", "gumbel_max"];
 
 // spec: { W, H, xlim, xticks, xlab, ymax, curves: [{ f, color, dashed, width, shade: [from, to] }],

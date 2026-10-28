@@ -2,11 +2,12 @@
 import { dimm, immWeights } from "../models/circular.js";
 import { integrateExp } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
-import { linePlot, el, clear } from "../lib/plot.js";
+import { linePlot, el, clear, marker } from "../lib/plot.js";
 import { circularPlot, CIRC_X, DEG, wrap } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
 import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 
 // bmm's default priors for imm(version = "full"), [mean, sd] on the log link. The sliders span
 // mean +- 3 SD; the prior means are the starting values. b has no prior: bmm() fixes it at 1.
@@ -244,7 +245,7 @@ function drawWeights(w, wRef) {
       const last = i === v.length - 1, width = vi * W;
       const fill = i === 0 ? COLOR.target : last ? COLOR.guess : COLOR.nt;
       el("rect", { x, y, width, height: 26, fill, "fill-opacity": i > 0 && !last && i % 2 === 0 ? op * 0.6 : op,
-        stroke: "#fff", "stroke-width": 1.5 }, svg);
+        stroke: op < 1 ? fill : "#fff", "stroke-width": 1.5 }, svg);
       if (width > 26) el("text", { x: x + width / 2, y: y + 19, "text-anchor": "middle", class: "imm-seg" + (op < 1 ? " imm-seg-dim" : "") }, svg)
         .textContent = i === 0 ? "T" : last ? "G" : i + 1;
       x += width;
@@ -270,8 +271,9 @@ function drawAcross(p, ref, n) {
     xticks: ns, yticks: [0, 0.25, 0.5, 0.75, 1], xlab: "Set size (equidistant, colours evenly spread)", ylab: "Probability", series
   });
   svg.insertBefore(el("line", { x1: sx(n), x2: sx(n), y1: sy(0), y2: sy(1), stroke: "#9aa3ad", "stroke-width": 2, "stroke-dasharray": "3 4" }), svg.querySelector(".series"));
-  for (const s of series.slice(2)) s.y.forEach((v, i) =>
-    el("circle", { cx: sx(ns[i]), cy: sy(v), r: ns[i] === n ? 7 : 4, fill: ns[i] === n ? "#fff" : s.color, stroke: s.color, "stroke-width": 2.5 }, svg));
+  // Squares for the share within 20 degrees, circles for the target weight; the open one is the current set size.
+  series.slice(2).forEach((s, j) => s.y.forEach((v, i) =>
+    marker(svg, j === 0 ? "square" : "circle", sx(ns[i]), sy(v), ns[i] === n ? 7 : 4.5, { fill: ns[i] === n ? "#fff" : s.color, stroke: s.color, "stroke-width": 2.5 })));
   const [w1, w8] = [series[3].y[0], series[3].y[MAX_N - 1]], [q1, q8] = [series[2].y[0], series[2].y[MAX_N - 1]];
   $("imm-across-now").textContent = `With the current parameters, the target's weight falls from ${fmt(w1)} at set size 1 ` +
     `to ${fmt(w8)} at set size ${MAX_N}, and the probability of a response within ±20° of the target from ${fmt(q1)} to ${fmt(q8)}.`;
@@ -338,6 +340,14 @@ function draw() {
   drawWeights(weights(lay, p), weights(lay, start));
   drawAcross(p, start, v.set_size);
   drawCode(lay, p);
+  const w = weights(lay, p), n = v.set_size, deg = Math.round(WINDOW * DEG), tw = k => weights(preset(k), p)[0];
+  describePlot($("imm-display"), `Memory display, ${mode} layout: the target and ${n - 1} non-target${n === 2 ? "" : "s"}.`);
+  describePlot($("imm-wheel"), n === 1 ? "Colour wheel with the target's colour at 0 degrees." :
+    `Colour wheel: target at 0 degrees, non-targets at ${lay.mu.slice(1).map(m => fmt(m * DEG, 0)).join(", ")} degrees.`);
+  describePlot($("imm-density"), `Response-error density: target weight ${fmt(w[0])}, guessing ${fmt(w.at(-1))}, ` +
+    `${fmt(pWithin(lay, p))} of responses within ${deg} degrees of the target.`);
+  describePlot($("imm-weights"), `Weights now: target ${fmt(w[0])}, non-targets ${fmt(w.slice(1, -1).reduce((t, x) => t + x, 0))}, guessing ${fmt(w.at(-1))}.`);
+  describePlot($("imm-across"), `Target weight ${fmt(w[0])} at set size ${n}; ${fmt(tw(1))} at set size 1 and ${fmt(tw(MAX_N))} at set size ${MAX_N}.`);
   $("imm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -411,3 +421,4 @@ pairs.spacing.setBounds({ min: 0, max: maxSpacing(START_N), step: 0.01 });
 setParams(pairs, { ...start, set_size: START_N, spacing: maxSpacing(START_N) });
 draw();
 initInfo();
+initA11y();

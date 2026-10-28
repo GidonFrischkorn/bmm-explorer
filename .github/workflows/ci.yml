@@ -38,6 +38,22 @@ jobs:
             test -f "_site/$f.html" || { echo "::error::_site/$f.html missing after render"; exit 1; }
           done
           test -f _site/js/models/circular.js || { echo "::error::js/ not copied into _site"; exit 1; }
+      # axe-core is a test-time tool: it is fetched here, checked against the pins in tests/a11y/axe.json and injected into
+      # headless Chrome; it is never part of the site. Serious and critical violations fail the job; the rest are listed.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fetch axe-core (pinned, checksum-verified)
+        run: node tests/a11y/fetch-axe.mjs
+      - name: Accessibility check (axe-core on every page state)
+        run: node tests/a11y/run-axe.mjs --out axe-report.json
+      - name: Keep the axe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: axe-report
+          path: axe-report.json
+          if-no-files-found: ignore
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

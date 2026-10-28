@@ -5,6 +5,7 @@ import { linePlot } from "../lib/plot.js";
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 
 // bmm's default priors for cswald(version = ...), [mean, sd, scale, step] on the link scale; the sliders
 // span mean +- 3 SD and start at the means. drift has a log link in simple (it is positive there) and an
@@ -131,6 +132,10 @@ function draw() {
   drawDensity(q, v, axis, x);
   drawCompare(q, v, axis, x);
   drawCode(q, v);
+  const pars = `drift ${fmt(q.drift)}, boundary ${fmt(q.bound)}, non-decision time ${fmt(q.ndt)} s`;
+  describePlot($("cswald-task"), `${v === "simple" ? "Simple" : "Competing-risks"} version: evidence accumulating toward the boundary, ${pars}.`);
+  describePlot($("cswald-density"), `Response-time densities of the two responses, ${pars}.`);
+  describePlot($("cswald-ddm"), `The densities of this model over those of the diffusion decision model with matching parameters, ${pars}.`);
   $("cswald-legend").innerHTML = v === "simple"
     ? '<span class="blue">Correct (1)</span>: density of the rt. <span class="orange">Error (0)</span>: probability ' +
       "that no correct response has come by that rt, the likelihood of an error then. Dashed: prior means."
@@ -155,3 +160,4 @@ pairs.zr.setBounds({ min: -0.9, max: 0.9, step: 0.02, scale: LOGIT });
 applyVersion();
 draw();
 initInfo();
+initA11y();

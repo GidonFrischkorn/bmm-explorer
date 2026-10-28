@@ -67,8 +67,8 @@ toc: false
     <div class="ex-panel-title">P(correct) across response-set size</div>
     <svg id="mpt-across" role="img" aria-label="Predicted probability correct against response-set size, for the tree and for the matched M3"></svg>
     <div class="ex-legend">
-      Changing <span class="grey">lures</span>, <span class="orange">other list items</span> or
-      <span class="purple">both</span> from the circle. Solid: this tree; dotted: M3 matched at the circle.
+      Changing <span class="grey">▲ lures</span>, <span class="orange">■ other list items</span> or
+      <span class="purple">✚ both</span> from the circle. Solid: this tree; dotted: M3 matched at the circle.
     </div>
   </section>
 </div>

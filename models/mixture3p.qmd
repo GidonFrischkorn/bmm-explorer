@@ -79,8 +79,8 @@ toc: false
     <div class="ex-panel-title">Across set size</div>
     <svg id="mix3-across" role="img" aria-label="Weight of the target, of all non-targets together, of one non-target and of guessing against set size"></svg>
     <div class="ex-legend">
-      <span class="blue">Target</span>, <span class="orange">all non-targets</span> (solid) and
-      <span class="orange">one non-target</span> (thin), <span class="grey">guessing</span>. Dashed: start;
+      <span class="blue">● Target</span>, <span class="orange">■ all non-targets</span> (solid) and
+      <span class="orange">◆ one non-target</span> (thin), <span class="grey">▲ guessing</span>. Dashed: start;
       open circle: current set size.
     </div>
   </section>

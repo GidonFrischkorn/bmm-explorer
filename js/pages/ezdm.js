@@ -6,6 +6,7 @@ import { el, clear, scales } from "../lib/plot.js";
 import { drawDiffusion, timeAxis, BLUE, ORANGE, GREY } from "../lib/rt-plot.js";
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 
 // bmm's default priors for ezdm(), [mean, sd, scale, step] on the link scale; the sliders span mean +- 3 SD
 // and start at the means. drift's cauchy(0, 1) has no SD; its slider spans location +- 3 scale.
@@ -181,6 +182,10 @@ function draw() {
   drawStats(q, s, ref, axis);
   drawAcross(q, s);
   drawCode(q, s, v);
+  const sd = Math.sqrt(s.pC * (1 - s.pC) / q.n_trials);
+  describePlot($("ezdm-task"), `Evidence paths with drift ${fmt(q.drift)}, boundary separation ${fmt(q.bound)} and non-decision time ${fmt(q.ndt)} s.`);
+  describePlot($("ezdm-stats"), `Predicted P(upper) ${fmt(s.pC)}; mean rt ${s.rows.map(r => `${fmt(r.mean)} s (${r.label.slice(4)})`).join(", ")}.`);
+  describePlot($("ezdm-across"), `At ${q.n_trials} trials per cell, observed accuracy lies within ${fmt(2 * sd)} of ${fmt(s.pC)} (two standard deviations).`);
   $("ezdm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -191,3 +196,4 @@ pairs.n_trials.setBounds({ min: 3, max: N_MAX, step: 1 });
 setParams(pairs, START);
 draw();
 initInfo();
+initA11y();

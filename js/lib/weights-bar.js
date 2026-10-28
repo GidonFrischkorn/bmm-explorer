@@ -20,7 +20,8 @@ export function weightBars(svg, rows, first = "T") {
       const fill = i === 0 ? WEIGHT_COLOR.target : last ? WEIGHT_COLOR.guess : WEIGHT_COLOR.nt;
       // Neighbouring non-targets alternate in shade so the segments stay countable.
       el("rect", { x, y, width, height: 26, fill, "fill-opacity": i > 0 && !last && i % 2 === 0 ? opacity * 0.6 : opacity,
-        stroke: "#fff", "stroke-width": 1.5 }, svg);
+        // The faint reference row is outlined in its own colour, so its segments keep 3:1 against the page.
+        stroke: opacity < 1 ? fill : "#fff", "stroke-width": 1.5 }, svg);
       if (width > 26) el("text", { x: x + width / 2, y: y + 19, "text-anchor": "middle", class: "ex-seg" + (opacity < 1 ? " ex-seg-dim" : "") }, svg)
         .textContent = i === 0 ? first : last ? "G" : i + 1;
       x += width;

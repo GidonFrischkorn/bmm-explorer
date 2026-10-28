@@ -93,8 +93,8 @@ toc: false
     <div class="ex-panel-title">Across set size</div>
     <svg id="imm-across" role="img" aria-label="Target weight and probability of a response within 20 degrees against set size"></svg>
     <div class="ex-legend">
-      <span class="blue">Target weight</span> and <span class="green">share of errors within ±20°</span>.
-      Solid: now; dashed: prior means; open circle: current set size.
+      <span class="blue">● Target weight</span> and <span class="green">■ share of errors within ±20°</span>.
+      Solid: now; dashed: prior means; open marker: current set size.
     </div>
   </section>
 </div>

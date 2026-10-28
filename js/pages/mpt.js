@@ -6,6 +6,7 @@ import { m3Probs, ssActs } from "../models/m3.js";
 import { bindParams, readParams, setParams, fmt, LOGIT } from "../lib/widget.js";
 import { barPlot, linePlot, el, clear } from "../lib/plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 import { simControls, markBars, shareLine } from "../lib/sim-panel.js";
 import { categoricalShares } from "../lib/simulate.js";
 
@@ -127,16 +128,16 @@ function drawBars(cur, ref) {
 function compositions(p) {
   const lo = -Math.min(p.n_other, p.n_npl), hi = Math.min(p.set_size - 1 - p.n_other, MAX.n_npl - p.n_npl);
   return [
-    { color: COLOR.npl, pts: Array.from({ length: MAX.n_npl + 1 }, (_, k) => ({ ...p, n_npl: k })) },
-    { color: COLOR.other, pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k })) },
-    { color: COLOR.both, pts: Array.from({ length: hi - lo + 1 }, (_, i) => ({ ...p, n_other: p.n_other + lo + i, n_npl: p.n_npl + lo + i })) }
+    { color: COLOR.npl, marker: "triangle", pts: Array.from({ length: MAX.n_npl + 1 }, (_, k) => ({ ...p, n_npl: k })) },
+    { color: COLOR.other, marker: "square", pts: Array.from({ length: p.set_size }, (_, k) => ({ ...p, n_other: k })) },
+    { color: COLOR.both, marker: "plus", pts: Array.from({ length: hi - lo + 1 }, (_, i) => ({ ...p, n_other: p.n_other + lo + i, n_npl: p.n_npl + lo + i })) }
   ];
 }
 
 function drawAcross(p, cur, ac) {
   const N = s => 1 + s.n_other + s.n_npl;
   const series = compositions(p).flatMap(comp => [
-    { x: comp.pts.map(N), y: comp.pts.map(s => probs(s)[0]), color: comp.color },
+    { x: comp.pts.map(N), y: comp.pts.map(s => probs(s)[0]), color: comp.color, marker: comp.marker },
     { x: comp.pts.map(N), y: comp.pts.map(s => m3Simple(ac, s)[0]), color: comp.color, width: 2.5 }
   ]);
   const { paths, sx, sy } = linePlot($("mpt-across"), {
@@ -224,6 +225,10 @@ function draw() {
   drawBars(cur, probs({ ...p, ...PRIOR_MEANS }));
   drawAcross(p, cur, spanTreeToM3(p));
   drawCode(p, cur);
+  const shares = `correct ${fmt(cur[0])}, other list items ${fmt(cur[1])}, lures ${fmt(cur[2])}`;
+  describePlot($("mpt-tree"), `Span tree with Pi ${fmt(p.Pi)} and Pb ${fmt(p.Pb)}: ${shares}.`);
+  describePlot($("mpt-bars"), `Predicted proportions: ${shares}.`);
+  describePlot($("mpt-across"), `P(correct) ${fmt(cur[0])} at N = ${1 + p.n_other + p.n_npl}.`);
   $("mpt-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -233,3 +238,4 @@ for (const k of ["Pi", "Pb"]) pairs[k].setBounds(BOUNDS);
 setParams(pairs, { ...PRIOR_MEANS, ...START_COUNTS });
 draw();
 initInfo();
+initA11y();

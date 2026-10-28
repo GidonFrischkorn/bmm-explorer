@@ -5,6 +5,7 @@ import { bindParams, readParams, setParams, fmt, LINEAR, LOG } from "../lib/widg
 import { barPlot, el } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 import { simControls, markBars, pair, simLine } from "../lib/sim-panel.js";
 import { ynSample } from "../lib/simulate.js";
 
@@ -174,6 +175,10 @@ function draw() {
   drawBars(cur, rates(prior()), got);
   drawRoc(v, cur, got);
   drawCode(v, cur);
+  describePlot($("sdtyn-latent"), `Noise and signal evidence densities with d ${fmt(v.d)} and the criterion at ${fmt(v.criterion)}: ` +
+    `false-alarm rate ${fmt(cur[0])}, hit rate ${fmt(cur[1])}.`);
+  describePlot($("sdtyn-bars"), `Predicted false-alarm rate ${fmt(cur[0])} on noise trials, hit rate ${fmt(cur[1])} on signal trials.`);
+  describePlot($("sdtyn-roc"), `Hit rate ${fmt(cur[1])} at false-alarm rate ${fmt(cur[0])} for the current criterion.`);
   $("sdtyn-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -224,3 +229,4 @@ applyAnchor();
 setParams(pairs, { d: PRIOR_MEANS.d, k: PRIOR_MEANS.criterion, sdratio: PRIOR_MEANS.sdratio });
 draw();
 initInfo();
+initA11y();

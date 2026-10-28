@@ -29,12 +29,16 @@ export function bindPair(rangeId, numberId, onInput, scale = LINEAR) {
   const follow = () => {
     const r = pair.scale.toRange(pair.value);
     if (Number.isFinite(r)) range.value = r;
+    speak();
   };
+  // A screen reader speaks a slider's own value, which on a log or logit slider is not the parameter: it gets the
+  // box's number. The label already names the parameter.
+  const speak = () => range.setAttribute("aria-valuetext", num.value === "" ? "no value" : num.value);
   const pair = {
     range, num, scale,
     // An empty box is no value, not 0 (+"" === 0).
     get value() { return num.value === "" ? NaN : +num.value; },
-    set value(v) { num.value = v; range.value = pair.scale.toRange(v); },
+    set value(v) { num.value = v; range.value = pair.scale.toRange(v); speak(); },
     // min, max and step on the slider's scale; the box gets the same limits in natural units.
     setBounds({ min, max, step, scale: sc } = {}) {
       if (sc) pair.scale = sc;
@@ -45,7 +49,7 @@ export function bindPair(rangeId, numberId, onInput, scale = LINEAR) {
       follow();
     }
   };
-  range.addEventListener("input", () => { num.value = pair.scale.fromRange(+range.value); onInput(); });
+  range.addEventListener("input", () => { num.value = pair.scale.fromRange(+range.value); speak(); onInput(); });
   num.addEventListener("input", () => { follow(); onInput(); });
   return pair;
 }

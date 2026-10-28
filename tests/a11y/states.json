@@ -1,0 +1,685 @@
+{
+ "//": "One entry per rendered page; every page is checked in its default state plus the states listed here. A step is { click: selector } | { note: info id } | { range: [selector, value] } | { number: [selector, value] } | { select: [selector, value] }. A new page needs an entry (run-axe.mjs fails without one).",
+ "viewport": [
+  1280,
+  800
+ ],
+ "pages": {
+  "index": {},
+  "about": {},
+  "models/m3": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#m3-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: a",
+     "steps": [
+      {
+       "note": "m3-a-info"
+      }
+     ]
+    },
+    {
+     "name": "note open: version",
+     "steps": [
+      {
+       "note": "m3-version-info"
+      }
+     ]
+    },
+    {
+     "name": "complex span",
+     "steps": [
+      {
+       "click": "input[name=\"m3-version\"][value=\"cs\"]"
+      }
+     ]
+    },
+    {
+     "name": "complex span, simulate on, note open: f",
+     "steps": [
+      {
+       "click": "input[name=\"m3-version\"][value=\"cs\"]"
+      },
+      {
+       "click": "#m3-sim"
+      },
+      {
+       "note": "m3-f-info"
+      }
+     ]
+    },
+    {
+     "name": "softmax",
+     "steps": [
+      {
+       "click": "input[name=\"m3-rule\"][value=\"softmax\"]"
+      }
+     ]
+    },
+    {
+     "name": "gaussian, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"m3-rule\"][value=\"gaussian\"]"
+      },
+      {
+       "click": "#m3-sim"
+      }
+     ]
+    },
+    {
+     "name": "out of range: a negative under the simple rule",
+     "steps": [
+      {
+       "number": [
+        "#m3-a-num",
+        "-5"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "out of range: set size 99",
+     "steps": [
+      {
+       "number": [
+        "#m3-set-size-num",
+        "99"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/mpt": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#mpt-sim"
+      }
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#mpt-sim"
+      },
+      {
+       "select": [
+        "#mpt-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#mpt-sim-new"
+      }
+     ]
+    },
+    {
+     "name": "note open: n_other",
+     "steps": [
+      {
+       "note": "mpt-n-other-info"
+      }
+     ]
+    },
+    {
+     "name": "note open: Pi",
+     "steps": [
+      {
+       "note": "mpt-pi-info"
+      }
+     ]
+    },
+    {
+     "name": "out of range: set size 99",
+     "steps": [
+      {
+       "number": [
+        "#mpt-set-size-num",
+        "99"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/imm": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#imm-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: set size",
+     "steps": [
+      {
+       "note": "imm-set-size-info"
+      }
+     ]
+    },
+    {
+     "name": "square layout",
+     "steps": [
+      {
+       "click": "input[name=\"imm-layout\"][value=\"square\"]"
+      }
+     ]
+    },
+    {
+     "name": "square layout, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"imm-layout\"][value=\"square\"]"
+      },
+      {
+       "click": "#imm-sim"
+      }
+     ]
+    },
+    {
+     "name": "scatter, simulate on",
+     "steps": [
+      {
+       "click": "#imm-scatter"
+      },
+      {
+       "click": "#imm-sim"
+      }
+     ]
+    },
+    {
+     "name": "set size 1",
+     "steps": [
+      {
+       "number": [
+        "#imm-set-size-num",
+        "1"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "out of range: set size 99",
+     "steps": [
+      {
+       "number": [
+        "#imm-set-size-num",
+        "99"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/mixture2p": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#mix2-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: kappa",
+     "steps": [
+      {
+       "note": "mix2-kappa-info"
+      }
+     ]
+    },
+    {
+     "name": "out of range: p_mem 2",
+     "steps": [
+      {
+       "number": [
+        "#mix2-p_mem-num",
+        "2"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/mixture3p": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#mix3-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: p_nt",
+     "steps": [
+      {
+       "note": "mix3-p_nt-info"
+      }
+     ]
+    },
+    {
+     "name": "spread",
+     "steps": [
+      {
+       "click": "#mix3-spread"
+      }
+     ]
+    },
+    {
+     "name": "out of range: p_mem 2",
+     "steps": [
+      {
+       "number": [
+        "#mix3-p_mem-num",
+        "2"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/sdm": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdm-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: c",
+     "steps": [
+      {
+       "note": "sdm-c-info"
+      }
+     ]
+    },
+    {
+     "name": "note open: parametrization",
+     "steps": [
+      {
+       "note": "sdm-par-info"
+      }
+     ]
+    },
+    {
+     "name": "bessel parametrization",
+     "steps": [
+      {
+       "click": "input[name=\"sdm-par\"][value=\"bessel\"]"
+      }
+     ]
+    },
+    {
+     "name": "bessel parametrization, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"sdm-par\"][value=\"bessel\"]"
+      },
+      {
+       "click": "#sdm-sim"
+      }
+     ]
+    },
+    {
+     "name": "out of range: kappa negative",
+     "steps": [
+      {
+       "number": [
+        "#sdm-kappa-num",
+        "-1"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/sdt_yn": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtyn-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: d",
+     "steps": [
+      {
+       "note": "sdtyn-d-info"
+      }
+     ]
+    },
+    {
+     "name": "bias anchor",
+     "steps": [
+      {
+       "click": "input[name=\"sdtyn-anchor\"][value=\"bias\"]"
+      }
+     ]
+    },
+    {
+     "name": "gumbel_min, simulate on",
+     "steps": [
+      {
+       "select": [
+        "#sdtyn-dist",
+        "gumbel_min"
+       ]
+      },
+      {
+       "click": "#sdtyn-sim"
+      }
+     ]
+    },
+    {
+     "name": "logistic, bias anchor",
+     "steps": [
+      {
+       "select": [
+        "#sdtyn-dist",
+        "logistic"
+       ]
+      },
+      {
+       "click": "input[name=\"sdtyn-anchor\"][value=\"bias\"]"
+      }
+     ]
+    },
+    {
+     "name": "out of range: sdratio 0",
+     "steps": [
+      {
+       "number": [
+        "#sdtyn-s-num",
+        "0"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/sdt_mafc": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtmafc-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: m",
+     "steps": [
+      {
+       "note": "sdtmafc-m-info"
+      }
+     ]
+    },
+    {
+     "name": "m 10, simulate on",
+     "steps": [
+      {
+       "range": [
+        "#sdtmafc-m",
+        "10"
+       ]
+      },
+      {
+       "click": "#sdtmafc-sim"
+      }
+     ]
+    },
+    {
+     "name": "gumbel_max",
+     "steps": [
+      {
+       "select": [
+        "#sdtmafc-dist",
+        "gumbel_max"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "logistic, simulate on",
+     "steps": [
+      {
+       "select": [
+        "#sdtmafc-dist",
+        "logistic"
+       ]
+      },
+      {
+       "click": "#sdtmafc-sim"
+      }
+     ]
+    },
+    {
+     "name": "out of range: m 11",
+     "steps": [
+      {
+       "number": [
+        "#sdtmafc-m-num",
+        "11"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/sdt_rating": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtrating-sim"
+      }
+     ]
+    },
+    {
+     "name": "note open: K",
+     "steps": [
+      {
+       "note": "sdtrating-k-info"
+      }
+     ]
+    },
+    {
+     "name": "K 3",
+     "steps": [
+      {
+       "range": [
+        "#sdtrating-k",
+        "3"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "K 8, simulate on",
+     "steps": [
+      {
+       "range": [
+        "#sdtrating-k",
+        "8"
+       ]
+      },
+      {
+       "click": "#sdtrating-sim"
+      }
+     ]
+    },
+    {
+     "name": "gumbel_min, simulate on",
+     "steps": [
+      {
+       "select": [
+        "#sdtrating-dist",
+        "gumbel_min"
+       ]
+      },
+      {
+       "click": "#sdtrating-sim"
+      }
+     ]
+    },
+    {
+     "name": "out of range: threshold out of order",
+     "steps": [
+      {
+       "number": [
+        "#sdtrating-t1-num",
+        "5"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/ezdm": {
+   "states": [
+    {
+     "name": "note open: version",
+     "steps": [
+      {
+       "note": "ezdm-version-info"
+      }
+     ]
+    },
+    {
+     "name": "note open: n_trials",
+     "steps": [
+      {
+       "note": "ezdm-n-info"
+      }
+     ]
+    },
+    {
+     "name": "4-parameter version",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      }
+     ]
+    },
+    {
+     "name": "4-parameter version, note open: zr",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      },
+      {
+       "note": "ezdm-zr-info"
+      }
+     ]
+    },
+    {
+     "name": "out of range: n_trials 2",
+     "steps": [
+      {
+       "number": [
+        "#ezdm-n-num",
+        "2"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/cswald": {
+   "states": [
+    {
+     "name": "note open: version",
+     "steps": [
+      {
+       "note": "cswald-version-info"
+      }
+     ]
+    },
+    {
+     "name": "note open: drift",
+     "steps": [
+      {
+       "note": "cswald-drift-info"
+      }
+     ]
+    },
+    {
+     "name": "competing-risks version",
+     "steps": [
+      {
+       "click": "input[name=\"cswald-version\"][value=\"crisk\"]"
+      }
+     ]
+    },
+    {
+     "name": "out of range: bound 0",
+     "steps": [
+      {
+       "number": [
+        "#cswald-bound-num",
+        "0"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "models/ddm": {
+   "states": [
+    {
+     "name": "note open: drift",
+     "steps": [
+      {
+       "note": "ddm-drift-info"
+      }
+     ]
+    },
+    {
+     "name": "note open: zr",
+     "steps": [
+      {
+       "note": "ddm-zr-info"
+      }
+     ]
+    },
+    {
+     "name": "out of range: bound 0",
+     "steps": [
+      {
+       "number": [
+        "#ddm-bound-num",
+        "0"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

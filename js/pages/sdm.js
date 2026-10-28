@@ -8,6 +8,7 @@ import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { colourWheel, hue } from "../lib/wheel.js";
 import { WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 
 // Slider ranges are the page's choice (the article names none). The starting values are the centres
 // of bmm's default priors, student_t(5, 2, 0.75) on log c and student_t(5, 1.75, 0.75) on log kappa,
@@ -129,6 +130,9 @@ function draw() {
   drawDensity(p, ref);
   drawActivation(p, ref, logZ);
   drawCode(p);
+  describePlot($("sdm-wheel"), "Colour wheel with the target's colour at the top; the response error is the distance from it.");
+  describePlot($("sdm-density"), `Response-error density with c ${fmt(p.c)} and kappa ${fmt(p.kappa)}: ${fmt(within(p))} of responses within ${Math.round(WINDOW * DEG)} degrees of the target.`);
+  describePlot($("sdm-activation"), `Activation of each response error with c ${fmt(p.c)} and kappa ${fmt(p.kappa)}, now and at the starting values.`);
   $("sdm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -159,3 +163,4 @@ pairs.kappa.setBounds({ min: -2.3, max: Math.log(KAPPA.max), step: 0.05, scale: 
 setParams(pairs, start(par));
 draw();
 initInfo();
+initA11y();

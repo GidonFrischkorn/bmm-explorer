@@ -19,3 +19,6 @@ LOCAL-AGENTS.md
 
 # node (there are no dependencies; a stray install must not be committed)
 node_modules/
+
+# axe-core, fetched for the accessibility check (tests/a11y/fetch-axe.mjs)
+/tests/a11y/vendor/

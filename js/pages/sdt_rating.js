@@ -6,6 +6,7 @@ import { barPlot, el, clipped } from "../lib/plot.js";
 import { latentPlot, dragLines, rocPlot, NOISE, SIGNAL } from "../lib/sdt-plot.js";
 import { autoAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 import { simControls, markBars, simLine, pair } from "../lib/sim-panel.js";
 import { ratingSample } from "../lib/simulate.js";
 
@@ -94,7 +95,7 @@ function drawBars(cur, ref, K, got) {
   const { rects, sy } = barPlot(svg, {
     W: 500, H: 300, margin: { l: 64, r: 10, t: 14, b: 50 }, ...barAxis.next(Math.max(...cur.flat(), ...ref.flat(), ...(got ?? []).flat())),
     categories: Array.from({ length: K }, (_, j) => String(j + 1)), xlab: "Rating", ylab: "Proportion",
-    groups: [{ values: cur[0], color: NOISE }, { values: cur[1], color: SIGNAL }]
+    groups: [{ values: cur[0], color: NOISE }, { values: cur[1], color: SIGNAL, hatch: true }]
   });
   rects.forEach((grp, g) => grp.forEach((r, j) => {
     const x = +r.getAttribute("x"), w = +r.getAttribute("width");
@@ -192,6 +193,10 @@ function draw() {
   drawBars(cur, ref, p.K, got);
   drawRoc(v, cur, ref, got);
   drawCode(v, t, cur);
+  const K = p.K, mode = row => row.indexOf(Math.max(...row)) + 1;
+  describePlot($("sdtrating-latent"), `Noise and signal evidence densities with d ${fmt(p.d)} and ${K - 1} rating thresholds at ${t.map(x => fmt(x)).join(", ")}.`);
+  describePlot($("sdtrating-bars"), `Most likely rating: ${mode(cur[0])} on noise trials, ${mode(cur[1])} on signal trials; rating ${K} gets ${fmt(cur[0][K - 1])} of noise and ${fmt(cur[1][K - 1])} of signal responses.`);
+  describePlot($("sdtrating-roc"), `ROC with ${K - 1} points; the strictest threshold gives hit rate ${fmt(cur[1][K - 1])} at false-alarm rate ${fmt(cur[0][K - 1])}.`);
   $("sdtrating-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -225,3 +230,4 @@ kPair.value = START.K;
 applyK();
 draw();
 initInfo();
+initA11y();

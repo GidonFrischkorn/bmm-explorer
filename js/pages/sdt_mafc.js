@@ -4,8 +4,9 @@ import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } fr
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
 import { linspace, log1pExp } from "../lib/math.js";
-import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
+import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_TEXT, DIST_DASH, DIST_NAMES } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
 import { simControls, pair, simLine } from "../lib/sim-panel.js";
 import { mafcSample } from "../lib/simulate.js";
 
@@ -48,7 +49,8 @@ function drawTiles(m) {
     const x = x0 + (i % 5) * (size + gap), y = y0 + Math.floor(i / 5) * (size + 40);
     const sig = i === target;
     el("rect", { x, y, width: size, height: size, rx: 10, fill: sig ? "#fbebe0" : "#f3f4f7", stroke: sig ? SIGNAL : "#a3adb7", "stroke-width": sig ? 4 : 2.5 }, svg);
-    el("text", { x: x + size / 2, y: y + size / 2 + 9, "text-anchor": "middle", class: "task-letter", fill: sig ? SIGNAL : GREY }, svg).textContent = i + 1;
+    el("text", { x: x + size / 2, y: y + size / 2 + 9, "text-anchor": "middle", class: "task-letter", fill: sig ? "#b04a00" : GREY }, svg).textContent = i + 1;
+    if (sig) el("text", { x: x + size / 2, y: y + size + 24, "text-anchor": "middle", class: "sdt-note", fill: "#b04a00" }, svg).textContent = "signal";
   }
   el("text", { x: 220, y: 236, "text-anchor": "middle", class: "task-note" }, svg).textContent = `${m} alternatives, 1 holds the signal`;
 }
@@ -129,9 +131,11 @@ function drawAcross(p, cur) {
       { x: M, y: M.map(m => pc(p.d, m)), color: DIST_COLOR[dist()] }
     ]
   });
-  paths.slice(0, -1).forEach(path => path.setAttribute("stroke-dasharray", "2 5"));
+  paths[0].setAttribute("stroke-dasharray", "2 5");
+  others.forEach((o, i) => paths[i + 1].setAttribute("stroke-dasharray", DIST_DASH[o.n]));
   el("circle", { cx: sx(p.m), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
-  const name = n => `<span style="color:${DIST_COLOR[n]};font-weight:600">${n}</span>`;
+  // The name carries a sample of its line: colour, then dash pattern.
+  const name = n => `<span style="color:${DIST_TEXT[n]};font-weight:600"><svg width="30" height="8" viewBox="0 0 30 8" aria-hidden="true" style="width:30px;height:8px;display:inline-block;vertical-align:middle;margin-right:3px"><line x1="0" x2="30" y1="4" y2="4" stroke="${DIST_COLOR[n]}" stroke-width="3" ${n === dist() ? "" : `stroke-dasharray="${DIST_DASH[n]}"`}/></svg>${n}</span>`;
   // The legend leaves the current d to the Parameters panel: with three matched values beside it, a long d wraps
   // it to a fourth line and the dashboard past one screen. A typed d far outside the slider can match d in the
   // hundreds or thousands, where decimals add width and nothing else.
@@ -187,6 +191,11 @@ function draw() {
   drawByD(p, cur);
   drawAcross(p, cur);
   drawCode(p, cur);
+  const lg = mafcLogitPc(p.d, p.m, dist(), RULES), far = p.m === M_MAX ? 2 : M_MAX;
+  describePlot($("sdtmafc-tiles"), `One trial with ${p.m} alternatives, one of them holding the signal.`);
+  describePlot($("sdtmafc-latent"), `Evidence densities under ${dist()} noise at d ${fmt(p.d)}: the signal alternative, one distractor and the strongest of ${p.m - 1} distractors.`);
+  describePlot($("sdtmafc-byd"), `P(correct) ${pcText(lg)} at d ${fmt(p.d)} and ${p.m} alternatives.`);
+  describePlot($("sdtmafc-across"), `P(correct) ${pcText(lg)} at m = ${p.m}; ${pcText(mafcLogitPc(p.d, far, dist(), RULES))} at m = ${far}.`);
   $("sdtmafc-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -201,3 +210,4 @@ pairs.d.setBounds({ min: dLo, max: dHi, step: 0.05 });
 setParams(pairs, START);
 draw();
 initInfo();
+initA11y();
