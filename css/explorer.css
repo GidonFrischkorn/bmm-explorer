@@ -114,6 +114,9 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 .ex-task-pair.ex-task-pair-2 { grid-template-columns: minmax(150px, 0.8fr) 2fr; }
 /* Narrow screens: the note goes below the wheel, so the wheel gets the full row; a width cap instead
    of the height cap keeps its box the size of the drawing. */
+/* A stacked tablet window: the wheel column alone is about 200 px, where its notes and bin numbers render near 11 px
+   and the longest note already spans the drawing, so the column widens instead of the text growing. */
+@media (min-width: 641px) and (max-width: 1000px) { .ex-task-pair.ex-task-pair-2 { grid-template-columns: minmax(150px, 1fr) 1.5fr; } }
 @media (max-width: 640px) {
   .ex-task-pair.ex-task-pair-2 { grid-template-columns: 1fr; }
   .ex-dash .ex-task-pair-2 svg { max-height: none; max-width: 20rem; }
@@ -138,6 +141,8 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 .sdt-task-pair { display: grid; grid-template-columns: 0.63fr 1fr; gap: 0.6rem; align-items: center; }
 .ex-dash .sdt-task-pair svg { max-height: 23vh; }
 #sdtmafc-latent .tick { font-size: 20px; }
+/* Both m-AFC drawings render at about 0.59 of their units on a portrait tablet: 19 px notes came out at 11.3 px. */
+#sdtmafc-latent .sdt-note, #sdtmafc-tiles .sdt-note, #sdtmafc-tiles .task-note { font-size: 21px; }
 @media (max-width: 640px) { .sdt-task-pair { grid-template-columns: 1fr; } }
 /* Rating thresholds: one inline row each below the other parameters. */
 .ex-dash .sdt-thresholds { margin-top: 0.3rem; row-gap: 0.1rem; }
