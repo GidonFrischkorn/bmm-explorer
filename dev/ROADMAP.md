@@ -17,11 +17,12 @@ ships pages that pass the parity test, render, and read well to someone who has 
 
 ## Page template
 
-Dashboard first, one screen at 1280 x 800: task drawing, task settings, parameters (ranges from bmm's
-default priors, mean +- 3 SD; SDM is the exception), predicted distribution with the prior means dashed, and the prediction
-across the design variable. Every parameter, task setting and model choice has an (i) note: what it
-does in the model and an example from the task drawing. Auto-scaled axes hold their round limit while
-the data fill more than half of it and ease to a new limit when they must change (`js/lib/axis.js`).
+Dashboard first, one screen at 1280 x 800: task drawing, task settings, parameters (ranges from
+bmm's default priors, mean +- 3 SD, unless the page's Explore section names another source, as for
+SDM), predicted distribution with the prior means dashed, and the prediction across the design
+variable. Every parameter, task setting and model choice has an (i) note: what it does in the model
+and an example from the task drawing. Auto-scaled axes hold their round limit while the data fill
+more than half of it and ease to a new limit when they must change (`js/lib/axis.js`).
 Then the five sections:
 
 1. **What the model says**: the model in prose and formula, bmm's parameter names.
@@ -40,7 +41,8 @@ Then the five sections:
 | IMM | non-target positions and distances | the error distribution as items are added around the wheel |
 | SDT mAFC, ranking | `m` | accuracy by `m` |
 | SDT yes/no, rating | none (number of thresholds only) | ROC; the paragraph |
-| mixture2p, mixture3p, SDM | none | the paragraph: the model is silent on set size |
+| mixture2p, SDM | none | the paragraph: the model is silent on set size; the mixture weights (mixture2p) and the activation and normaliser (SDM) in the fourth panel |
+| mixture3p | the non-targets' colours and set size (the number of non-target peaks; `p_nt` is shared equally among them) | the weights of the target, of all non-targets, of one non-target and of guessing across set size; the paragraph on parameters that differ between set sizes |
 | ezdm | `n_trials` (the sampling spread of the summary statistics, not their expected values) | ±2 SD of the observed accuracy and mean rt across trial counts |
 | cswald, DDM | none | the paragraph; speed/accuracy (DDM) and the diffusion-model comparison (cswald) in the fourth panel |
 
@@ -64,11 +66,11 @@ Then the five sections:
 | E11a | Ranking | `sdt_ranking` page (#13): Gauss-Hermite and Gauss-Laguerre rule switch inside the integral | sdt_ranking, bmm's ranking nodes |
 | E11b | Dual process | `sdt_cdp` page (#13): bivariate evidence with a correlation, Remember/Know and confidence | sdt_cdp |
 | E12 | Rating versions | `dpsdt` and `metad` versions on the rating page (#14) | sdt_rating versions |
-| E13a | MPT preset trees | a version switch on the MPT page between commonly specified trees: the two-high-threshold recognition model and a source-monitoring model. Each tree is data for the existing evaluator and the page shows its `mpt_tree()` code | `dmpt()` for every preset |
-| E13b | Custom specification | readers write their own: an MPT tree in bmm's `mpt_from_string()` syntax (a hand-written parser, no `eval`), and the activation formulas of a custom M3 (`version = "custom"`). Gated on E13a and on GF | parser fixtures, `dmpt()`, `dm3()` |
+| E13a | MPT preset trees | a tree switch on the MPT page between commonly specified trees: the two-high-threshold recognition model and a source-monitoring model. Each tree is data for the existing evaluator and the page shows its `mpt_tree()` code | `dmpt()` for every preset |
+| E13b | Custom specification | readers write their own: an MPT tree in bmm's `mpt_from_string()` syntax (a hand-written parser, no `eval`), and the activation formulas of a custom M3 (`version = "custom"`). Gated on E13a and a maintainer decision | parser fixtures, `dmpt()`, `dm3()` |
 | E14 | New bmm models | one page per model new in bmm 1.5.0 and 1.6.0 (#18), once it is on CRAN | per model |
 
-Shipped by 2026-10-28: E0-E6, E8, E9, E10a, and E7b with its pull request. Next: E10b, E7a, E11a, E11b, E12, E13a.
+Shipped by 2026-10-28: E0-E6, E8, E9, E10a. E7b is in review (#19). Next: E10b, E7a, E11a, E11b, E12, E13a.
 
 Cross-cutting, every milestone: `node --test` green, `quarto render` green, a naive-reader pass over
 the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabulary.
@@ -76,21 +78,25 @@ the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabu
 ## New bmm models (policy from #18)
 
 - A model gets a deployed page once it is on CRAN.
-- A port may start earlier, against fixtures from bmm's `develop` branch (the non-blocking half of the
-  weekly oracle writes them), on a branch that is not deployed. It merges when CRAN has the model and
+- A port may start earlier, against fixtures written by `Rscript R/make_fixtures.R` with bmm's
+  `develop` branch installed, on a branch that is not deployed. It merges when CRAN has the model and
   the fixtures have been regenerated from the CRAN release.
 - A CRAN release that changes a density fails the weekly oracle on the CRAN run, and the fix lands
   before the next deployment.
 - Each new page answers the question every page answers: which task settings enter the likelihood
   (for TCC the similarity function and the set size, for the psychometric functions the stimulus level).
-- The circular mixture rewrite renames parameters (`pnt` becomes `ptarget`). The affected pages need a
-  version note or a switch for readers whose fits still use bmm 1.4.
+- The circular mixture rewrite in bmm's development branches adds versions to `mixture2p` and
+  `mixture3p` (`slot` and `slot_averaging`, with a capacity `K` and, in `mixture3p`, a target
+  weight); the default `simple` version keeps bmm 1.4's `thetat` and `thetant`. The versions and
+  their names are final only with the release. The affected pages then need a version switch, with
+  bmm 1.4's parameters as the default.
 
-What the workflows do today: the oracle runs weekly (Monday 06:00 UTC) and on pushes and pull requests
-that touch `R/`, `tests/parity/` or `js/models/`; its CRAN job blocks that workflow, its develop job
-reports only. The Pages deployment in `ci.yml` does not wait for it, so a red weekly oracle does not
-stop a deployment, and a push to `main` that touches none of those paths does not run the oracle at all.
-The "fix lands before the next deployment" rule is held by hand until GF decides on gating.
+What the workflows do today: the oracle runs weekly (Monday 06:00 UTC) and on pushes to `main` and
+pull requests that touch `R/`, `tests/parity/` or `js/models/`; its CRAN job blocks that workflow,
+its develop job reports only. The Pages deployment in `ci.yml` does not wait for it, so a red weekly
+oracle does not stop a deployment, and a push to `main` that touches none of those paths does not
+run the oracle at all. The "fix lands before the next deployment" rule is held by hand until gating
+is decided.
 
 ## Out of scope for now
 
@@ -101,11 +107,13 @@ have no `d*()` function in a released bmm.
 
 - SDM's `c` and `kappa` ranges on the slider, settled 2026-10-28: the page keeps its own ranges
   (`c` 0-20, `kappa` 0.1-50 on a log slider) and says so. They cover every value the bmm article
-  simulates and fits (`c` up to 11.6, `kappa` 0.74 to 7.7), keep `c` = 0 reachable, and no recovery
-  grid for `sdm()` exists to switch to. They do not come from the default priors, and the page says so
-  (prior mean ± 3 times the scale would give `c` 0.78 to 70, `kappa` 0.61 to 55).
+  simulates and fits (simulated `c` 2-9, `kappa` 1-8; fitted 95% intervals `c` 1.56-18.7, `kappa`
+  0.48-9.8) and keep `c` = 0 reachable. They do not come from the default priors, and the page says
+  so (prior mean ± 3 times the scale would give `c` 0.78 to 70, `kappa` 0.61 to 55). No recovery grid
+  for `sdm()` to switch to was found in the bmm SDM article, bmm's parameter-recovery reports or
+  bmm's tests.
 - MPT trees, settled 2026-10-28: no parser for `mpt_from_string()` syntax for now. The page gets a
-  version switch between commonly specified trees first (E13a), and a custom specification later
+  tree switch between commonly specified trees first (E13a), and a custom specification later
   (E13b), for the custom M3 as well. See the milestone table.
 - DDM, settled in E6: ported. `rtdists::ddiffusion()` truncates its series with an absolute error target, so in
   the far tails its log density departs from the exact value; the port repeats fast-dm's term counts and

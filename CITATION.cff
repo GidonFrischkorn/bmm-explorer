@@ -12,7 +12,7 @@ url: "https://www.gfrischkorn.org/bmm-explorer/"
 license: GPL-2.0-only
 references:
   - type: article
-    title: "A tutorial for estimating mixture models for visual working memory tasks in brms: Introducing the Bayesian Measurement Modeling (bmm) package for R"
+    title: "A tutorial for estimating Bayesian hierarchical mixture models for visual working memory tasks: Introducing the Bayesian Measurement Modeling (bmm) package for R"
     authors:
       - family-names: Frischkorn
         given-names: Gidon T.
@@ -20,4 +20,6 @@ references:
         given-names: Vencislav
     journal: "Behavior Research Methods"
     year: 2025
+    volume: 57
+    issue: "5"
     doi: "10.3758/s13428-025-02643-0"

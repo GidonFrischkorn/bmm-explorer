@@ -19,8 +19,8 @@ Twelve model pages are live. A page for a model is deployed once the model is on
 | `m3` (simple and complex span) | [models/m3](models/m3.qmd) | candidate counts per category |
 | `mpt` (span-task tree) | [models/mpt](models/mpt.qmd) | candidate counts through the guessing rates |
 | `imm` | [models/imm](models/imm.qmd) | non-target positions and distances |
-| `mixture2p`, `mixture3p`, `sdm` | [mixture2p](models/mixture2p.qmd), [mixture3p](models/mixture3p.qmd), [sdm](models/sdm.qmd) | none for `mixture2p` and `sdm`; the non-targets' colours for `mixture3p` |
-| `sdt_yn`, `sdt_mafc`, `sdt_rating` | [sdt_yn](models/sdt_yn.qmd), [sdt_mafc](models/sdt_mafc.qmd), [sdt_rating](models/sdt_rating.qmd) | `m` for `sdt_mafc`; the number of thresholds for `sdt_rating` |
+| `mixture2p`, `mixture3p`, `sdm` | [mixture2p](models/mixture2p.qmd), [mixture3p](models/mixture3p.qmd), [sdm](models/sdm.qmd) | none for `mixture2p` and `sdm`; for `mixture3p` the non-targets' colours and their number (set size) |
+| `sdt_yn`, `sdt_mafc`, `sdt_rating` | [sdt_yn](models/sdt_yn.qmd), [sdt_mafc](models/sdt_mafc.qmd), [sdt_rating](models/sdt_rating.qmd) | none for `sdt_yn`; `m` for `sdt_mafc`; the number of thresholds for `sdt_rating` |
 | `ezdm`, `cswald`, `ddm` | [ezdm](models/ezdm.qmd), [cswald](models/cswald.qmd), [ddm](models/ddm.qmd) | trials per cell for `ezdm`; none for `cswald` and `ddm` |
 
 Next: more signal detection models (`sdt_ranking`, `sdt_cdp`), the rating versions, a choice between
@@ -52,9 +52,9 @@ Rscript R/make_fixtures.R tests/parity/fixtures   # regenerate fixtures from the
 ```
 
 There are no npm dependencies. Node 20 or newer and Quarto 1.5 or newer are enough; R with bmm is
-needed only to regenerate fixtures. CI runs the node tests and renders the site on every push, deploys
-`main` to GitHub Pages, and once a week regenerates the fixtures from the CRAN bmm (and, non-blocking,
-from bmm's `develop` branch) so a changed density in bmm shows up here.
+needed only to regenerate fixtures. CI runs the node tests and renders the site on pull requests and
+on pushes to `main`, deploys `main` to GitHub Pages, and once a week regenerates the fixtures from the
+CRAN bmm (and, non-blocking, from bmm's `develop` branch) so a changed density in bmm shows up here.
 
 ## Licence
 
