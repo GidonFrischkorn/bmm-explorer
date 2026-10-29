@@ -3,9 +3,11 @@
 import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } from "../models/sdt.js";
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
-import { linspace, log1pExp } from "../lib/math.js";
-import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_NAMES } from "../lib/sdt-plot.js";
+import { linspace } from "../lib/math.js";
+import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_TEXT, DIST_DASH, DIST_NAMES } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
+import { sdtMafcSummaries, pcText } from "../lib/summaries.js";
 import { simControls, pair, simLine } from "../lib/sim-panel.js";
 import { mafcSample } from "../lib/simulate.js";
 
@@ -48,7 +50,8 @@ function drawTiles(m) {
     const x = x0 + (i % 5) * (size + gap), y = y0 + Math.floor(i / 5) * (size + 40);
     const sig = i === target;
     el("rect", { x, y, width: size, height: size, rx: 10, fill: sig ? "#fbebe0" : "#f3f4f7", stroke: sig ? SIGNAL : "#a3adb7", "stroke-width": sig ? 4 : 2.5 }, svg);
-    el("text", { x: x + size / 2, y: y + size / 2 + 9, "text-anchor": "middle", class: "task-letter", fill: sig ? SIGNAL : GREY }, svg).textContent = i + 1;
+    el("text", { x: x + size / 2, y: y + size / 2 + 9, "text-anchor": "middle", class: "task-letter", fill: sig ? "#b04a00" : GREY }, svg).textContent = i + 1;
+    if (sig) el("text", { x: x + size / 2, y: y + size + 24, "text-anchor": "middle", class: "sdt-note", fill: "#b04a00" }, svg).textContent = "signal";
   }
   el("text", { x: 220, y: 236, "text-anchor": "middle", class: "task-note" }, svg).textContent = `${m} alternatives, 1 holds the signal`;
 }
@@ -98,20 +101,6 @@ function drawByD(p, cur) {
   simLine(sim, () => `Expected (this sample of ${sim.n} trials): P(correct) ${pair(cur, got)}.`);
 }
 
-// P(correct) as text, from its logit. Within 0.01 of 0 or 1, two decimals would print 0.00 or 1.00 for every
-// distribution, so the distance to that end is shown instead (ε or 1 − ε), to two significant digits, read off
-// log10 of it so it does not underflow.
-const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
-const pow10 = e => `10${[...String(e)].map(c => SUP[c]).join("")}`;
-function pcText(lg) {
-  if (!Number.isFinite(lg)) return lg > 0 ? "1" : "0";
-  if (Math.abs(lg) < Math.log(99)) return fmt(1 / (1 + Math.exp(-lg)), 2);
-  const l10 = -log1pExp(Math.abs(lg)) / Math.LN10, e = Math.floor(l10), mant = 10 ** (l10 - e);
-  // a mantissa that rounds up to 10.0 moves to the next power
-  const tail = l10 >= -3 ? fmt(10 ** l10, 1 - e) : mant >= 9.95 ? `1.0 × ${pow10(e + 1)}` : `${fmt(mant, 1)} × ${pow10(e)}`;
-  return lg > 0 ? `1 − ${tail}` : tail;
-}
-
 // P(correct) across m with d fixed: the chosen distribution (solid) and the other three, each at the d that
 // gives the same accuracy at the current m (dotted). A distribution whose logit cannot reach the current one
 // (mafcMatchD gives NaN) gets no curve.
@@ -129,9 +118,11 @@ function drawAcross(p, cur) {
       { x: M, y: M.map(m => pc(p.d, m)), color: DIST_COLOR[dist()] }
     ]
   });
-  paths.slice(0, -1).forEach(path => path.setAttribute("stroke-dasharray", "2 5"));
+  paths[0].setAttribute("stroke-dasharray", "2 5");
+  others.forEach((o, i) => paths[i + 1].setAttribute("stroke-dasharray", DIST_DASH[o.n]));
   el("circle", { cx: sx(p.m), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
-  const name = n => `<span style="color:${DIST_COLOR[n]};font-weight:600">${n}</span>`;
+  // The name carries a sample of its line: colour, then dash pattern.
+  const name = n => `<span style="color:${DIST_TEXT[n]};font-weight:600"><svg width="30" height="8" viewBox="0 0 30 8" aria-hidden="true" style="width:30px;height:8px;display:inline-block;vertical-align:middle;margin-right:3px"><line x1="0" x2="30" y1="4" y2="4" stroke="${DIST_COLOR[n]}" stroke-width="3" ${n === dist() ? "" : `stroke-dasharray="${DIST_DASH[n]}"`}/></svg>${n}</span>`;
   // The legend leaves the current d to the Parameters panel: with three matched values beside it, a long d wraps
   // it to a fourth line and the dashboard past one screen. A typed d far outside the slider can match d in the
   // hundreds or thousands, where decimals add width and nothing else.
@@ -187,6 +178,8 @@ function draw() {
   drawByD(p, cur);
   drawAcross(p, cur);
   drawCode(p, cur);
+  const summaries = sdtMafcSummaries({ p, dist: dist(), lg: (d, m) => mafcLogitPc(d, m, dist(), RULES), dRange: [dLo, dHi], maxM: M_MAX });
+  for (const [id, text] of Object.entries(summaries)) describePlot($(id), text);
   $("sdtmafc-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -201,3 +194,4 @@ pairs.d.setBounds({ min: dLo, max: dHi, step: 0.05 });
 setParams(pairs, START);
 draw();
 initInfo();
+initA11y();

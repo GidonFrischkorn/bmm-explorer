@@ -9,6 +9,8 @@ import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { colourWheel, hue, TAU } from "../lib/wheel.js";
 import { weightBars, WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
+import { mixture3pSummaries } from "../lib/summaries.js";
 
 // kappa has bmm's default prior normal(2, 1) on the log link; its slider spans the mean +- 3 SD.
 // thetat = thetant = 0 (the medians of their logistic(0, 1) priors) give weights of 1/3 each, which
@@ -105,12 +107,12 @@ function drawWeights(n, p) {
 function drawAcross(p, n) {
   const ns = Array.from({ length: MAX_N - 1 }, (_, i) => i + 2);
   const curves = q => [
-    { y: ns.map(() => q.p_mem), color: WEIGHT_COLOR.target, width: 6 },
-    { y: ns.map(() => q.p_nt), color: WEIGHT_COLOR.nt, width: 3 },
-    { y: ns.map(k => q.p_nt / (k - 1)), color: WEIGHT_COLOR.nt, width: 1.5 },
-    { y: ns.map(() => guess(q)), color: WEIGHT_COLOR.guess, width: 3 }
+    { y: ns.map(() => q.p_mem), color: WEIGHT_COLOR.target, width: 6, marker: "circle" },
+    { y: ns.map(() => q.p_nt), color: WEIGHT_COLOR.nt, width: 3, marker: "square" },
+    { y: ns.map(k => q.p_nt / (k - 1)), color: WEIGHT_COLOR.nt, width: 1.5, marker: "diamond" },
+    { y: ns.map(() => guess(q)), color: WEIGHT_COLOR.guess, width: 3, marker: "triangle" }
   ].map(s => ({ ...s, x: ns }));
-  const series = [...curves(START).map(s => ({ ...s, dashed: true })), ...curves(p)];
+  const series = [...curves(START).map(s => ({ ...s, dashed: true, marker: undefined })), ...curves(p)];
   const svg = $("mix3-across");
   const { sx, sy } = linePlot(svg, {
     W: 500, H: 250, margin: { l: 64, r: 14, t: 10, b: 50 }, xlim: [1.7, 8.3], ylim: [0, 1],
@@ -176,6 +178,7 @@ function draw() {
   drawWeights(n, p);
   drawAcross(p, n);
   drawCode(mu, p, atLimit);
+  for (const [id, text] of Object.entries(mixture3pSummaries({ mu, p_mem: p.p_mem, p_nt: p.p_nt, maxN: MAX_N }))) describePlot($(id), text);
   $("mix3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -195,3 +198,4 @@ pairs.set_size.setBounds({ min: 2, max: MAX_N, step: 1 });
 setParams(pairs, { ...START, set_size: START_N });
 draw();
 initInfo();
+initA11y();

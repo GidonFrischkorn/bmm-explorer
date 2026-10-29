@@ -1,0 +1,1916 @@
+{
+ "//": "One entry per rendered page; every page is checked in its default state plus the states listed here. A step is { click: selector } | { note: info id } | { range: [selector, value] } | { number: [selector, value] } | { select: [selector, value] }. A state's optional expect lists what must hold after its steps: a selector that must match, or [selector, property, value] ('visible': takes up space; 'text': its text contains the value). An out-of-range state expects .ex-dash.ex-stale, and the run then checks that the stale notice was announced. A page's optional focus: { walk: Tab through the dashboard, marks: draggable svg items whose focus mark is checked }. A new page needs an entry (run-axe.mjs fails without one).",
+ "viewport": [
+  1280,
+  800
+ ],
+ "tablet": {
+  "//": "A second pass at tablet size with touch, landscape and portrait: these states of every page that has them.",
+  "viewports": [
+   [
+    1024,
+    768
+   ],
+   [
+    768,
+    1024
+   ]
+  ],
+  "states": [
+   "default",
+   "simulate on"
+  ]
+ },
+ "map": {
+  "//": "The landing page model map: cards in the laptop and tablet passes, a plain list at this narrow size.",
+  "page": "index",
+  "narrow": [
+   760,
+   1000
+  ]
+ },
+ "pages": {
+  "index": {},
+  "about": {},
+  "models/m3": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#m3-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#m3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: a",
+     "steps": [
+      {
+       "note": "m3-a-info"
+      }
+     ],
+     "expect": [
+      [
+       "#m3-a-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: version",
+     "steps": [
+      {
+       "note": "m3-version-info"
+      }
+     ],
+     "expect": [
+      [
+       "#m3-version-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "complex span",
+     "steps": [
+      {
+       "click": "input[name=\"m3-version\"][value=\"cs\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-version\"][value=\"cs\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-f",
+       "visible",
+       true
+      ],
+      [
+       "#m3-code",
+       "text",
+       "version = \"cs\""
+      ]
+     ]
+    },
+    {
+     "name": "complex span, simulate on, note open: f",
+     "steps": [
+      {
+       "click": "input[name=\"m3-version\"][value=\"cs\"]"
+      },
+      {
+       "click": "#m3-sim"
+      },
+      {
+       "note": "m3-f-info"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-version\"][value=\"cs\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#m3-f-info",
+       "hidden",
+       false
+      ],
+      [
+       "#m3-f",
+       "visible",
+       true
+      ],
+      [
+       "#m3-code",
+       "text",
+       "version = \"cs\""
+      ]
+     ]
+    },
+    {
+     "name": "c raised",
+     "steps": [
+      {
+       "range": [
+        "#m3-c",
+        "3.5"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#m3-c",
+       "value",
+       "3.5"
+      ],
+      [
+       "#m3-c-num",
+       "value",
+       "33.1"
+      ],
+      [
+       "#m3-bars > desc",
+       "text",
+       "correct 0.87,"
+      ]
+     ]
+    },
+    {
+     "name": "softmax",
+     "steps": [
+      {
+       "click": "input[name=\"m3-rule\"][value=\"softmax\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-rule\"][value=\"softmax\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-code",
+       "text",
+       "choice_rule = \"softmax\""
+      ]
+     ]
+    },
+    {
+     "name": "gaussian, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"m3-rule\"][value=\"gaussian\"]"
+      },
+      {
+       "click": "#m3-sim"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"m3-rule\"][value=\"gaussian\"]",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#m3-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#m3-code",
+       "text",
+       "choice_rule = \"gaussian\""
+      ]
+     ]
+    },
+    {
+     "name": "out of range: a negative under the simple rule",
+     "steps": [
+      {
+       "number": [
+        "#m3-a-num",
+        "-5"
+       ]
+      }
+     ],
+     "expect": [
+      "#m3-a-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "out of range: set size 99",
+     "steps": [
+      {
+       "number": [
+        "#m3-set-size-num",
+        "99"
+       ]
+      }
+     ],
+     "expect": [
+      "#m3-set-size-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ],
+   "focus": {
+    "walk": true
+   }
+  },
+  "models/mpt": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#mpt-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#mpt-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mpt-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#mpt-sim"
+      },
+      {
+       "select": [
+        "#mpt-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#mpt-sim-new"
+      }
+     ],
+     "expect": [
+      [
+       "#mpt-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mpt-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#mpt-sim-n",
+       "value",
+       "1000"
+      ]
+     ]
+    },
+    {
+     "name": "note open: n_other",
+     "steps": [
+      {
+       "note": "mpt-n-other-info"
+      }
+     ],
+     "expect": [
+      [
+       "#mpt-n-other-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: Pi",
+     "steps": [
+      {
+       "note": "mpt-pi-info"
+      }
+     ],
+     "expect": [
+      [
+       "#mpt-pi-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "out of range: set size 99",
+     "steps": [
+      {
+       "number": [
+        "#mpt-set-size-num",
+        "99"
+       ]
+      }
+     ],
+     "expect": [
+      "#mpt-set-size-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "Pi raised",
+     "//": "Pinned summary: Pi 0.8, Pb 0.5, 4 other list items, 5 lures (N = 10): correct 0.8 * 0.5 + 0.8 * 0.5 / 5 + 0.2 / 10 = 0.50, other 0.8 * 0.5 * 4 / 5 + 0.2 * 4 / 10 = 0.40, lures 0.2 * 5 / 10 = 0.10.",
+     "steps": [
+      {
+       "number": [
+        "#mpt-pi-num",
+        "0.8"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#mpt-pi-num",
+       "value",
+       "0.8"
+      ],
+      [
+       "#mpt-bars > desc",
+       "text",
+       "correct 0.50, other list items 0.40, lures 0.10."
+      ]
+     ]
+    }
+   ]
+  },
+  "models/imm": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#imm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#imm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: set size",
+     "steps": [
+      {
+       "note": "imm-set-size-info"
+      }
+     ],
+     "expect": [
+      [
+       "#imm-set-size-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "square layout",
+     "steps": [
+      {
+       "click": "input[name=\"imm-layout\"][value=\"square\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"imm-layout\"][value=\"square\"]",
+       "checked",
+       true
+      ],
+      [
+       "#imm-display > desc",
+       "text",
+       "square layout"
+      ]
+     ]
+    },
+    {
+     "name": "square layout, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"imm-layout\"][value=\"square\"]"
+      },
+      {
+       "click": "#imm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"imm-layout\"][value=\"square\"]",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#imm-display > desc",
+       "text",
+       "square layout"
+      ]
+     ]
+    },
+    {
+     "name": "scatter, simulate on",
+     "steps": [
+      {
+       "click": "#imm-scatter"
+      },
+      {
+       "click": "#imm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#imm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#imm-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "set size 1",
+     "//": "Pinned summary: as dimm() weighs them, an item gets c exp(-s dist) + a and guessing b, over their sum; at set size 1 with c, a, b 1: target 2 / 3 = 0.67, guessing 1 / 3 = 0.33.",
+     "steps": [
+      {
+       "number": [
+        "#imm-set-size-num",
+        "1"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#imm-set-size-num",
+       "value",
+       "1"
+      ],
+      [
+       "#imm-weights > desc",
+       "text",
+       "target 0.67, guessing 0.33."
+      ]
+     ]
+    },
+    {
+     "name": "out of range: set size 99",
+     "steps": [
+      {
+       "number": [
+        "#imm-set-size-num",
+        "99"
+       ]
+      }
+     ],
+     "expect": [
+      "#imm-set-size-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ],
+   "focus": {
+    "walk": true,
+    "marks": [
+     "#imm-wheel .imm-drag"
+    ]
+   }
+  },
+  "models/mixture2p": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#mix2-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#mix2-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mix2-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: kappa",
+     "steps": [
+      {
+       "note": "mix2-kappa-info"
+      }
+     ],
+     "expect": [
+      [
+       "#mix2-kappa-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "out of range: p_mem 2",
+     "steps": [
+      {
+       "number": [
+        "#mix2-p_mem-num",
+        "2"
+       ]
+      }
+     ],
+     "expect": [
+      "#mix2-p_mem-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "p_mem raised",
+     "//": "Pinned summary: kappa exp(2): the von Mises mass within 20 degrees is 0.6489, so 0.8 * 0.6489 + 0.2 * 40 / 360 = 0.54.",
+     "steps": [
+      {
+       "number": [
+        "#mix2-p_mem-num",
+        "0.8"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#mix2-p_mem-num",
+       "value",
+       "0.8"
+      ],
+      [
+       "#mix2-density > desc",
+       "text",
+       "memory weight 0.80, guessing 0.20, 0.54 of responses within 20 degrees"
+      ]
+     ]
+    }
+   ]
+  },
+  "models/mixture3p": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#mix3-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#mix3-sim",
+       "checked",
+       true
+      ],
+      [
+       "#mix3-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: p_nt",
+     "steps": [
+      {
+       "note": "mix3-p_nt-info"
+      }
+     ],
+     "expect": [
+      [
+       "#mix3-p_nt-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "spread",
+     "steps": [
+      {
+       "click": "#mix3-spread"
+      }
+     ]
+    },
+    {
+     "name": "out of range: p_mem 2",
+     "steps": [
+      {
+       "number": [
+        "#mix3-p_mem-num",
+        "2"
+       ]
+      }
+     ],
+     "expect": [
+      "#mix3-p_mem-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "p_nt raised",
+     "//": "Pinned summary: p_nt 0.5 beside p_mem 0.33: guessing 1 - 0.33 - 0.5 = 0.17; 3 non-targets get 0.5 / 3 = 0.17 each.",
+     "steps": [
+      {
+       "number": [
+        "#mix3-p_nt-num",
+        "0.5"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#mix3-p_nt-num",
+       "value",
+       "0.5"
+      ],
+      [
+       "#mix3-weights > desc",
+       "text",
+       "memory 0.33, non-targets 0.50 (0.17 each), guessing 0.17."
+      ]
+     ]
+    }
+   ],
+   "focus": {
+    "marks": [
+     "#mix3-wheel .ex-drag"
+    ]
+   }
+  },
+  "models/sdm": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: c",
+     "steps": [
+      {
+       "note": "sdm-c-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdm-c-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: parametrization",
+     "steps": [
+      {
+       "note": "sdm-par-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdm-par-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "bessel parametrization",
+     "//": "Pinned summary: The summary's c is the converted one the number box shows, 7.57.",
+     "steps": [
+      {
+       "click": "input[name=\"sdm-par\"][value=\"bessel\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"sdm-par\"][value=\"bessel\"]",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-code",
+       "text",
+       "c_bessel2sqrtexp"
+      ],
+      [
+       "#sdm-c-num",
+       "value",
+       "7.57"
+      ],
+      [
+       "#sdm-density > desc",
+       "text",
+       "with c 7.57 and kappa 5.75"
+      ]
+     ]
+    },
+    {
+     "name": "bessel parametrization, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"sdm-par\"][value=\"bessel\"]"
+      },
+      {
+       "click": "#sdm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"sdm-par\"][value=\"bessel\"]",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdm-code",
+       "text",
+       "c_bessel2sqrtexp"
+      ]
+     ]
+    },
+    {
+     "name": "out of range: kappa negative",
+     "steps": [
+      {
+       "number": [
+        "#sdm-kappa-num",
+        "-1"
+       ]
+      }
+     ],
+     "expect": [
+      "#sdm-kappa-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ]
+  },
+  "models/sdt_yn": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtyn-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtyn-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtyn-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: d",
+     "steps": [
+      {
+       "note": "sdtyn-d-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtyn-d-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "bias anchor",
+     "steps": [
+      {
+       "click": "input[name=\"sdtyn-anchor\"][value=\"bias\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"sdtyn-anchor\"][value=\"bias\"]",
+       "checked",
+       true
+      ],
+      "#sdtyn-latent .sdt-drag[aria-label=\"bias\"]"
+     ]
+    },
+    {
+     "name": "gumbel_min, simulate on",
+     "steps": [
+      {
+       "select": [
+        "#sdtyn-dist",
+        "gumbel_min"
+       ]
+      },
+      {
+       "click": "#sdtyn-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtyn-dist",
+       "value",
+       "gumbel_min"
+      ],
+      [
+       "#sdtyn-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtyn-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtyn-code",
+       "text",
+       "dist = \"gumbel_min\""
+      ]
+     ]
+    },
+    {
+     "name": "logistic, bias anchor",
+     "//": "Pinned summary: Logistic noise, d 1, criterion 0.5: false alarms 1 - plogis(0.5) = 0.38, hits plogis(0.5) = 0.62.",
+     "steps": [
+      {
+       "select": [
+        "#sdtyn-dist",
+        "logistic"
+       ]
+      },
+      {
+       "click": "input[name=\"sdtyn-anchor\"][value=\"bias\"]"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtyn-dist",
+       "value",
+       "logistic"
+      ],
+      [
+       "input[name=\"sdtyn-anchor\"][value=\"bias\"]",
+       "checked",
+       true
+      ],
+      [
+       "#sdtyn-code",
+       "text",
+       "dist = \"logistic\""
+      ],
+      "#sdtyn-latent .sdt-drag[aria-label=\"bias\"]",
+      [
+       "#sdtyn-bars > desc",
+       "text",
+       "false-alarm rate 0.38 on noise trials, hit rate 0.62 on signal trials"
+      ]
+     ]
+    },
+    {
+     "name": "out of range: sdratio 0",
+     "steps": [
+      {
+       "number": [
+        "#sdtyn-s-num",
+        "0"
+       ]
+      }
+     ],
+     "expect": [
+      "#sdtyn-s-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ],
+   "focus": {
+    "marks": [
+     "#sdtyn-latent .sdt-drag"
+    ]
+   }
+  },
+  "models/sdt_mafc": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtmafc-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtmafc-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: m",
+     "steps": [
+      {
+       "note": "sdtmafc-m-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-m-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "m 10, simulate on",
+     "//": "Pinned summary: Normal noise, d 1, m 10: P(correct) = integral of dnorm(x - 1) pnorm(x)^9 = 0.341.",
+     "steps": [
+      {
+       "range": [
+        "#sdtmafc-m",
+        "10"
+       ]
+      },
+      {
+       "click": "#sdtmafc-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-m",
+       "value",
+       "10"
+      ],
+      [
+       "#sdtmafc-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtmafc-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtmafc-tiles > desc",
+       "text",
+       "10 alternatives"
+      ],
+      [
+       "#sdtmafc-byd > desc",
+       "text",
+       "0.34 at d 1.00"
+      ]
+     ]
+    },
+    {
+     "name": "gumbel_max",
+     "steps": [
+      {
+       "select": [
+        "#sdtmafc-dist",
+        "gumbel_max"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-dist",
+       "value",
+       "gumbel_max"
+      ],
+      [
+       "#sdtmafc-code",
+       "text",
+       "dist = \"gumbel_max\""
+      ]
+     ]
+    },
+    {
+     "name": "logistic, simulate on",
+     "steps": [
+      {
+       "select": [
+        "#sdtmafc-dist",
+        "logistic"
+       ]
+      },
+      {
+       "click": "#sdtmafc-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtmafc-dist",
+       "value",
+       "logistic"
+      ],
+      [
+       "#sdtmafc-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtmafc-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtmafc-code",
+       "text",
+       "dist = \"logistic\""
+      ]
+     ]
+    },
+    {
+     "name": "out of range: m 11",
+     "steps": [
+      {
+       "number": [
+        "#sdtmafc-m-num",
+        "11"
+       ]
+      }
+     ],
+     "expect": [
+      "#sdtmafc-m-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ]
+  },
+  "models/sdt_rating": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtrating-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrating-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrating-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: K",
+     "steps": [
+      {
+       "note": "sdtrating-k-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrating-k-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "K 3",
+     "//": "Pinned summary: Thresholds -0.19 and 1.19, d 1: rating 3 gets 1 - pnorm(1.19) = 0.12 of noise and 1 - pnorm(0.19) = 0.42 of signal responses.",
+     "steps": [
+      {
+       "range": [
+        "#sdtrating-k",
+        "3"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrating-k",
+       "value",
+       "3"
+      ],
+      [
+       "#sdtrating-latent > desc",
+       "text",
+       "2 rating thresholds"
+      ],
+      [
+       "#sdtrating-bars > desc",
+       "text",
+       "rating 3 gets 0.12 of noise and 0.42 of signal responses"
+      ]
+     ]
+    },
+    {
+     "name": "K 8, simulate on",
+     "steps": [
+      {
+       "range": [
+        "#sdtrating-k",
+        "8"
+       ]
+      },
+      {
+       "click": "#sdtrating-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrating-k",
+       "value",
+       "8"
+      ],
+      [
+       "#sdtrating-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrating-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrating-latent > desc",
+       "text",
+       "7 rating thresholds"
+      ]
+     ]
+    },
+    {
+     "name": "gumbel_min, simulate on",
+     "steps": [
+      {
+       "select": [
+        "#sdtrating-dist",
+        "gumbel_min"
+       ]
+      },
+      {
+       "click": "#sdtrating-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrating-dist",
+       "value",
+       "gumbel_min"
+      ],
+      [
+       "#sdtrating-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrating-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrating-code",
+       "text",
+       "dist = \"gumbel_min\""
+      ]
+     ]
+    },
+    {
+     "name": "out of range: threshold out of order",
+     "steps": [
+      {
+       "number": [
+        "#sdtrating-t1-num",
+        "5"
+       ]
+      }
+     ],
+     "expect": [
+      "#sdtrating-t1-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ]
+  },
+  "models/ezdm": {
+   "states": [
+    {
+     "name": "note open: version",
+     "steps": [
+      {
+       "note": "ezdm-version-info"
+      }
+     ],
+     "expect": [
+      [
+       "#ezdm-version-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: n_trials",
+     "steps": [
+      {
+       "note": "ezdm-n-info"
+      }
+     ],
+     "expect": [
+      [
+       "#ezdm-n-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "4-parameter version",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-zr",
+       "visible",
+       true
+      ],
+      [
+       "#ezdm-code",
+       "text",
+       "version = \"4par\""
+      ]
+     ]
+    },
+    {
+     "name": "4-parameter version, 3 trials",
+     "//": "Pinned summary: drift 0, bound 1, zr 0.5: from the midpoint either boundary is reached after a time with mean 1/4 and variance 1/24 (exit from (-1/2, 1/2)), plus ndt 0.223: 0.473. At 3 trials P(upper) 0.5 gives 2 upper responses with probability 3/8 and 3 with 1/8: E(1/k | k >= 2) = 11/24, so 0.473 +- 2 sqrt(11) / 24 = 0.473 +- 0.276, 0.20 to 0.75 s (the expected count 1.5 would give 0.14 to 0.81).",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      },
+      {
+       "number": [
+        "#ezdm-n-num",
+        "3"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-n-num",
+       "value",
+       "3"
+      ],
+      [
+       "#ezdm-across > desc",
+       "text",
+       "mean rt of upper responses, in cells with 2 or more, 0.20 to 0.75 s around 0.47 s; mean rt of lower responses, in cells with 2 or more, 0.20 to 0.75 s"
+      ]
+     ]
+    },
+    {
+     "name": "4-parameter version, note open: zr",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      },
+      {
+       "note": "ezdm-zr-info"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-zr-info",
+       "hidden",
+       false
+      ],
+      [
+       "#ezdm-zr",
+       "visible",
+       true
+      ]
+     ]
+    },
+    {
+     "name": "out of range: n_trials 2",
+     "steps": [
+      {
+       "number": [
+        "#ezdm-n-num",
+        "2"
+       ]
+      }
+     ],
+     "expect": [
+      "#ezdm-n-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#ezdm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#ezdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#ezdm-sim"
+      },
+      {
+       "select": [
+        "#ezdm-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#ezdm-sim-new"
+      }
+     ],
+     "expect": [
+      [
+       "#ezdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#ezdm-sim-n",
+       "value",
+       "1000"
+      ]
+     ]
+    },
+    {
+     "name": "note open: simulate",
+     "steps": [
+      {
+       "note": "ezdm-sim-info"
+      }
+     ],
+     "expect": [
+      [
+       "#ezdm-sim-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "4-parameter version, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"ezdm-version\"][value=\"4par\"]"
+      },
+      {
+       "click": "#ezdm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"ezdm-version\"][value=\"4par\"]",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ezdm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#ezdm-zr",
+       "visible",
+       true
+      ],
+      [
+       "#ezdm-code",
+       "text",
+       "version = \"4par\""
+      ]
+     ]
+    }
+   ]
+  },
+  "models/cswald": {
+   "states": [
+    {
+     "name": "note open: version",
+     "steps": [
+      {
+       "note": "cswald-version-info"
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-version-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: drift",
+     "steps": [
+      {
+       "note": "cswald-drift-info"
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-drift-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "competing-risks version",
+     "steps": [
+      {
+       "click": "input[name=\"cswald-version\"][value=\"crisk\"]"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"cswald-version\"][value=\"crisk\"]",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-zr",
+       "visible",
+       true
+      ],
+      [
+       "#cswald-code",
+       "text",
+       "version = \"crisk\""
+      ]
+     ]
+    },
+    {
+     "name": "out of range: bound 0",
+     "steps": [
+      {
+       "number": [
+        "#cswald-bound-num",
+        "0"
+       ]
+      }
+     ],
+     "expect": [
+      "#cswald-bound-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#cswald-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-sim",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#cswald-sim"
+      },
+      {
+       "select": [
+        "#cswald-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#cswald-sim-new"
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-sim",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#cswald-sim-n",
+       "value",
+       "1000"
+      ]
+     ]
+    },
+    {
+     "name": "note open: simulate",
+     "steps": [
+      {
+       "note": "cswald-sim-info"
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-sim-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "competing-risks version, simulate on",
+     "steps": [
+      {
+       "click": "input[name=\"cswald-version\"][value=\"crisk\"]"
+      },
+      {
+       "click": "#cswald-sim"
+      }
+     ],
+     "expect": [
+      [
+       "input[name=\"cswald-version\"][value=\"crisk\"]",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim",
+       "checked",
+       true
+      ],
+      [
+       "#cswald-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#cswald-zr",
+       "visible",
+       true
+      ],
+      [
+       "#cswald-code",
+       "text",
+       "version = \"crisk\""
+      ]
+     ]
+    },
+    {
+     "name": "drift raised",
+     "//": "Pinned summary: The summary names the drift that is drawn, 2.00, and the ndt box's 0.135 as 0.14 s.",
+     "steps": [
+      {
+       "number": [
+        "#cswald-drift-num",
+        "2"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#cswald-drift-num",
+       "value",
+       "2"
+      ],
+      [
+       "#cswald-task > desc",
+       "text",
+       "drift 2.00, bound 1.00, non-decision time 0.14 s"
+      ]
+     ]
+    }
+   ]
+  },
+  "models/ddm": {
+   "states": [
+    {
+     "name": "note open: drift",
+     "steps": [
+      {
+       "note": "ddm-drift-info"
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-drift-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: zr",
+     "steps": [
+      {
+       "note": "ddm-zr-info"
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-zr-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "out of range: bound 0",
+     "steps": [
+      {
+       "number": [
+        "#ddm-bound-num",
+        "0"
+       ]
+      }
+     ],
+     "expect": [
+      "#ddm-bound-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#ddm-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ddm-sim-text",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "simulate on, 1000 trials",
+     "steps": [
+      {
+       "click": "#ddm-sim"
+      },
+      {
+       "select": [
+        "#ddm-sim-n",
+        "1000"
+       ]
+      },
+      {
+       "click": "#ddm-sim-new"
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-sim",
+       "checked",
+       true
+      ],
+      [
+       "#ddm-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#ddm-sim-n",
+       "value",
+       "1000"
+      ]
+     ]
+    },
+    {
+     "name": "note open: simulate",
+     "steps": [
+      {
+       "note": "ddm-sim-info"
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-sim-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "drift raised",
+     "//": "Pinned summary: drift 1, bound 1, zr 0.5: P(upper) 1 / (1 + exp(-1)) = 0.73; either response's mean decision time tanh(0.5) / 2 = 0.231, plus ndt 0.223: 0.45 s.",
+     "steps": [
+      {
+       "number": [
+        "#ddm-drift-num",
+        "1"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#ddm-drift-num",
+       "value",
+       "1"
+      ],
+      [
+       "#ddm-readout",
+       "text",
+       "P(upper) = 0.73"
+      ],
+      [
+       "#ddm-density > desc",
+       "text",
+       "P(upper) 0.73; mean rt 0.45 s for upper and 0.45 s for lower responses."
+      ]
+     ]
+    }
+   ]
+  }
+ }
+}

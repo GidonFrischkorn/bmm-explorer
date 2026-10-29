@@ -2,16 +2,24 @@
 // decision boundaries, which can be dragged, and the ROC.
 import { linePlot, el } from "./plot.js";
 import { linspace } from "./math.js";
+import { sliderAria } from "./a11y.js";
 
 // The two kinds of trial, and one colour per evidence distribution where a panel compares them.
 export const NOISE = "#0072B2", SIGNAL = "#D55E00";
-export const DIST_COLOR = { normal: "#0072B2", logistic: "#CC79A7", gumbel_min: "#009E73", gumbel_max: "#E69F00" };
+// Okabe-Ito yellow is 2.25:1 on white, too faint for a line (3:1), so the fourth distribution is drawn in black; the m-AFC
+// legend calls the simulated sample a black dot, which tells it from that curve. DIST_TEXT is the same four in shades
+// that read as text (4.5:1), and DIST_DASH gives each a pattern of its own when it is not the solid curve, so the legend
+// does not rest on colour alone.
+export const DIST_COLOR = { normal: "#0072B2", logistic: "#CC79A7", gumbel_min: "#009E73", gumbel_max: "#000000" };
+export const DIST_TEXT = { normal: "#0072B2", logistic: "#9b4475", gumbel_min: "#007353", gumbel_max: "#222222" };
+export const DIST_DASH = { normal: "2 5", logistic: "10 5", gumbel_min: "10 4 2 4", gumbel_max: "18 6" };
 export const DIST_NAMES = ["normal", "logistic", "gumbel_min", "gumbel_max"];
 
 // spec: { W, H, xlim, xticks, xlab, ymax, curves: [{ f, color, dashed, width, shade: [from, to] }],
-//         lines: [{ x, label, color, drag, aria }], notes: [{ x, y, text, color, anchor }] }
+//         lines: [{ x, label, color, drag, aria, value, min, max, text }], notes: [{ x, y, text, color, anchor }] }
 // A curve's shade fills the area under it between from and to. A line with drag is a focusable slider
-// (data-line holds its index); a line that had the focus before the redraw gets it back. notes are placed in
+// (data-line holds its index); a line that had the focus before the redraw gets it back. Its value is the one its
+// keys and drags change, x unless given, within [min, max], the limits the page enforces (the x axis unless given). notes are placed in
 // data units on x and on y either in pixels from the top (y) or just above a density value (density). Returns
 // the scales and xAt(pointer event), the evidence value under the pointer.
 export function latentPlot(svg, spec) {
@@ -45,7 +53,8 @@ export function latentPlot(svg, spec) {
     if (!ln.drag) return;
     // A wide transparent band around the line takes the pointer and the focus.
     const band = el("rect", { x: x - 14, y: margin.t - 30, width: 28, height: sy(0) - margin.t + 30, fill: "transparent",
-      class: "sdt-drag", tabindex: 0, role: "slider", "aria-label": ln.aria ?? ln.label, "aria-valuenow": ln.x }, svg);
+      class: "sdt-drag", tabindex: 0, role: "slider", "aria-label": ln.aria ?? ln.label,
+      ...sliderAria(ln.value ?? ln.x, ln.min ?? xlim[0], ln.max ?? xlim[1], ln.text) }, svg);
     band.dataset.line = i;
     if (String(i) === had) band.focus();
   });

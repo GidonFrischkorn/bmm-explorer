@@ -5,6 +5,8 @@ import { linePlot, el } from "../lib/plot.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
+import { ddmSummaries } from "../lib/summaries.js";
 import { simControls, rtLine, RT_BINS } from "../lib/sim-panel.js";
 import { ddmSim, rtStats, rtHistogram } from "../lib/simulate-rt.js";
 
@@ -121,6 +123,7 @@ function draw() {
   $("ddm-readout").textContent = `P(upper) = ${fmt(s.pC, 2)}; mean rt ${fmt(s.rtUpper, 2)} s upper, ${fmt(s.rtLower, 2)} s lower.`;
   drawSpeedAccuracy(p, s);
   drawCode(p, s);
+  for (const [id, text] of Object.entries(ddmSummaries(p, s, [BOUNDS[0], BOUNDS.at(-1)]))) describePlot($(id), text);
   $("ddm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -129,3 +132,4 @@ $("ddm-copy").addEventListener("click", () => navigator.clipboard?.writeText($("
 setParams(pairs, START);
 draw();
 initInfo();
+initA11y();

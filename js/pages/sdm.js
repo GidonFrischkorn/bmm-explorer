@@ -8,6 +8,8 @@ import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
 import { colourWheel, hue } from "../lib/wheel.js";
 import { WEIGHT_COLOR } from "../lib/weights-bar.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
+import { sdmSummaries } from "../lib/summaries.js";
 
 // Slider ranges are the page's choice (the article names none). The starting values are the centres
 // of bmm's default priors, student_t(5, 2, 0.75) on log c and student_t(5, 1.75, 0.75) on log kappa,
@@ -129,6 +131,7 @@ function draw() {
   drawDensity(p, ref);
   drawActivation(p, ref, logZ);
   drawCode(p);
+  for (const [id, text] of Object.entries(sdmSummaries({ c: p.c, kappa: p.kappa, within: within(p), deg: Math.round(WINDOW * DEG) }))) describePlot($(id), text);
   $("sdm-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -159,3 +162,4 @@ pairs.kappa.setBounds({ min: -2.3, max: Math.log(KAPPA.max), step: 0.05, scale: 
 setParams(pairs, start(par));
 draw();
 initInfo();
+initA11y();

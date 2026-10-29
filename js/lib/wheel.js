@@ -2,7 +2,8 @@
 // optionally, draggable non-target colours. Shared by the pages that show where the non-targets sit.
 import { el, clear } from "./plot.js";
 import { DEG, wrap } from "./circular-plot.js";
-import { fmt } from "./widget.js";
+import { sliderAria } from "./a11y.js";
+import { colourText } from "./summaries.js";
 
 export const TAU = 2 * Math.PI;
 // Colour at angle mu (radians from the target) on the wheel; the density marks use the same colours.
@@ -39,12 +40,8 @@ export function colourWheel(svg, onColour) {
         dot.setAttribute("tabindex", 0);
         dot.setAttribute("role", "slider");
         dot.setAttribute("aria-label", `colour of item ${i + 1}`);
-        // Without limits a slider is read as 0 to 100; the value stays in radians because the arrow
-        // keys step from it, and the spoken text gives degrees.
-        dot.setAttribute("aria-valuemin", r2(-Math.PI));
-        dot.setAttribute("aria-valuemax", r2(Math.PI));
-        dot.setAttribute("aria-valuenow", m);
-        dot.setAttribute("aria-valuetext", `${fmt(m * DEG, 0)} degrees from the target`);
+        // The value stays in radians because the arrow keys step from it; the spoken text gives degrees.
+        for (const [k, v] of Object.entries(sliderAria(m, -Math.PI, Math.PI, colourText(m)))) dot.setAttribute(k, v);
       }
     });
     el("text", { x: G.cx, y: G.H - 6, "text-anchor": "middle", class: "task-note" }, svg).textContent = note;

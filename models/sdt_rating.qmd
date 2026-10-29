@@ -87,7 +87,7 @@ toc: false
     <div class="ex-info-pop" id="sdtrating-sim-info" hidden>Draws N trials, half noise and half signal, marks each rating's share in the sample on its bar (black lines) and the sample's cumulative rates as points on the ROC. Below the panel: the expected mean rating on noise and on signal trials and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_rating()</code>, in the code under In bmm.</div>
     <svg id="sdtrating-bars" role="img" aria-label="Predicted proportion of each rating on noise and on signal trials"></svg>
     <div class="ex-legend">Probability of each rating on <span class="blue">noise</span> and
-      <span class="orange">signal</span> trials. Dashed: bmm's prior means. Black: the sample.</div>
+      <span class="orange">striped signal</span> trials. Dashed: bmm's prior means. Black: the sample.</div>
     <div class="ex-legend ex-sim-text" id="sdtrating-sim-text" hidden></div>
   </section>
 

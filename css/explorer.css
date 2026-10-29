@@ -3,6 +3,9 @@
   --ex-blue: #0072B2; --ex-orange: #D55E00; --ex-green: #009E73;
   --ex-purple: #CC79A7; --ex-sky: #56B4E9; --ex-yellow: #E69F00;
   --ex-grey: #595959; --ex-border: #d0d7de; --ex-bg: #f6f8fa;
+  /* The mark colours above are for lines and bars (3:1 on white, most of them); text in the same hue needs 4.5:1. */
+  --ex-orange-text: #b04a00; --ex-green-text: #007353; --ex-purple-text: #9b4475; --ex-yellow-text: #7a5500; --ex-sky-text: #1f6f9f;
+  --ex-focus: #0b2f66;
 }
 .ex-widget { border: 1px solid var(--ex-border); border-radius: 10px; padding: 1rem; margin: 1rem 0 1.5rem; }
 .ex-controls { display: grid; grid-template-columns: max-content 1fr 6.5em; gap: 0.5rem 0.8rem; align-items: center; }
@@ -17,10 +20,12 @@
 .ex-widget svg .bar { fill-opacity: 0.9; }
 .ex-legend { font-size: 0.85em; color: #5a6470; margin-top: 0.3rem; }
 .ex-legend .blue { color: var(--ex-blue); font-weight: 600; }
-.ex-legend .orange { color: var(--ex-orange); font-weight: 600; }
-.ex-legend .green { color: var(--ex-green); font-weight: 600; }
+.ex-legend .orange { color: var(--ex-orange-text); font-weight: 600; }
+.ex-legend .green { color: var(--ex-green-text); font-weight: 600; }
 .ex-legend .grey { color: var(--ex-grey); font-weight: 600; }
-.ex-legend .purple { color: var(--ex-purple); font-weight: 600; }
+.ex-legend .purple { color: var(--ex-purple-text); font-weight: 600; }
+.ex-legend .yellow { color: var(--ex-yellow-text); font-weight: 600; }
+.ex-legend .sky { color: var(--ex-sky-text); font-weight: 600; }
 .ex-legend button { margin-left: 0.6rem; }
 .ex-code { background: var(--ex-bg); border-radius: 8px; padding: 0.6rem 0.9rem; font-family: var(--bs-font-monospace, monospace); font-size: 0.9em; white-space: pre-wrap; }
 .ex-task { background: #fff; border: 1px dashed var(--ex-border); border-radius: 10px; padding: 0.6rem; }
@@ -60,8 +65,10 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 #m3-reset, #mpt-reset { margin-top: 0.25rem; }
 /* Out-of-range input: the box is outlined and the outputs fade, so old results are not read as new. */
 .ex-invalid { outline: 2px solid var(--ex-orange); outline-offset: 1px; }
-.ex-dash.ex-stale > section, .ex-stale:not(.ex-dash) { opacity: 0.35; }
-@media (max-width: 1000px) {
+/* Stale: the drawings fade; text keeps its contrast (a faded line of text fails 4.5:1) and is marked instead. */
+.ex-dash.ex-stale > section svg { opacity: 0.3; }
+.ex-stale:not(.ex-dash) { color: #5a6470; font-style: italic; outline: 2px dashed var(--ex-orange); outline-offset: 2px; }
+@media (max-width: 1100px) {
   .ex-dash { grid-template-columns: 1fr 1fr; grid-template-areas: "task task" "controls controls" "bars across"; }
   .ex-p-controls { flex-direction: row; } .ex-p-controls > .ex-panel { flex: 1; }
 }
@@ -84,7 +91,7 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-dash .tree-leaf { font-size: 22px; font-weight: 700; }
 /* Circular pages: the display and the colour wheel side by side in the task panel. */
 .ex-task-pair { display: grid; grid-template-columns: 1fr 1fr minmax(250px, 1.2fr); gap: 0.6rem; align-items: start; }
-.ex-dash .ex-task-pair svg { max-height: 22vh; }
+.ex-dash .ex-task-pair svg { max-height: 23vh; }
 @media (max-width: 640px) { .ex-task-pair { grid-template-columns: 1fr 1fr; } .ex-task-pair > section { grid-column: 1 / -1; } }
 .ex-buttons { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.2rem 0 0.2rem; }
 .ex-task-pair .ex-buttons { gap: 0.3rem; }
@@ -93,20 +100,23 @@ body:has(.ex-dash) #title-block-header .subtitle { font-size: 1rem; padding-top:
 .ex-task-pair .ex-buttons { margin: 0.1rem 0 0; }
 #imm-density { max-height: 22vh; }
 .ex-dash .circ-window { fill: #009E73; fill-opacity: 0.08; }
-.ex-dash .circ-mark { font-size: 15px; fill: #222; }
-.ex-dash .imm-seg, .ex-dash .ex-seg { font-size: 17px; font-weight: 600; fill: #fff; }
+.ex-dash .circ-mark { font-size: 18px; fill: #222; }
+.ex-dash .imm-seg, .ex-dash .ex-seg { font-size: 18px; font-weight: 600; fill: #fff; }
 .ex-dash .imm-seg-dim, .ex-dash .ex-seg-dim { fill: #222; }
 #imm-wheel, #imm-display, #mix3-wheel { touch-action: none; user-select: none; }
-.ex-task-pair .task-note { font-size: 25px; }
-.ex-task-pair .task-bin { font-size: 24px; }
+.ex-task-pair .task-note { font-size: 26px; }
+.ex-task-pair .task-bin { font-size: 26px; }
 .ex-task-pair .imm-drag, .ex-task-pair .ex-drag { cursor: grab; }
-.ex-task-pair .imm-drag:focus, .ex-task-pair .ex-drag:focus { outline: none; stroke: #E69F00; stroke-width: 5; }
+.ex-task-pair .imm-drag:focus, .ex-task-pair .ex-drag:focus { outline: 3px solid #fff; outline-offset: 1px; stroke: #000; stroke-width: 6; }
 /* A display formula wider than a phone screen scrolls in its own box instead of widening the page. */
 mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 /* Pages whose task has no settings: the wheel and a note instead of the display, settings and buttons. */
 .ex-task-pair.ex-task-pair-2 { grid-template-columns: minmax(150px, 0.8fr) 2fr; }
 /* Narrow screens: the note goes below the wheel, so the wheel gets the full row; a width cap instead
    of the height cap keeps its box the size of the drawing. */
+/* A stacked tablet window: the wheel column alone is about 200 px, where its notes and bin numbers render near 11 px
+   and the longest note already spans the drawing, so the column widens instead of the text growing. */
+@media (min-width: 641px) and (max-width: 1000px) { .ex-task-pair.ex-task-pair-2 { grid-template-columns: minmax(150px, 1fr) 1.5fr; } }
 @media (max-width: 640px) {
   .ex-task-pair.ex-task-pair-2 { grid-template-columns: 1fr; }
   .ex-dash .ex-task-pair-2 svg { max-height: none; max-width: 20rem; }
@@ -125,11 +135,14 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 .ex-dash .sdt-note { font-size: 19px; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 5px; }
 .ex-dash .sdt-line-label { font-size: 19px; fill: #222; }
 .ex-dash .sdt-drag { cursor: ew-resize; }
-.ex-dash .sdt-drag:focus { outline: none; fill: #E69F00; fill-opacity: 0.25; }
+.ex-dash .sdt-drag:focus { outline: none; fill: var(--ex-focus); fill-opacity: 0.12; stroke: var(--ex-focus); stroke-width: 3; }
 #sdtyn-latent, #sdtrating-latent, #sdtmafc-latent { touch-action: none; user-select: none; }
 /* m-AFC: the trial's tiles beside the evidence densities. */
 .sdt-task-pair { display: grid; grid-template-columns: 0.63fr 1fr; gap: 0.6rem; align-items: center; }
 .ex-dash .sdt-task-pair svg { max-height: 23vh; }
+#sdtmafc-latent .tick { font-size: 20px; }
+/* Both m-AFC drawings render at about 0.59 of their units on a portrait tablet: 19 px notes came out at 11.3 px. */
+#sdtmafc-latent .sdt-note, #sdtmafc-tiles .sdt-note, #sdtmafc-tiles .task-note { font-size: 21px; }
 @media (max-width: 640px) { .sdt-task-pair { grid-template-columns: 1fr; } }
 /* Rating thresholds: one inline row each below the other parameters. */
 .ex-dash .sdt-thresholds { margin-top: 0.3rem; row-gap: 0.1rem; }
@@ -147,12 +160,10 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 .ex-info { flex: none; width: 1.1rem; height: 1.1rem; padding: 0; border: 1px solid #8a939d; border-radius: 50%;
   background: #fff; color: #4a535c; font: italic 700 0.7rem/1 Georgia, serif; cursor: pointer; }
 .ex-info:hover, .ex-info[aria-expanded="true"] { background: var(--ex-blue); border-color: var(--ex-blue); color: #fff; }
-.ex-info:focus-visible { outline: 2px solid var(--ex-yellow); outline-offset: 1px; }
 .ex-info-pop { position: absolute; z-index: 30; width: max-content; max-width: min(21rem, calc(100vw - 16px));
   background: #fff; border: 1px solid var(--ex-border); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
   padding: 0.45rem 0.65rem; font-size: 0.82rem; font-weight: 400; line-height: 1.38; color: #222; text-align: left; }
 .ex-dash > section:has(.ex-info-pop:not([hidden])) { position: relative; z-index: 31; }
-.ex-dash.ex-stale > section:has(.ex-info-pop:not([hidden])) { opacity: 1; }
 .ex-info-pop p { margin: 0; }
 .ex-info-pop p + p { margin-top: 0.35rem; }
 /* Simulated data: the switch in the prediction panel's title row, the histogram behind the curves. */
@@ -161,8 +172,43 @@ mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: h
 .ex-sim label { white-space: nowrap; }
 .ex-sim select { font-size: 0.95em; padding: 0 0.15rem; }
 .ex-sim .btn { font-size: 0.9em; padding: 0 0.35rem; }
-.ex-dash .sim-bar { fill: var(--ex-grey); fill-opacity: 0.2; stroke: var(--ex-grey); stroke-opacity: 0.55; stroke-width: 1; }
+.ex-dash .sim-bar { fill: var(--ex-grey); fill-opacity: 0.2; stroke: #7f7f7f; stroke-width: 1; }
 .ex-sim-text { color: #222; }
+
+/* Accessibility. Keyboard focus is a 3 px ring in a dark blue (13:1 on white) on every control; the draggable parts of
+   the drawings have their own marks above, because an outline does not follow an svg shape. */
+/* :is() takes the specificity of .btn, so this beats Bootstrap's own .btn:focus-visible (outline: 0, a pale glow) by coming later. */
+:is(a, button, input, select, textarea, summary, [tabindex], .btn):focus-visible { outline: 3px solid var(--ex-focus); outline-offset: 2px; box-shadow: none; }
+.ex-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* A link set in code: Bootstrap's link blue on the code background is 4.0:1, the text rule asks for 4.5. */
+a > code { color: #0a58ca; }
+/* Touch: every control is a 44 px target on a coarse pointer or a tablet-width window. The visible slider thumb stays 24 px;
+   its transparent border carries the rest of the target. The (i) button grows its hit area, not its size, and the area
+   stays clear of every other control and label: margins beside the button, and a 44 px label row above a stacked slider
+   with the slack on top, so the label stays next to its own slider. */
+@media (pointer: coarse), (max-width: 1100px) {
+  .ex-dash input[type="range"] { -webkit-appearance: none; appearance: none; height: 44px; background: transparent; margin: 0; }
+  .ex-dash input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #7c8793; }
+  .ex-dash input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: #7c8793; }
+  .ex-dash input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 44px; height: 44px; margin-top: -19px;
+    border: 10px solid transparent; border-radius: 50%; background: var(--ex-blue); background-clip: padding-box; }
+  .ex-dash input[type="range"]::-moz-range-thumb { box-sizing: content-box; width: 24px; height: 24px;
+    border: 10px solid transparent; border-radius: 50%; background: var(--ex-blue); background-clip: padding-box; }
+  .ex-dash input[type="number"], .ex-dash select, .ex-dash .btn { min-height: 44px; }
+  .ex-dash .ex-options label, .ex-dash .ex-sim label, .ex-dash .ex-select, .ex-dash .ex-legend label {
+    display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; }
+  .ex-dash input[type="radio"], .ex-dash input[type="checkbox"] { width: 1.3rem; height: 1.3rem; margin: 0; }
+  .ex-info { position: relative; margin: 0 6px 0 8px; }
+  .ex-info::after { content: ""; position: absolute; left: calc(50% - 22px); top: calc(50% - 22px); width: 44px; height: 44px; }
+  .ex-dash .ex-controls:not(.ex-inline) > .ex-label { min-height: 44px; padding-top: calc(44px - 1.1rem); }
+  .ex-dash .ex-controls:not(.ex-inline) > .ex-label .ex-info::after { top: auto; bottom: 0; }
+}
+/* Tablet width: the panels stack from 1100 px (the docked sidebar leaves about 760 px of a 1024 px window, so three columns
+   would draw every plot at under half size). The page scrolls here, so the one-screen height caps go and the plots keep their
+   size: axis text stays above 11 px. */
+@media (max-width: 1100px) {
+  .ex-dash svg, .ex-dash .ex-task-pair svg, .ex-dash .sdt-task-pair svg, #imm-density { max-height: none; }
+}
 
 /* Landing page model map: a nested list (task, then its models) that stays a plain list for screen readers
    and below tablet width. At 768 px and wider the tasks sit side by side as cards and the models of one task

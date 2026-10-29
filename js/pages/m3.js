@@ -2,8 +2,10 @@
 // softmax and gaussian choice rules.
 import { m3Probs, ssActs, csActs, defaultB } from "../models/m3.js";
 import { bindParams, readParams, setParams, fmt, LINEAR, LOG, LOGIT } from "../lib/widget.js";
-import { barPlot, linePlot, el, clear } from "../lib/plot.js";
+import { barPlot, linePlot, el, clear, marker, GLYPH } from "../lib/plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
+import { m3Summaries } from "../lib/summaries.js";
 import { simControls, markBars, shareLine } from "../lib/sim-panel.js";
 import { categoricalShares } from "../lib/simulate.js";
 
@@ -34,6 +36,8 @@ const VERSION = {
 const CODE_CATS = { ss: ["corr", "other", "npl"], cs: ["corr", "distcontext", "other", "distother", "npl"] };
 const START_COUNTS = { set_size: 6, n_other: 4, n_npl: 5, n_dist_context: 1, n_dist_other: 3 };
 const COLOR = { corr: "#0072B2", other: "#D55E00", npl: "#595959", dist_context: "#009E73", dist_other: "#CC79A7", both: "#CC79A7" };
+// Each category also has a shape, on its tiles, beside its label and on its lines, so no category rests on colour alone.
+const SHAPE = { corr: "circle", other: "square", npl: "triangle", dist_context: "diamond", dist_other: "plus", both: "plus" };
 const TILE = {
   corr: { fill: "#e5f0f7", stroke: "#0072B2", text: "#0072B2" },
   other: { fill: "#fbebe0", stroke: "#D55E00", text: "#b04a00" },
@@ -117,7 +121,7 @@ function predict(p, v, choiceRule) {
   const ref = priorMeans(choiceRule), cur = probs(p, v, choiceRule), refCur = probs({ ...p, ...ref }, v, choiceRule);
   const series = [{ ...p, ...ref }, p].flatMap((q, j) => compositions(q, v).map(comp => ({
     x: comp.pts.map(s => totalN(s, v)), y: comp.pts.map(s => probs(s, v, choiceRule)?.[0]),
-    color: comp.color, dashed: j === 0
+    color: comp.color, dashed: j === 0, marker: j === 0 ? undefined : comp.marker
   })));
   return cur && refCur && series.every(s => s.y.every(Number.isFinite)) ? { cur, refCur, series } : null;
 }
@@ -163,6 +167,7 @@ function drawTask(p, v) {
       ...(s.dist ? { "stroke-dasharray": "6 4" } : {}) }, svg);
     el("text", { x: x + w(s) / 2, y: s.dist ? 65 : 66, "text-anchor": "middle", class: s.dist ? "task-letter task-dist" : "task-letter",
       fill: s.dist ? TILE[s.dist].text : isCue ? TILE.corr.text : "#1a2340" }, svg).textContent = isCue ? "?" : s.ch;
+    if (s.dist) marker(svg, SHAPE[s.dist], x + 10, y + 11, 4.5, { fill: TILE[s.dist].text, stroke: TILE[s.dist].text });
     x += w(s) + gap;
   }
 
@@ -172,6 +177,7 @@ function drawTask(p, v) {
     el("rect", { x: tx, y: ty, width: 100, height: 42, rx: 6, fill: TILE[k].fill, stroke: TILE[k].stroke, "stroke-width": k === "corr" ? 3 : 2 }, svg);
     el("text", { x: tx + 50, y: ty + 29, "text-anchor": "middle", class: "task-letter task-tile", fill: TILE[k].text }, svg)
       .textContent = k === "empty" ? "xxx" : ch;
+    if (k !== "empty") marker(svg, SHAPE[k], tx + 13, ty + 13, 5.5, { fill: TILE[k].text, stroke: TILE[k].text });
   });
 
   const bins = cs
@@ -181,8 +187,11 @@ function drawTask(p, v) {
     : [[200, "corr", "1 correct letter"],
        [500, "other", `${p.n_other} of ${S - 1} other list letter${S === 2 ? "" : "s"}`],
        [800, "npl", `${p.n_npl} letter${p.n_npl === 1 ? "" : "s"} never shown`]];
-  for (const [bx, k, label] of bins)
-    el("text", { x: bx, y: 302, "text-anchor": "middle", class: cs ? "task-bin task-bin-sm" : "task-bin", fill: TILE[k].text }, svg).textContent = label;
+  for (const [bx, k, label] of bins) {
+    const t = el("text", { x: bx, y: 302, "text-anchor": "middle", class: cs ? "task-bin task-bin-sm" : "task-bin", fill: TILE[k].text }, svg);
+    t.textContent = label;
+    marker(svg, SHAPE[k], bx - t.getComputedTextLength() / 2 - 14, 295, cs ? 5.5 : 6.5, { fill: TILE[k].text, stroke: TILE[k].text });
+  }
 }
 
 const sim = simControls("m3", draw);
@@ -213,11 +222,11 @@ function drawBars(cur, ref, v) {
 // Complex span: lures, other list items, or the distractors far from the cue.
 function compositions(p, v) {
   const range = (n, f) => Array.from({ length: n + 1 }, (_, k) => f(k));
-  const lures = { color: COLOR.npl, pts: range(VERSION[v].max.n_npl, k => ({ ...p, n_npl: k })) };
-  const others = { color: COLOR.other, pts: range(p.set_size - 1, k => ({ ...p, n_other: k })) };
-  if (v === "cs") return [lures, others, { color: COLOR.dist_other, pts: range(p.set_size - nearCue(p.set_size), k => ({ ...p, n_dist_other: k })) }];
+  const lures = { color: COLOR.npl, marker: SHAPE.npl, pts: range(VERSION[v].max.n_npl, k => ({ ...p, n_npl: k })) };
+  const others = { color: COLOR.other, marker: SHAPE.other, pts: range(p.set_size - 1, k => ({ ...p, n_other: k })) };
+  if (v === "cs") return [lures, others, { color: COLOR.dist_other, marker: SHAPE.dist_other, pts: range(p.set_size - nearCue(p.set_size), k => ({ ...p, n_dist_other: k })) }];
   const lo = -Math.min(p.n_other, p.n_npl), hi = Math.min(p.set_size - 1 - p.n_other, VERSION.ss.max.n_npl - p.n_npl);
-  return [lures, others, { color: COLOR.both, pts: range(hi - lo, i => ({ ...p, n_other: p.n_other + lo + i, n_npl: p.n_npl + lo + i })) }];
+  return [lures, others, { color: COLOR.both, marker: SHAPE.both, pts: range(hi - lo, i => ({ ...p, n_other: p.n_other + lo + i, n_npl: p.n_npl + lo + i })) }];
 }
 
 function drawAcross(p, v, choiceRule, { cur, series }) {
@@ -236,9 +245,9 @@ function drawAcross(p, v, choiceRule, { cur, series }) {
   ].filter(Boolean).join("; ");
   $("m3-across-now").textContent = `With the current values, P(correct) is ${fmt(cur[0], 2)} at N = ${N}.` +
     (alt && ` ${alt[0].toUpperCase()}${alt.slice(1)}.`);
-  $("m3-across-legend").innerHTML = `Each line changes one count from the current set (circle): <span class="grey">lures</span>, ` +
-    '<span class="orange">other list items</span> or ' +
-    (v === "cs" ? '<span class="purple">far distractors</span>.' : '<span class="purple">both together</span>.') + " Dashed: prior means.";
+  $("m3-across-legend").innerHTML = `Each line changes one count from the current set (circle): <span class="grey">${GLYPH[SHAPE.npl]} lures</span>, ` +
+    `<span class="orange">${GLYPH[SHAPE.other]} other list items</span> or ` +
+    (v === "cs" ? `<span class="purple">${GLYPH[SHAPE.dist_other]} far distractors</span>.` : `<span class="purple">${GLYPH[SHAPE.both]} both together</span>.`) + " Dashed: prior means.";
 }
 
 // x in the dm3() call: 100 trials split as the model predicts, rounded so the counts sum to 100.
@@ -320,6 +329,7 @@ function draw() {
   drawBars(pred.cur, pred.refCur, v);
   drawAcross(p, v, r, pred);
   drawCode(p, v, r, pred.cur);
+  for (const [id, text] of Object.entries(m3Summaries(v, p, totalN(p, v), pred.cur))) describePlot($(id), text);
   $("m3-widget").dataset.redrawMs = (performance.now() - t0).toFixed(2);
 }
 
@@ -356,3 +366,4 @@ applyVersion();
 applyRule();
 draw();
 initInfo();
+initA11y();

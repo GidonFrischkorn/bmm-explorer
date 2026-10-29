@@ -5,6 +5,8 @@ import { linePlot } from "../lib/plot.js";
 import { autoAxis, niceAxis } from "../lib/axis.js";
 import { drawDiffusion, mirroredDensity, timeAxis, rtGrid, BLUE, ORANGE } from "../lib/rt-plot.js";
 import { initInfo } from "../lib/info.js";
+import { describePlot, initA11y } from "../lib/a11y.js";
+import { cswaldSummaries } from "../lib/summaries.js";
 import { simControls, rtLine, RT_BINS } from "../lib/sim-panel.js";
 import { ddmSim, rtStats, rtHistogram, cswaldDdmPars } from "../lib/simulate-rt.js";
 
@@ -149,6 +151,7 @@ function draw() {
   drawDensity(q, v, axis, x);
   drawCompare(q, v, axis, x);
   drawCode(q, v);
+  for (const [id, text] of Object.entries(cswaldSummaries(v, q))) describePlot($(id), text);
   $("cswald-legend").innerHTML = v === "simple"
     ? '<span class="blue">Correct (1)</span>: density of the rt. <span class="orange">Error (0)</span>: probability ' +
       "that no correct response has come by that rt, the likelihood of an error then. Dashed: prior means."
@@ -173,3 +176,4 @@ pairs.zr.setBounds({ min: -0.9, max: 0.9, step: 0.02, scale: LOGIT });
 applyVersion();
 draw();
 initInfo();
+initA11y();

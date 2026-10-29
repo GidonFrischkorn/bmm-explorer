@@ -184,3 +184,35 @@ export function ezdmCellStats(cells, nTrials, version) {
   };
   return { pUpper, rows: four ? [row(0), row(1)] : [row(0)] };
 }
+
+// The n_trials at which the ezdm page's across panel evaluates its bands. 4par: every n_trials up to 30, where the SD
+// bends as cells with 2 responses become common, then 30 steps even on the log axis.
+const EZ_NS = [3, 4, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500];
+const EZ_NS4 = [...new Set([...Array.from({ length: 28 }, (_, i) => i + 3),
+  ...Array.from({ length: 30 }, (_, i) => Math.round(30 * (EZ_MAX_TRIALS / 30) ** ((i + 1) / 30)))])];
+export const BAND_SHARE = 1e-3;
+
+// The bands of the ezdm page's across panel, 2 SD either side of the prediction, drawn and summarised from this one
+// object. P(upper) is binomial. The observed mean of k rts has variance VRT / k (normal given the observed variance,
+// which is gamma with mean VRT): in 3par k is n_trials; in 4par k is the binomial count at that boundary, and a cell has
+// the boundary's statistics only with k >= 2 (rezdm() gives NA, dezdm() drops the terms), so the band is
+// 2 sqrt(VRT E(1 / k | k >= 2)), the SD of the points and of the summary line's "SD across cells" (ezdmCountTerms()).
+// A row's band runs over the grid points where at least BAND_SHARE of cells have it (ns, half; empty: not drawn). At
+// nTrials: common, whether that share is reached there (the rt axis is sized from those rows), and now, the
+// half-width there where the band is drawn. s: { pC, rows: [{ mean, vrt }] }, as the page's stats().
+export function ezdmBands(s, nTrials) {
+  const four = s.rows.length > 1;
+  const terms = n => (four ? ezdmCountTerms(s.pC, n) : [{ share: 1, inv: 1 / n }]);
+  const grid = four ? EZ_NS4 : EZ_NS, at = grid.map(terms), now = terms(nTrials);
+  const has = t => t.share >= BAND_SHARE && Number.isFinite(t.inv);
+  const half = (row, t) => 2 * Math.sqrt(row.vrt * t.inv), pHalf = n => 2 * Math.sqrt(s.pC * (1 - s.pC) / n);
+  return {
+    p: { ns: EZ_NS, half: EZ_NS.map(pHalf), now: pHalf(nTrials) },
+    rows: s.rows.map((row, j) => {
+      const on = grid.flatMap((n, i) => (has(at[i][j]) ? [[n, at[i][j]]] : []));
+      // P(k >= 2) grows with n_trials, so a band that has started at nTrials is drawn there.
+      return { ...row, j, ns: on.map(([n]) => n), half: on.map(([, t]) => half(row, t)), common: has(now[j]),
+        now: on.length && nTrials >= on[0][0] ? half(row, now[j]) : NaN };
+    })
+  };
+}
