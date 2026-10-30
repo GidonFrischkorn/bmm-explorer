@@ -1,6 +1,6 @@
 # bmm model explorer: roadmap
 
-Status 2026-10-28. One milestone is one working session with its own branch and PR. Each milestone
+Status 2026-10-30. One milestone is one working session with its own branch and PR. Each milestone
 ships pages that pass the parity test, render, and read well to someone who has not opened bmm.
 
 ## Decisions that shape everything
@@ -14,6 +14,21 @@ ships pages that pass the parity test, render, and read well to someone who has 
 | Page template | A one-screen dashboard, then five fixed sections (below) | Everything that moves is visible at once; a reader learns the layout once. |
 | Simulated data (E9, E10) | Draws by inverting the parity-tested density on a fine grid, from fixed uniforms; expected statistics have quadrature fixtures from bmm's `d*()`, sample statistics, the explorer's and those of bmm's `r*()`, lie within 5 Monte Carlo SE of the expected ones | bmm's `rimm()` and `rsdm()` are rejection samplers from `dimm()` and `dsdm()`, so drawing from the tested density is drawing from bmm's model; fixed uniforms let the sample follow a slider. `rddm()` and `rcswald()` both draw from the Wiener diffusion model (`rtdists::rdiffusion()`), `rcswald()` in either version with `bound` as the separation, so the cswald page samples the diffusion model of its comparison panel; `rezdm()` draws from the sampling distributions `dezdm()` scores, and the page does so by quantile functions. |
 | First models | M3 simple span, then IMM | The two models with the richest task-settings axis; they fix the categorical and the circular template. |
+
+## Contract with bmm and bmmtools
+
+Decided 2026-10-30 from the development review of the explorer and bmm's integration roadmap (ADR
+0005 in bmm, popov-lab/bmm#633, #634, #635; bmmtools #47). The explorer reads bmm's model
+specification and hands study planning and validation evidence to bmmtools; it does not grow a second
+copy of either.
+
+| Decision | Choice | Why |
+|---|---|---|
+| Parameter metadata | From bmm's `model_spec()` through `spec.json`, written by `R/make_fixtures.R`, and a generated `js/lib/spec.js` that every page imports for its parameter names, links and prior ranges; `sdm` keeps an explicit override (see Open questions) | Names and priors cannot drift from bmm; one module serves the sliders, the bmmtools snippet, population mode and page skeletons |
+| Links | `js/lib/links.js` ports bmm's twelve element-wise links, forward and inverse, held to a fixture from bmm's `link_transform()`; `softmax` stays page code | Needed to print link-scale values and to draw people from link-scale SDs |
+| Study planning | Each page prints a copyable `bmmtools::simulate_recovery()` call at the current values; the call is swapped for `design_check()` and `bmm::simulate_data()` when they ship | bmmtools answers whether a design can estimate the model; the explorer hands over the values |
+| Validation evidence | Lives in bmmtools' validation cards; a page links its card, later reads bmmtools' per-model JSON (with a schema version) committed in this repo and refreshed by a workflow | No second home for recovery results; pages stay static |
+| Fitting in the browser | Only curve to curve: a model's prediction to another model's prediction, never to data | Model mimicry is the question the comparison view answers; fitting data stays bmm's job |
 
 ## Page template
 
@@ -69,8 +84,26 @@ Then the five sections:
 | E13a | MPT preset trees | a tree switch on the MPT page between commonly specified trees: the two-high-threshold recognition model and a source-monitoring model. Each tree is data for the existing evaluator and the page shows its `mpt_tree()` code | `dmpt()` for every preset |
 | E13b | Custom specification | readers write their own: an MPT tree in bmm's `mpt_from_string()` syntax (a hand-written parser, no `eval`), and the activation formulas of a custom M3 (`version = "custom"`). Gated on E13a and a maintainer decision | parser fixtures, `dmpt()`, `dm3()` |
 | E14 | New bmm models | one page per model new in bmm 1.5.0 and 1.6.0 (#18), once it is on CRAN | per model |
+| E15a | Link table (#24) | `js/lib/links.js` (bmm's twelve links, forward and inverse), `scaleOf(link)` in `widget.js` | `links.json` from `link_transform()` |
+| E15 | Spec-driven pages | `spec.json`, `scripts/build-spec.mjs` writing `js/lib/spec.js`, `js/lib/priors.js` (prior strings to location and scale), pages import names, links and prior ranges, a static page test, the oracle compares `spec.json` (#22) | `spec.json` from `model_spec()` |
+| E16 | Plan a study (#26) | `js/lib/handoff.js`; a copyable `simulate_recovery()` block on every page, values on the link scale as R expressions; the oracle's develop job runs the printed snippets with bmmtools | none (a test evaluates the printed link expressions) |
+| E17a | Validation link (#27) | a link to the model's bmmtools validation card in "In bmm", for models that have one | none |
+| E17b | Validation numbers (#27) | `data/validation/<model>.json` in bmmtools' schema, a workflow that refreshes them, a "how many trials" line per page | schema-version check |
+| E18a | Population mode I (#28) | mixture2p, m3, sdt_yn, ezdm: between-person SD controls on the link scale, twelve simulated people drawn behind the curve, the spread of the page's summary statistic | `population.json`: exact link-normal quantiles; person draws and statistics from bmm's `d*()` |
+| E18b | Population mode II (#28) | the other pages, including the softmax case on mixture3p | as E18a |
+| E19 | Comparison view (#29) | sdm and mixture2p, imm and mixture3p, m3 and mpt: the alternative's best-approximating prediction overlaid (Nelder-Mead on the divergence between the two predictions, run after the redraw) | `optim.json` from R's `optim()` on the same objective |
+| E20 | Contributor guide (#25) | `CONTRIBUTING.md` (page template, port and fixtures, naive-reader and accessibility checks, PR checklist), issue templates including "Companion package change", PR template | none |
+| E21 | Page skeletons (#30) | `scripts/new-page.mjs <model>` writes `models/<model>.qmd` and `js/pages/<model>.js` from `spec.js` with TODO markers; E14 starts from it | none |
 
-Shipped by 2026-10-28: E0-E6, E8, E9, E10a. E7b is in review (#19). Next: E10b, E7a, E11a, E11b, E12, E13a.
+Shipped by 2026-10-30: E0-E6, E7a, E7b, E8, E9, E10a, E10b. The rest runs in waves; a wave starts when
+its condition holds.
+
+| Wave | Milestones | Starts when | Outside this repo |
+|---|---|---|---|
+| A | E20 first, then E15a, E11a, E13a | now | bmm exports `model_spec()` (popov-lab/bmm#633) |
+| B | E15, then E16, E17a, E18a | `model_spec` is in bmm's `develop` NAMESPACE; E17a once a card is published | bmmtools reads the same specification (bmmtools #47) and publishes cards |
+| C | E11b, E12, E19, E21, E18b | after wave B | bmmtools' per-model JSON (bmmtools #43) |
+| gated | E17b (bmmtools JSON and card site), E14 (bmm 1.5.0 on CRAN), E13b (E13a and a maintainer decision) | | |
 
 Cross-cutting, every milestone: `node --test` green, `quarto render` green, a naive-reader pass over
 the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabulary.
@@ -100,8 +133,8 @@ is decided.
 
 ## Out of scope for now
 
-webR or Shiny panels; fitting in the browser; posterior displays; non-English pages; models that
-have no `d*()` function in a released bmm.
+webR or Shiny panels; fitting data in the browser (fitting one model's prediction to another's is
+E19); posterior displays; non-English pages; models that have no `d*()` function in a released bmm.
 
 ## Open questions
 
