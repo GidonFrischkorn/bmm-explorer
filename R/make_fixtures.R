@@ -172,7 +172,7 @@ if (has_since("dmpt", "1.4.1")) {
     x <- split100(unname(probs))
     cells[[length(cells) + 1]] <- list(fn = "mpt_span", args = list(Pi = p_i, Pb = p_b, n_other = n[1], n_npl = n[2]),
       probs = unname(probs), counts = x,
-      logd = dmpt(x, pars = c(Pi = p_i, Pb = p_b), mpt_model = mod, covariates = cv))
+      logd = dmpt(x, pars = c(Pi = p_i, Pb = p_b), mpt_model = mod, covariates = cv, log = TRUE))
   }
   write_fx("mpt", cells, list(branches = branches))
 } else cat("mpt        skipped: this bmm has no dmpt()\n")
@@ -221,7 +221,7 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
     var_rt <- m$VRT * c(1, .8, 1.25, 1, 1, 2)
     cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
       n_trials = n_trials, drift = p[1], bound = p[2], ndt = p[3], s = 1, version = "3par"),
-      logd = dezdm(mean_rt, var_rt, n_upper, n_trials, p[1], p[2], p[3], version = "3par"))
+      logd = dezdm(mean_rt, var_rt, n_upper, n_trials, p[1], p[2], p[3], version = "3par", log = TRUE))
   }
   for (p in list(c(1.5, 1, .3, .5), c(-1, 4.48, .05, .182), c(3, .223, 1, .818), c(.8, 2, .2, .3),
                  c(0, 1, .223, .5), c(2e-5, 2, .2, .3), c(-1e-5, 4.48, .1, .7), c(-.05, 1.5, .3, .6))) {
@@ -233,7 +233,7 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
       if (k[2] == 1.2) { mean_rt[2] <- NA; var_rt[2] <- NA }
       cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
         n_trials = k[1], drift = p[1], bound = p[2], ndt = p[3], zr = p[4], s = 1, version = "4par"),
-        logd = dezdm(mean_rt, var_rt, n_upper, k[1], p[1], p[2], p[3], zr = p[4], version = "4par"))
+        logd = dezdm(mean_rt, var_rt, n_upper, k[1], p[1], p[2], p[3], zr = p[4], version = "4par", log = TRUE))
     }
   }
   # Exactly one response at a boundary: its statistics are finite here, so only the count of 1 drops its RT terms.
@@ -242,7 +242,7 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
     mean_rt <- .3 + c(m$mdt_upper, m$mdt_lower); var_rt <- c(m$vrt_upper, m$vrt_lower)
     cells[[length(cells) + 1]] <- list(fn = "dezdm", args = list(mean_rt = mean_rt, var_rt = var_rt, n_upper = n_upper,
       n_trials = 20, drift = 1.5, bound = 1, ndt = .3, zr = .5, s = 1, version = "4par"),
-      logd = dezdm(mean_rt, var_rt, n_upper, 20, 1.5, 1, .3, zr = .5, version = "4par"))
+      logd = dezdm(mean_rt, var_rt, n_upper, 20, 1.5, 1, .3, zr = .5, version = "4par", log = TRUE))
   }
   # dcswald(): log densities of both responses on an rt grid from just above ndt to 3 s, both versions.
   rt_after <- function(ndt) ndt + c(.002, .01, .03, .06, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3)
@@ -255,7 +255,7 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
     rt <- rt_after(p[3]); zr <- if (ver == "crisk") p[4] else .5; s <- p[length(p)]
     cells[[length(cells) + 1]] <- list(fn = "dcswald", args = list(response = r, drift = p[1], bound = p[2], ndt = p[3],
       zr = zr, s = s, version = ver), x = rt,
-      logd = dcswald(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = zr, s = s, version = ver))
+      logd = dcswald(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = zr, s = s, version = ver, log = TRUE))
   }
   # dddm(): through rtdists::ddiffusion. Both responses, an rt grid from just above ndt to 5 s, the slider
   # corners and middles; far tails included, where fast-dm's truncated series departs from the exact
@@ -274,7 +274,7 @@ if (has_since("dezdm", "1.4.1") && has_since("dcswald", "1.4.1") && has_since("d
   rt_ddm <- function(ndt) ndt + c(.001, .005, .01, .02, .05, .1, .15, .2, .3, .4, .5, .7, 1, 1.5, 2, 3, 5)
   for (p in ddm_par) for (r in 0:1) {
     rt <- rt_ddm(p[3])
-    logd <- dddm(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = p[4])
+    logd <- dddm(rt, rep(r, length(rt)), p[1], p[2], p[3], zr = p[4], log = TRUE)
     stopifnot(!is.na(logd), logd < Inf)
     keep <- is.finite(logd)
     cells[[length(cells) + 1]] <- list(fn = "dddm", args = list(response = r, drift = p[1], bound = p[2], ndt = p[3], zr = p[4]),
@@ -561,7 +561,7 @@ if (has_since("rddm", "1.4.1") && has_since("rcswald", "1.4.1") && has_since("re
     expected <- list(); smean <- list(p_upper = pu); sse <- list(p_upper = sqrt(pu * (1 - pu) / rt_n))
     for (r in c(1, 0)) {
       side <- if (r == 1) "upper" else "lower"
-      f <- function(t) exp(dddm(p$ndt + t, rep(r, length(t)), p$drift, p$bound, p$ndt, zr = zr))
+      f <- function(t) exp(dddm(p$ndt + t, rep(r, length(t)), p$drift, p$bound, p$ndt, zr = zr, log = TRUE))
       int <- function(g) sum(vapply(list(c(0, T / 20), c(T / 20, T), c(T, Inf)), function(lim)
         integrate(function(t) g(t) * f(t), lim[1], lim[2], rel.tol = 1e-12, subdivisions = 2000L)$value, 0))
       P <- int(function(t) 1)

@@ -183,7 +183,7 @@ model <- ezdm(${cols}n_upper = "n_upper", n_trials = "n_trials", version = "${v}
 
 # log likelihood of one cell's summary statistics; here the values the parameters predict for ${n} trials
 dezdm(mean_rt = ${vec(means)}, var_rt = ${vec(vars)}, n_upper = ${nUpper}, n_trials = ${n},
-      drift = ${pr.drift}, bound = ${pr.bound}, ndt = ${pr.ndt}${four ? `, zr = ${pr.zr}` : ""}, version = "${v}")
+      drift = ${pr.drift}, bound = ${pr.bound}, ndt = ${pr.ndt}${four ? `, zr = ${pr.zr}` : ""}, version = "${v}", log = TRUE)
 # ${ll.toFixed(4)}
 
 ${sim.on ? `# simulate ${sim.n} cells of ${n} trials: the mean of each statistic over the cells, and the SD of the observed means

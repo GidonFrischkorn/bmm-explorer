@@ -114,7 +114,7 @@ model <- cswald(rt = "rt", response = "response", version = "${v}")
 
 # log likelihood of an upper (1) and a lower (0) response, both at rt = ndt + 0.5 s
 dcswald(rt = c(${rt}, ${rt}), response = c(1, 0),
-        drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""}, version = "${v}")
+        drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}${crisk ? `, zr = ${q.zr}` : ""}, version = "${v}", log = TRUE)
 # ${ll.map(x => x.toFixed(4)).join("  ")}
 
 ${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response, upper first (NA where none). rcswald()
