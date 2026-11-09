@@ -56,7 +56,10 @@ needed only to regenerate fixtures. CI runs the node tests and renders the site 
 on pushes to `main`, deploys `main` to GitHub Pages, and once a week regenerates the fixtures from the
 CRAN bmm (and, non-blocking, from bmm's `develop` branch) so a changed density in bmm shows up here.
 
+To add a page or report a problem, see [`CONTRIBUTING.md`](CONTRIBUTING.md): how a page is built, the
+checks a pull request passes, and the issue templates.
+
 ## Licence
 
-Code (JavaScript, R, workflows) GPL-2, the licence of bmm whose densities it ports. Page text and
-illustrations CC BY 4.0.
+Code (JavaScript, R, workflows) GPL-2, the licence of bmm whose densities it ports; see
+[`LICENSE`](LICENSE). Page text and illustrations CC BY 4.0; see [`LICENSE-text.md`](LICENSE-text.md).

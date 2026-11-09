@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A question about a model or its parameters
+    url: https://github.com/popov-lab/bmm/issues
+    about: What a model assumes, what a parameter means or how to fit it is answered by bmm, not by this explorer.

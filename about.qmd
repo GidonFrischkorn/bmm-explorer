@@ -38,3 +38,10 @@ Below the panels, every page has the same five parts.
 The curves are computed in your browser by small JavaScript copies of bmm's density functions. Each
 copy is tested against values produced by bmm itself; the test and the fixtures are in the
 [repository](https://github.com/GidonFrischkorn/bmm-explorer/tree/main/tests/parity).
+
+## Adding a page
+
+A page for another bmm model, or a fix to one, goes through a pull request that carries a test against
+values bmm produced. The
+[contributor guide](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/CONTRIBUTING.md) lists the
+steps and the checks, and the repository has issue templates for a new page, a bug and a change in bmm.
