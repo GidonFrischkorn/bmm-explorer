@@ -50,3 +50,28 @@ jobs:
         env:
           BMM_FIXTURES: ${{ runner.temp }}/fixtures
         run: node --test
+      # R/make_fixtures.R writes every warning it saw to warnings.txt. bmm gives a deprecation no condition class, so
+      # its text is matched: "is deprecated since bmm 1.5.0 and will be removed in bmm 1.6.0" (warn_deprecated()),
+      # "is deprecated as of bmm 1.4.0", "is deprecated. Please use", "From bmm 1.6.0 on this is an error". On develop
+      # such a warning fails this step (the job still does not block), so a form bmm will remove is reported in the
+      # weekly run before the release that removes it; the cran job annotates the warnings only.
+      - name: Warnings from bmm
+        if: always()
+        env:
+          JOB: ${{ matrix.name }}
+        run: |
+          f="$RUNNER_TEMP/fixtures/warnings.txt"
+          if [ ! -f "$f" ]; then echo "::warning::make_fixtures.R wrote no warnings.txt"; exit 0; fi
+          pattern='deprecat|will be removed|this is an error'
+          dep=$(grep -iE "$pattern" "$f" | sort | uniq -c | sed "s/^ *//" || true)
+          {
+            echo "### Warnings from bmm ($JOB): $(wc -l < "$f" | tr -d ' ') raised, $(grep -ciE "$pattern" "$f" || true) of them deprecations"
+            if [ -n "$dep" ]; then echo; echo '```'; echo "$dep"; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          sort "$f" | uniq -c | sed "s/^ *//" | while IFS= read -r line; do
+            line=${line//'%'/'%25'}
+            echo "::warning title=bmm warning ($JOB)::$line"
+          done
+          if [ "$JOB" = develop ] && [ -n "$dep" ]; then
+            echo "bmm develop deprecates a form the fixture script uses:"; echo "$dep"; exit 1
+          fi

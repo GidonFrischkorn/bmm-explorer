@@ -5,6 +5,17 @@
 args <- commandArgs(trailingOnly = TRUE)
 out <- if (length(args)) args[1] else "tests/parity/fixtures"
 dir.create(out, showWarnings = FALSE, recursive = TRUE)
+# Every warning the script raises goes to <out>/warnings.txt as it is raised, one per line, so the file holds those
+# up to an error too; an empty file means none. bmm announces a deprecation (and a form that becomes an error in the
+# next minor release) only by the text of a warning, with no condition class: .github/workflows/oracle.yml matches
+# that text and fails the develop job on it, before the release that removes the form breaks the fixtures.
+warnings_file <- file.path(out, "warnings.txt")
+file.create(warnings_file)
+globalCallingHandlers(warning = function(w) {
+  call <- conditionCall(w)
+  where <- if (is.null(call)) "" else paste0(deparse1(call), ": ")
+  cat(where, gsub("\\s*\n\\s*", " ", conditionMessage(w)), "\n", sep = "", file = warnings_file, append = TRUE)
+})
 suppressPackageStartupMessages(library(bmm))
 # R's default generators, named so that a user setting (.Rprofile, RNGversion()) cannot change the sampled cells
 RNGkind("Mersenne-Twister", "Inversion", "Rejection")
