@@ -275,7 +275,7 @@ model <- m3(resp_cats = c(${cats}),
 
 # log likelihood of response counts per category; here 100 trials split as predicted.
 # pars are on the natural scale${link ? `; bmm() estimates ${link}` : ""}.
-dm3(x = c(${expectedCounts(pr).join(", ")}), pars = c(a = ${p.a}, c = ${p.c}${cs ? `, f = ${p.f}` : ""}), m3_model = model)
+dm3(x = c(${expectedCounts(pr).join(", ")}), pars = c(a = ${p.a}, c = ${p.c}${cs ? `, f = ${p.f}` : ""}), m3_model = model, log = TRUE)
 ${sim.on ? `
 # simulate ${sim.n} trials: the response counts per category, in the order ${CODE_CATS[v].join(", ")}
 rm3(n = 1, size = ${sim.n}, pars = c(a = ${p.a}, c = ${p.c}${cs ? `, f = ${p.f}` : ""}), m3_model = model)
