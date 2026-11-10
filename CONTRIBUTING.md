@@ -18,9 +18,10 @@ pages use, such as `mptNodes` and `criterionToBias`. The explorer must never bec
 definition of a model. The values come from `R/make_fixtures.R`, which calls the installed bmm and
 writes `tests/parity/fixtures/*.json`; a value in those files is a fixture. The tests in `tests/parity/`
 (the parity tests) compare the copies with the fixtures: 1e-10 absolute on the log scale, 1e-9 where the
-copy integrates numerically, that is, where the density contains a quadrature or an integral, as the
-normaliser of `sdm` does. Each test states its tolerance; start at 1e-10 and loosen it only for a
-numerical integral, with the reason written in the test. A GitHub workflow, the oracle, regenerates the
+copy integrates on other points than bmm, as the copy of `sdm` sums its normaliser over 1024 points where
+bmm calls `integrate()`. A copy that sums over bmm's own quadrature nodes, as the m-AFC density and the
+gaussian rule of `m3` do, stays at 1e-10. Each test states its tolerance; start at 1e-10 and loosen it
+only where the copy integrates on other points than bmm, with the reason written in the test. A GitHub workflow, the oracle, regenerates the
 fixtures from bmm every week (see "When bmm changes or a check finds a drift").
 
 Three conventions follow from it. Names and defaults are bmm's, as its reference pages
@@ -58,15 +59,16 @@ argument:
 `default_prior(bmf(d ~ 1), data = data.frame(rank1 = 40, rank2 = 30, rank3 = 20, rank4 = 10), model = sdt_ranking(response = paste0("rank", 1:4), m = 4))`.
 That call prints a table: read the prior in the row with coef `Intercept` and nlpar `d` (here
 `normal(1, 1)`). Every parameter of the model gets a slider; the model's reference page names each
-parameter's link. Where the link is log, the slider is on the log scale and the number field in natural
-units. A page may slide the `d*()` argument on its natural scale instead, as the `mixture2p` page slides
+parameter's link. Where bmm defines a parameter on the log scale, through a log link (`sdratio` of
+`sdt_yn`) or as a log parameter with an identity link (`sdratio` of `sdt_ranking`, a "Log SD ratio"), the
+slider is on the log scale and the number field in natural units. A page may slide the `d*()` argument on its natural scale instead, as the `mixture2p` page slides
 `p_mem` from 0 to 1 rather than `thetat`. A parameter that bmm fixes unless the formula names it gets a
 slider too if it changes the shape of the prediction, starting at the fixed value: `sdratio` of `sdt_yn`
-and of `sdt_ranking` with normal noise (0 on the log scale, a ratio of 1), and `b` of `imm`, which bmm
+and of `sdt_ranking` with normal noise (0 on the log scale, a ratio of 1), and `b` of `imm`, which bmm 1.4
 always fixes at 1, so it has no prior and its slider runs from 0 to 5. The location `mu1` of
 `mixture2p` only shifts the density, so that page holds it at 0. Either way the page names the value
 bmm fixes the parameter at. The prior means are the starting values and the dashed reference. If a page uses another range or scale, its Explore section says so and says
-why (the `sdm` and `mixture2p` pages do).
+why (the `sdm` page does).
 
 **The design axis.** Every page answers one question: which task settings enter the likelihood? Candidate
 counts for `m3` and `mpt`, non-target positions for `imm`, `m` for `sdt_mafc`, trials per cell for
@@ -106,20 +108,31 @@ The checks in the next section come after step 8.
    and the parameters (`dezdm({ mean_rt, var_rt, n_upper, n_trials, drift, bound, ndt })`). Follow the other
    densities in your file. Print `d<model>()` and `r<model>()` in R (`bmm::dsdt_ranking`) to see which
    internal helpers they call; the port follows those, and the fixture script reaches them with `bmm:::`.
-   `dsdt_ranking()` and `rsdt_ranking()` both take their probabilities from `.ranking_all_probs_r`, whose
-   normal-noise integrals use the quadrature rules that `.ranking_gh_n` and `.ranking_gl_rule` choose
-   (`.ranking_fill_quadrature` writes the same rules into the Stan code). Use `js/lib/math.js` (`logPnorm`, `qnorm`, `lgamma`, `log1mExp`, `integrateExp`)
+   `dsdt_ranking()` and `rsdt_ranking()` both take their probabilities from `.ranking_all_probs_r`. Under
+   normal noise its helper `.ranking_prob_r` integrates by Gauss-Hermite quadrature where `exp(sdratio)`
+   is at most 1 and by Gauss-Legendre quadrature on [-6, 6] above, with node counts that
+   `.ranking_gh_n(m, free_sdratio = TRUE)` and `.ranking_gl_rule(m)` set from each row's `m`; the port
+   switches rules at the same point and takes the same nodes. Do not copy them from the Stan code:
+   `.ranking_fill_quadrature` picks its rules for the data's largest `m` and for whether `sdratio` is
+   estimated, so with `sdratio` fixed at `m` = 4 Stan sums over 32 Gauss-Hermite nodes and the R density
+   over 64. Use `js/lib/math.js` (`logPnorm`, `qnorm`, `lgamma`, `log1mExp`, `integrateExp`)
    instead of writing special functions again (read the file for the signatures). If the density needs a
    quadrature rule, `R/make_fixtures.R` writes bmm's own nodes and weights to
-   `tests/parity/fixtures/nodes.json` (see the `node_cells` list in the script) and the page fetches them;
-   never use nodes computed in JavaScript. `js/pages/sdt_mafc.js` shows how: a top-level `await fetch()` of
-   that file relative to `import.meta.url`, and if the fetch fails the choices that need the nodes are
-   switched off.
+   `tests/parity/fixtures/nodes.json` (step 2) and the page fetches them; never use nodes computed in
+   JavaScript. The density takes the rules as its last argument (`rules` in `dsdtMafc`), and the page and
+   the test pass them in. `js/pages/sdt_mafc.js` shows how: a top-level `await fetch()` of that file
+   relative to `import.meta.url`, and if the fetch fails the choices that need the nodes are switched off.
 2. **Write the fixture cells.** In `R/make_fixtures.R` add a section that calls bmm's `d<model>()` on a
-   small literal grid: under 50 cells per density, covering the slider ranges the page offers and the
-   corners where a port is weakest (`kappa` near 0 and above 100, probabilities near 0 and 1, counts of
-   0). Copy the nearest section of the script (the `dsdt_mafc` cells, for example): each cell is a
-   `list(fn = , args = , logd = )` and `write_fx()` writes the file. Cells for an existing fixture file go
+   small literal grid (the existing ones hold from 70 to about 2,000 values per density), covering the
+   slider ranges the page offers and the corners where a port is weakest (`kappa` near 0 and above 100,
+   probabilities near 0 and 1, counts of 0). Copy the nearest section of the script (the `dsdt_mafc` cells,
+   for example) and keep its field names: a cell is one call to bmm, often vectorised over a grid of rows,
+   holding `fn`, the arguments in `args` and bmm's results (`logd`, and in the `sdt` section `log_pc`,
+   `logp` and others); `write_fx()` writes the file. If the port needs a quadrature rule, add a cell for it
+   to `node_cells`, as the `m3` section does for `.m3_gauss_rule` and the `sdt` section for `.mafc_gh` and
+   `.mafc_gl`, before `write_fx("nodes", node_cells)` writes them all. The pages find a rule by its `fn`;
+   where bmm's rule depends on a task setting, as the ranking rules depend on `m`, write one cell per rule
+   and tell them apart by `args`. Cells for an existing fixture file go
    inside its section, before its `write_fx()` call: `sdt_ranking` cells go into the block
    `if (has_since("dsdt_yn", "1.4.1")) { ... }`, before `write_fx("sdt", cells)`, since a second block
    would write `sdt.json` again. Guard a function that older bmm versions lack with
@@ -151,8 +164,8 @@ The checks in the next section come after step 8.
    Copy the dashboard block of `models/sdt_mafc.qmd` and change its ids and controls. Its `{=html}`
    blocks are Quarto raw HTML and hold markup only. Their ids start with a model prefix that
    no other page uses (`m3-`, `imm-`, `sdtmafc-`). `css/explorer.css` has rules keyed to page
-   ids: `touch-action: none` on `#sdtyn-latent` and `#sdtrating-latent`, which lets a reader drag their
-   lines on a touch screen, and the font sizes of `#sdtmafc-latent` and `#sdtmafc-tiles`. Search the file
+   ids: `touch-action: none` on `#sdtyn-latent`, `#sdtrating-latent` and `#sdtmafc-latent`, which lets a
+   reader drag the lines of the first two on a touch screen, and the font sizes of `#sdtmafc-latent` and `#sdtmafc-tiles`. Search the file
    for the prefix of the page you copied and copy each rule under your prefix. Behaviour lives in `js/pages/<model>.js`, loaded as a
    module at the end of the page. The script uses `js/lib/`: `widget.js` for coupled sliders
    (`bindParams`; scales `LINEAR`, `LOG`, `LOGIT`), `plot.js` for line and bar plots, `circular-plot.js` for
@@ -173,7 +186,9 @@ The checks in the next section come after step 8.
    (`js/lib/random.js`, seeded), so the sample stays put while a slider moves. The sampler needs two
    kinds of fixture, added to the `simulate*` section of `R/make_fixtures.R` for the response:
    `simulate_counts` for the categorical and SDT pages (it writes `simulate_counts.json`), `simulate` for
-   the circular pages, `simulate_rt` for the response-time pages. The expected
+   the circular pages, `simulate_rt` for the response-time pages. A cell's seed is 437 plus its position
+   in the section, so add new cells at the end of the list: a cell inserted earlier shifts the seeds, and
+   with them the samples, of every cell after it. The expected
    values come from bmm in one of three ways. On the categorical and SDT pages they are the probabilities
    bmm's `r*()` samples from, computed by the internal helper it calls (`.compute_m3_probability_vector`,
    `.mpt_probability_vector`, `.sdt_category_probs`; for `rsdt_ranking()`, `.ranking_all_probs_r`). On the circular pages they come from
@@ -199,7 +214,8 @@ The checks in the next section come after step 8.
    simulate on, each model choice, an open (i) note, and a typed value outside the slider range. A model
    choice is a control that switches the model rather than a parameter value: the `version` and
    `choice_rule` of `m3`, the noise distribution `dist` of the SDT pages. Give each a state with a value
-   other than the default. bmm picks the quadrature rule, so the page offers no switch for it. A value
+   other than the default. The quadrature rule is not a model choice and gets no control: the rule switch
+   inside the integral in the E11a row of `dev/ROADMAP.md` is the port's, at the point where bmm switches. A value
    outside the range makes the page stale: the plots are greyed and keep the last valid values, and the
    page announces it. For an SDT page the `models/sdt_mafc` entry is the nearest template; its states
    are "simulate on", "note open: m", "m 10, simulate on", "gumbel_max", "logistic, simulate on" and

@@ -9,5 +9,5 @@
     "render": "quarto render",
     "preview": "quarto preview"
   },
-  "engines": { "node": ">=20" }
+  "engines": { "node": ">=22" }
 }
