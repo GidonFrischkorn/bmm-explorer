@@ -1317,7 +1317,12 @@
       ".ex-dash.ex-stale"
      ]
     }
-   ]
+   ],
+   "focus": {
+    "marks": [
+     "#sdtrating-latent .sdt-drag"
+    ]
+   }
   },
   "models/ezdm": {
    "states": [

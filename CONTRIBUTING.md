@@ -70,7 +70,7 @@ slider is on the log scale and the number field in natural units. A page may sli
 slider too if it changes the shape of the prediction, starting at the fixed value: `sdratio` of `sdt_yn`
 and of `sdt_ranking` with normal noise (0 on the log scale, a ratio of 1), and `b` of `imm`, which bmm 1.4
 always fixes at 1, so it has no prior and its slider runs from 0 to 5. For such a parameter the recipe prints
-the fixed value (`constant(0)` for `sdratio` in the `sdt_ranking` call with `dist = "normal"`); name it in
+the fixed value (`constant(0)` for `sdratio` once `dist = "normal"` is added to the `sdt_ranking()` call above); name it in
 the formula, `bmf(d ~ 1, sdratio ~ 1)`, and it prints the prior instead (`normal(0, 0.3)`). A parameter that only shifts the
 prediction gets no slider and stays at its fixed value: the location `mu1` of `mixture2p` moves the
 density along the circle without changing its shape, so that page holds it at 0. A page that slides a
@@ -254,7 +254,8 @@ The checks in the next section come after step 8.
    it: the model map and the list of models by family in `index.qmd`, the sidebar in `_quarto.yml`, the page
    list in the "Verify the render" step of `.github/workflows/ci.yml`, and the status table in `README.md`,
    whose count of live pages above it and "Next:" sentence below it change too. The paragraph on the
-   simulate switch in `about.qmd` says, page by page, how a sample is shown; add yours there.
+   simulate switch in `about.qmd` says how a sample is shown on the circular, categorical and SDT pages;
+   add a sentence for yours.
    Then add it to the axis table under "Which models have a task-settings axis" in `dev/ROADMAP.md`: a
    new row, or your model in the row of its design axis if one exists (`sdt_ranking` is already in
    "SDT mAFC, ranking"). If the page completes a milestone there (`sdt_ranking` is E11a), add it to the
