@@ -42,7 +42,7 @@ The order, the waves and the rule for new models are in [`dev/ROADMAP.md`](dev/R
 | `models/<model>.qmd` | one page per model, same five sections on every page |
 | `js/models/<family>.js` | the ported densities: pure functions, bmm's argument names, log scale |
 | `js/pages/<model>.js` | wires one page's controls, plot and illustration |
-| `js/lib/` | `math.js` (Bessel, logSumExp), `widget.js` (coupled slider + number inputs), `plot.js` (SVG axes, lines, bars) |
+| `js/lib/` | `math.js` (Bessel, logSumExp), `links.js` (bmm's link functions and their inverses), `widget.js` (coupled slider + number inputs), `plot.js` (SVG axes, lines, bars) |
 | `R/make_fixtures.R` | writes `tests/parity/fixtures/*.json` from the installed bmm; an optional second argument names a file that collects its warnings |
 | `tests/parity/*.test.mjs` | `node --test`: every JS density against the fixtures, tolerance in the test |
 | `dev/ROADMAP.md` | milestones and what each one ships |

@@ -27,7 +27,7 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   }
   const a = parseFixture(fs.readFileSync(path.join(committed, f), "utf8")), b = parseFixture(fs.readFileSync(path.join(fresh, f), "utf8"));
   if (a.cells.length !== b.cells.length) { console.log(`${f}: ${a.cells.length} vs ${b.cells.length} cells`); bad++; continue; }
-  // math.json holds log Phi down to -5e9 and sdt.json log probabilities down to -7.5e177, where tol is far below one
+  // math.json holds log Phi down to -5e9, links.json values from 5e-324 to 1e300, and sdt.json log probabilities down to -7.5e177, where tol is far below one
   // unit in the last place and another libm would differ: there the difference is relative to the value, as in
   // math.test.mjs and sdt.test.mjs. sdt.json is scaled as assertCloseRel() scales it, absolute up to |value| 1e3 and
   // relative per 1e3 beyond: up to 1e3, 1e-10 is about 900 units in the last place, room for a libm that rounds exp()
@@ -36,7 +36,8 @@ for (const f of fs.readdirSync(committed).filter(n => n.endsWith(".json"))) {
   // reach 2e4 at bound 4.48, s 0.7, drift -0.1, where one unit in the last place of sinh() between two libms (macOS
   // R vs glibc on the CI runner) moves k4 by 4e-8: they are compared relative to |committed value| (absolute where
   // it is 0), as in rt.test.mjs; every other rt.json value stays absolute.
-  const scale = (key, v) => f === "math.json" ? Math.max(2 ** -1022, Math.abs(v)) : f === "sdt.json" ? relScale(v)
+  const scale = (key, v) => f === "math.json" || f === "links.json" ? Math.max(2 ** -1022, Math.abs(v))
+    : f === "sdt.json" ? relScale(v)
     : f === "rt.json" && /(^|\.)k[34](_|$)/.test(key) && v !== 0 ? Math.abs(v) : 1;
   // simulate.json's sample.mean and sample.se are statistics of n draws from bmm's r*(), so they depend on the
   // exact random stream the sampler consumes: rsdm switching to inversion, another batch size in

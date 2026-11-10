@@ -675,4 +675,40 @@ if (has_since("rddm", "1.4.1") && has_since("rcswald", "1.4.1") && has_since("re
   write_fx("simulate_rt", cells)
 } else cat("simulate_rt skipped: this bmm lacks rddm(), rcswald() or rezdm()\n")
 
+# --- links -------------------------------------------------------------------
+# js/lib/links.js is bmm's link table: link_transform(), internal on CRAN, exported on develop under the same name
+# and signature, hence get(). For each link a forward cell (x native, y on the parameter scale) and an inverse cell
+# (x on the parameter scale, y native), with the edges where a naive form loses digits or overflows: x near 0 and
+# 1e-300 (log1p, softplus), 1e300 and 148 (softplus returns x where log(expm1(x)) overflows), 0 and 1 and 1e-12
+# from them (the unit-interval links), angles beyond -pi..pi (tan_half wraps them), and on the way back -745, -40,
+# 1e-8 and 710 (exp() under- and overflows, log(1 + exp(-40)) and exp(1e-8) - 1 lose every or half the digits).
+# Values outside a link's range (-1 for the positive links) give NaN, NA for softplus, with a warning, muffled
+# here. Last, one cell with a NULL link, which bmm reads as identity.
+# CRAN 1.4.x returns the cloglog inverse as 1 - exp(-exp(eta)), which is 0 at eta = -40, where develop's
+# -expm1(-exp(eta)) and the explorer return exp(-40) = 4.2e-18; below eta ~ -15 the CRAN form is more than 1e-10
+# off relative, and 0 below ~ -37.5. Its inverse grid leaves out -40; at -745 both underflow (0 or 5e-324).
+if (has_since("link_transform", "1.4.1")) {
+  link_transform <- get("link_transform", asNamespace("bmm"))
+  unbounded <- c(-50, -3, -1, -0.5, 0, 1e-8, 0.5, 1, 3, 50)
+  positive <- c(-1, 0, 1e-300, 1e-8, 0.5, 1, 2, 148, 1e300)
+  unit <- c(0, 1e-12, 1e-3, 0.075, 0.5, 0.925, 0.999, 1 - 1e-12, 1)
+  native <- list(identity = unbounded, log = positive, softplus = positive, log1p = c(-1, -0.999, positive[-1]),
+                 logm1 = c(1, 1 + 1e-10, 1.5, 2, 10, 1e6), inverse = positive, sqrt = positive,
+                 logit = unit, probit = unit, tan_half = c(-7, -3.5, -3.14, -1, 0, 1, 3.14, 3.5, 7),
+                 loglog = unit, cloglog = unit)
+  eta <- c(-745, -40, -3, -0.5, 0, 1e-8, 0.5, 3, 40, 710)
+  cells <- list()
+  for (l in names(native)) {
+    e <- if (l == "cloglog") setdiff(eta, -40) else eta
+    cells[[length(cells) + 1]] <- list(fn = "link_transform", link = l, inverse = FALSE, x = native[[l]],
+      y = suppressWarnings(link_transform(values = native[[l]], link = l, inverse = FALSE)))
+    cells[[length(cells) + 1]] <- list(fn = "link_transform", link = l, inverse = TRUE, x = e,
+      y = suppressWarnings(link_transform(values = e, link = l, inverse = TRUE)))
+  }
+  # NA is written as null: the cell's link
+  cells[[length(cells) + 1]] <- list(fn = "link_transform", link = NA, inverse = FALSE, x = unbounded,
+    y = link_transform(values = unbounded, link = NULL, inverse = FALSE))
+  write_fx("links", cells)
+} else cat("links skipped: this bmm lacks link_transform()\n")
+
 cat("bmm", version, "->", out, "\n")
