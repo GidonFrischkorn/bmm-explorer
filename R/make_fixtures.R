@@ -1,21 +1,30 @@
 #!/usr/bin/env Rscript
-# Writes the parity fixtures from the installed bmm. Usage: Rscript R/make_fixtures.R <out_dir>
+# Writes the parity fixtures from the installed bmm. Usage: Rscript R/make_fixtures.R <out_dir> [<warnings_file>]
 # The grids are literal and small; they cover the slider ranges the pages expose and the corners
 # where a port is weakest (kappa near 0 and above 100, probabilities near 0 and 1, counts of 0).
 args <- commandArgs(trailingOnly = TRUE)
 out <- if (length(args)) args[1] else "tests/parity/fixtures"
 dir.create(out, showWarnings = FALSE, recursive = TRUE)
-# Every warning the script raises goes to <out>/warnings.txt as it is raised, one per line, so the file holds those
-# up to an error too; an empty file means none. bmm announces a deprecation (and a form that becomes an error in the
-# next minor release) only by the text of a warning, with no condition class: .github/workflows/oracle.yml matches
-# that text and fails the develop job on it, before the release that removes the form breaks the fixtures.
-warnings_file <- file.path(out, "warnings.txt")
-file.create(warnings_file)
-globalCallingHandlers(warning = function(w) {
-  call <- conditionCall(w)
-  where <- if (is.null(call)) "" else paste0(deparse1(call), ": ")
-  cat(where, gsub("\\s*\n\\s*", " ", conditionMessage(w)), "\n", sep = "", file = warnings_file, append = TRUE)
-})
+# With a second argument, each warning that is not muffled on the way up (suppressWarnings(), also inside bmm,
+# hides it) is appended to that file as it is raised, so the file holds those up to an error; empty means none.
+# A line is the deparsed call (empty for call. = FALSE), a tab, the message, with tabs and line breaks folded to
+# a space and trimmed at the ends. bmm announces a deprecation (and a form that becomes an error in the next minor
+# release) only by the text of a warning, with no condition class: .github/workflows/oracle.yml matches the
+# message field and fails the develop job on it, before the release that removes the form breaks the fixtures.
+if (length(args) > 1) {
+  warnings_file <- args[2]
+  dir.create(dirname(warnings_file), showWarnings = FALSE, recursive = TRUE)
+  invisible(file.create(warnings_file))
+  one_line <- function(s)
+    trimws(gsub("[ \t\r\n]*[\t\r\n][ \t\r\n]*", " ", iconv(s, "", "UTF-8", sub = "byte"), useBytes = TRUE))
+  # The handler never raises: a message that is not valid UTF-8 or a file that cannot be written costs the line,
+  # not the run.
+  globalCallingHandlers(warning = function(w) tryCatch({
+    call <- conditionCall(w)
+    cat(if (is.null(call)) "" else one_line(deparse1(call)), "\t", one_line(conditionMessage(w)), "\n",
+        sep = "", file = warnings_file, append = TRUE)
+  }, error = function(e) NULL))
+}
 suppressPackageStartupMessages(library(bmm))
 # R's default generators, named so that a user setting (.Rprofile, RNGversion()) cannot change the sampled cells
 RNGkind("Mersenne-Twister", "Inversion", "Rejection")

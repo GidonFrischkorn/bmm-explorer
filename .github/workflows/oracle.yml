@@ -5,9 +5,9 @@ name: Oracle
 on:
   push:
     branches: [main]
-    paths: ["R/**", "tests/parity/**", "js/models/**"]
+    paths: ["R/**", "tests/parity/**", "js/models/**", ".github/workflows/oracle.yml"]
   pull_request:
-    paths: ["R/**", "tests/parity/**", "js/models/**"]
+    paths: ["R/**", "tests/parity/**", "js/models/**", ".github/workflows/oracle.yml"]
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
@@ -29,8 +29,15 @@ jobs:
     name: fixtures from bmm (${{ matrix.name }})
     runs-on: ubuntu-latest
     continue-on-error: ${{ !matrix.blocking }}
+    # issues: the develop job opens or comments on the deprecation issue (last step)
+    permissions:
+      contents: read
+      issues: write
     steps:
+      # No step pushes, so the token is not left in .git/config for packages and R/make_fixtures.R to read
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -43,35 +50,81 @@ jobs:
             ${{ matrix.packages }}
             any::jsonlite
       - name: Regenerate fixtures
-        run: Rscript R/make_fixtures.R "$RUNNER_TEMP/fixtures"
+        run: Rscript R/make_fixtures.R "$RUNNER_TEMP/fixtures" "$RUNNER_TEMP/warnings.txt"
       - name: Compare with the committed fixtures
         run: node tests/parity/compare-fixtures.mjs tests/parity/fixtures "$RUNNER_TEMP/fixtures" 1e-10
       - name: Parity tests against the fresh fixtures
         env:
           BMM_FIXTURES: ${{ runner.temp }}/fixtures
         run: node --test
-      # R/make_fixtures.R writes every warning it saw to warnings.txt. bmm gives a deprecation no condition class, so
-      # its text is matched: "is deprecated since bmm 1.5.0 and will be removed in bmm 1.6.0" (warn_deprecated()),
-      # "is deprecated as of bmm 1.4.0", "is deprecated. Please use", "From bmm 1.6.0 on this is an error". On develop
-      # such a warning fails this step (the job still does not block), so a form bmm will remove is reported in the
-      # weekly run before the release that removes it; the cran job annotates the warnings only.
-      - name: Warnings from bmm
-        if: always()
+      # R/make_fixtures.R writes one line per warning that reaches the script's handler (suppressWarnings(), also
+      # inside bmm, muffles one before it), "<call><TAB><message>". bmm gives a deprecation no condition class, so the
+      # message (never the call) is matched: "is deprecated since bmm 1.5.0 and will be removed in bmm 1.6.0"
+      # (warn_deprecated()), "is deprecated as of bmm 1.4.0", "is deprecated. Please use", "From bmm 1.6.0 on this is
+      # an error". The match also catches a dependency's deprecation. The step summary lists every recorded warning
+      # with its count (annotations are capped per step). On develop a deprecation fails this step and the job, but
+      # the job has continue-on-error: the run stays green and sends no failure notification, and a PR is not
+      # blocked. On a schedule or a manual run the next step therefore opens or updates an issue, which is the
+      # signal; the cran job never fails on a warning.
+      - name: Warnings in the fixture run
+        id: warnings
+        if: ${{ !cancelled() }}
         env:
           JOB: ${{ matrix.name }}
         run: |
-          f="$RUNNER_TEMP/fixtures/warnings.txt"
-          if [ ! -f "$f" ]; then echo "::warning::make_fixtures.R wrote no warnings.txt"; exit 0; fi
-          pattern='deprecat|will be removed|this is an error'
-          dep=$(grep -iE "$pattern" "$f" | sort | uniq -c | sed "s/^ *//" || true)
+          f="$RUNNER_TEMP/warnings.txt"
+          if [ ! -f "$f" ]; then echo "::warning::make_fixtures.R wrote no warnings file"; exit 0; fi
+          dep="$RUNNER_TEMP/deprecations.txt"; other="$RUNNER_TEMP/other-warnings.txt"
+          : > "$dep"; : > "$other"
+          # A line without a tab is all message. Shown as "call: message", or the message alone.
+          awk -v dep="$dep" -v other="$other" '{
+            i = index($0, "\t"); call = substr($0, 1, i - 1); msg = substr($0, i + 1)
+            line = (call == "" ? msg : call ": " msg)
+            if (tolower(msg) ~ /deprecat|will be removed|this is an error/) print line > dep; else print line > other
+          }' "$f"
+          count() { LC_ALL=C sort "$1" | LC_ALL=C uniq -c | sort -rn | sed 's/^ *//'; }
+          lines() { awk 'END { print NR }' "$1"; }
+          # Workflow-command data: % first, then CR and LF
+          esc() { local s=${1//'%'/'%25'}; s=${s//$'\r'/'%0D'}; printf '%s' "${s//$'\n'/'%0A'}"; }
+          nd=$(lines "$dep"); n=$(( nd + $(lines "$other") ))
+          # Each listed line starts with its count, so no warning text can close the fence; a CR, which Markdown reads
+          # as a line end, becomes a space
           {
-            echo "### Warnings from bmm ($JOB): $(wc -l < "$f" | tr -d ' ') raised, $(grep -ciE "$pattern" "$f" || true) of them deprecations"
-            if [ -n "$dep" ]; then echo; echo '```'; echo "$dep"; echo '```'; fi
+            echo "### Warnings in the fixture run ($JOB): $n in all, $nd announcing a deprecation"
+            if [ "$nd" -gt 0 ]; then echo; echo "Deprecations (count, warning):"; echo; echo '```'; count "$dep" | tr '\r' ' '; echo '```'; fi
+            if [ "$n" -gt "$nd" ]; then echo; echo "Other warnings (count, warning):"; echo; echo '```'; count "$other" | tr '\r' ' '; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
-          sort "$f" | uniq -c | sed "s/^ *//" | while IFS= read -r line; do
-            line=${line//'%'/'%25'}
-            echo "::warning title=bmm warning ($JOB)::$line"
-          done
-          if [ "$JOB" = develop ] && [ -n "$dep" ]; then
-            echo "bmm develop deprecates a form the fixture script uses:"; echo "$dep"; exit 1
+          count "$dep" | while IFS= read -r l; do echo "::warning title=Deprecation ($JOB)::$(esc "$l")"; done
+          count "$other" | while IFS= read -r l; do echo "::warning title=Warning ($JOB)::$(esc "$l")"; done
+          if [ "$JOB" = develop ] && [ "$nd" -gt 0 ]; then
+            echo "A warning in the fixture run announces a deprecation:"; count "$dep" | tr '\r' ' '; exit 1
+          fi
+      # The issue is found by its exact title among the open ones, so no label has to exist.
+      - name: Report the deprecation in an issue
+        if: ${{ failure() && steps.warnings.outcome == 'failure' && matrix.name == 'develop' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dep="$RUNNER_TEMP/deprecations.txt"
+          if [ ! -s "$dep" ]; then echo "::warning::no deprecation list to report"; exit 0; fi
+          title="Oracle (develop): a warning in the fixture run announces a deprecation"
+          body="$RUNNER_TEMP/issue-body.md"
+          {
+            echo "A warning in the fixture run against bmm develop announces a deprecation, by bmm or a dependency."
+            echo "Each line is a count and the warning, as \`call: message\` or the message alone."
+            echo
+            echo '```'
+            LC_ALL=C sort "$dep" | LC_ALL=C uniq -c | sort -rn | sed 's/^ *//' | tr '\r' ' '
+            echo '```'
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > "$body"
+          # Listed first, so a failing gh stops the step instead of reading as "no open issue"
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 1000 --json number,title \
+            --jq '.[] | [.number, .title] | @tsv')
+          n=$(printf '%s\n' "$open" | awk -F'\t' -v t="$title" '$2 == t { print $1; exit }')
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body-file "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file "$body"
           fi
