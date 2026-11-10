@@ -2,6 +2,7 @@
 import { dmixture2p } from "../models/circular.js";
 import { integrateExp } from "../lib/math.js";
 import { bindPair, readParams, setParams, fmt, LOG } from "../lib/widget.js";
+import { link } from "../lib/links.js";
 import { circularPlot, CIRC_X, DEG } from "../lib/circular-plot.js";
 import { autoAxis } from "../lib/axis.js";
 import { simControls, circularSimulation, simCode } from "../lib/sim-panel.js";
@@ -69,7 +70,7 @@ ${sim.on ? simCode(sim.n, `rmixture2p(n, mu = 0, kappa = ${p.kappa}, p_mem = ${p
 model <- mixture2p(resp_error = "resp_error")
 fit <- bmm(formula = bmf(thetat ~ 1, kappa ~ 1), data = my_data, model = model)
 # bmm estimates thetat (p_mem) on the logit scale and kappa on the log scale. The values above are
-# thetat = qlogis(${p.p_mem}) = ${inf(Math.log(p.p_mem / (1 - p.p_mem)))} and log(kappa) = ${p.kappa > 0 ? Math.log(p.kappa).toFixed(2) : "-Inf"}.`;
+# thetat = qlogis(${p.p_mem}) = ${inf(link("logit", p.p_mem))} and log(kappa) = ${p.kappa > 0 ? link("log", p.kappa).toFixed(2) : "-Inf"}.`;
 }
 
 function draw() {

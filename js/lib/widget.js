@@ -1,4 +1,5 @@
 // Controls shared by every page: coupled range + number inputs, parameter read/write, number formatting.
+import { link, invlink } from "./links.js";
 
 export const fmt = (v, digits = 2) => Number(v).toFixed(digits).replace("-", "−");
 
@@ -12,12 +13,19 @@ export function rValue(x, prob = false) {
   }
 }
 
-// Slider scales. LOG moves the slider in log units for parameters bmm estimates on the log scale; the
-// number field keeps the natural value, rounded to what it shows, so the value used is the value seen.
+// Slider scales. scaleOf(link) moves the slider in the units of one of bmm's links (js/lib/links.js), the scale
+// bmm estimates the parameter on; the number field keeps the natural value, rounded to the 3 significant digits it
+// shows, so the value used is the value seen. An angle (tan_half) stays on a linear slider: in tan_half units
+// the slider would crowd -pi and pi into its ends.
+export function scaleOf(name) {
+  if (name === "tan_half") throw new Error("scaleOf: an angle (tan_half) takes a linear slider");
+  link(name, 0.5); // throws for a name that is not one of bmm's links
+  return { toRange: v => link(name, v), fromRange: r => +invlink(name, r).toPrecision(3) };
+}
 export const LINEAR = { toRange: v => v, fromRange: r => r };
-export const LOG = { toRange: Math.log, fromRange: r => +Math.exp(r).toPrecision(3) };
-// LOGIT does the same for probabilities bmm estimates on the logit scale (f, MPT parameters).
-export const LOGIT = { toRange: v => Math.log(v / (1 - v)), fromRange: r => +(1 / (1 + Math.exp(-r))).toPrecision(3) };
+// LOG for parameters bmm estimates on the log scale, LOGIT for probabilities on the logit scale (f, MPT parameters).
+export const LOG = scaleOf("log");
+export const LOGIT = scaleOf("logit");
 
 // A slider and a number field that mirror each other; onInput fires on either. setBounds changes the
 // limits (and the scale, when a page changes parametrisation) of both inputs together.
