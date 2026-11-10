@@ -1,5 +1,6 @@
 // Page script for models/sdt_rating.qmd: confidence-rating signal detection with K - 1 thresholds set one by
 // one, kept in order by the controls.
+import { split100 } from "../lib/math.js";
 import { ratingLogProbs, dsdtRating, ynRoc, evidencePdf, separation, parsimoniousThresholds, toLogDistance, DISTS } from "../models/sdt.js";
 import { bindPair, bindParams, readParams, setParams, LINEAR, LOG } from "../lib/widget.js";
 import { barPlot, el, clipped } from "../lib/plot.js";
@@ -163,15 +164,6 @@ rsdt_rating(n = 2, n_trials = ${sim.n / 2}, stimulus = c(0, 1),
 fit <- bmm(formula = bmf(${terms.join(", ")}),
            data = my_data, model = model)`;
   $("sdtrating-code").dataset.logd = JSON.stringify(counts.map((c, s) => dsdtRating(c, s, t, v)));
-}
-
-// 100 trials split as predicted, rounded so the counts sum to 100.
-function split100(pr) {
-  const raw = pr.map(p => p * 100), k = raw.map(Math.floor);
-  const order = raw.map((x, i) => [x - k[i], i]).sort((a, b) => b[0] - a[0]);
-  const short = 100 - k.reduce((s, x) => s + x, 0);
-  for (let j = 0; j < short; j++) k[order[j][1]]++;
-  return k;
 }
 
 function draw() {
