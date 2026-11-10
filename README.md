@@ -23,7 +23,7 @@ Twelve model pages are live. A page for a model is deployed once the model is on
 | `sdt_yn`, `sdt_mafc`, `sdt_rating` | [sdt_yn](models/sdt_yn.qmd), [sdt_mafc](models/sdt_mafc.qmd), [sdt_rating](models/sdt_rating.qmd) | none for `sdt_yn`; `m` for `sdt_mafc`; the number of thresholds for `sdt_rating` |
 | `ezdm`, `cswald`, `ddm` | [ezdm](models/ezdm.qmd), [cswald](models/cswald.qmd), [ddm](models/ddm.qmd) | trials per cell for `ezdm`; none for `cswald` and `ddm` |
 
-Next: a contributor guide; the parameter lists and slider ranges read from bmm's model specification
+Next: the parameter lists and slider ranges read from bmm's model specification
 instead of typed by hand; a copyable [bmmtools](https://github.com/GidonFrischkorn/bmmtools) call that
 plans a study from the current values; a link from each page to its validation card; a population
 mode that draws a set of people around the population curve; a comparison view for models that
@@ -56,9 +56,11 @@ Rscript R/make_fixtures.R tests/parity/fixtures   # regenerate fixtures from the
 ```
 
 There are no npm dependencies. Node 22 or newer and Quarto 1.5 or newer are enough; R with bmm is
-needed only to regenerate fixtures. CI runs the node tests and renders the site on pull requests and
-on pushes to `main`, deploys `main` to GitHub Pages, and once a week regenerates the fixtures from the
-CRAN bmm (and, non-blocking, from bmm's `develop` branch) so a changed density in bmm shows up here.
+needed only to regenerate fixtures. CI runs the node tests, renders the site and checks its
+accessibility on pull requests and on pushes to `main`, and deploys `main` to GitHub Pages. Once a
+week, and on changes to the ports, the parity tests or the fixture script, a second workflow regenerates the fixtures
+from the CRAN bmm (and, non-blocking, from bmm's `develop` branch) so a changed density in bmm shows up
+here.
 
 To add a page or report a problem, see [`CONTRIBUTING.md`](CONTRIBUTING.md): how a page is built, the
 checks a pull request passes, and the issue templates.

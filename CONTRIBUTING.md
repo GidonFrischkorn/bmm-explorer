@@ -17,12 +17,14 @@ own or is covered through the test of the density that calls it. The exceptions 
 pages use, such as `mptNodes` and `criterionToBias`. The explorer must never become a second
 definition of a model. The values come from `R/make_fixtures.R`, which calls the installed bmm and
 writes `tests/parity/fixtures/*.json`; a value in those files is a fixture. The tests in `tests/parity/`
-(the parity tests) compare the copies with the fixtures: 1e-10 absolute on the log scale, 1e-9 where the
-copy integrates on other points than bmm, as the copy of `sdm` sums its normaliser over 1024 points where
-bmm calls `integrate()`. A copy that sums over bmm's own quadrature nodes, as the m-AFC density and the
-gaussian rule of `m3` do, stays at 1e-10. Each test states its tolerance; start at 1e-10 and loosen it
-only where the copy integrates on other points than bmm, with the reason written in the test. A GitHub workflow, the oracle, regenerates the
-fixtures from bmm every week (see "When bmm changes or a check finds a drift").
+(the parity tests) compare the copies with the fixtures. A density is held to 1e-10 absolute on the log
+scale, 1e-9 where the copy integrates on other points than bmm, as the copy of `sdm` sums its normaliser
+over 1024 points where bmm calls `integrate()`. A copy that sums over bmm's own quadrature nodes, as the
+m-AFC density and the gaussian rule of `m3` do, stays at 1e-10. Each test states its tolerance; start at
+1e-10 and loosen it only where the copy integrates on other points than bmm, with the reason written in
+the test. The samplers (step 5) are not densities: the expected statistics of a simulated sample are sums
+on the page's grid and stay within 2e-8 of `integrate()` over bmm's density, as the sampler tests state
+and explain. A GitHub workflow, the oracle, regenerates the fixtures from bmm every week (see "When bmm changes or a check finds a drift").
 
 Three conventions follow from it. Names and defaults are bmm's, as its reference pages
 (<https://venpopov.com/bmm/reference/>) list them. A density takes the arguments of its `d*()` function
@@ -35,7 +37,8 @@ npm packages, and no scripts from a CDN except what Quarto loads itself.
 ## The page template
 
 A page opens with a dashboard (`<div class="ex-dash">`) that fits one laptop screen, 1280 x 800, without
-scrolling. Below 1000 px of width the panels stack. It has five panels (the dashboard) and, below it, five
+scrolling. At 1100 px of width or less the panels rearrange into two columns, at 640 px or less into
+one. It has five panels (the dashboard) and, below it, five
 sections of text (listed after this); the two lists have similar names and are separate things. The panels:
 
 1. **The task**: an SVG of one trial, redrawn with the task settings.
@@ -58,16 +61,17 @@ reference page gives; for `sdt_ranking` that is one count column per rank, named
 argument:
 `default_prior(bmf(d ~ 1), data = data.frame(rank1 = 40, rank2 = 30, rank3 = 20, rank4 = 10), model = sdt_ranking(response = paste0("rank", 1:4), m = 4))`.
 That call prints a table: read the prior in the row with coef `Intercept` and nlpar `d` (here
-`normal(1, 1)`). Every parameter of the model gets a slider; the model's reference page names each
-parameter's link. Where bmm defines a parameter on the log scale, through a log link (`sdratio` of
+`normal(1, 1)`). Every parameter that changes the shape of the prediction gets a slider; the model's
+reference page names each parameter's link. Where bmm defines a parameter on the log scale, through a log link (`sdratio` of
 `sdt_yn`) or as a log parameter with an identity link (`sdratio` of `sdt_ranking`, a "Log SD ratio"), the
 slider is on the log scale and the number field in natural units. A page may slide the `d*()` argument on its natural scale instead, as the `mixture2p` page slides
 `p_mem` from 0 to 1 rather than `thetat`. A parameter that bmm fixes unless the formula names it gets a
 slider too if it changes the shape of the prediction, starting at the fixed value: `sdratio` of `sdt_yn`
 and of `sdt_ranking` with normal noise (0 on the log scale, a ratio of 1), and `b` of `imm`, which bmm 1.4
-always fixes at 1, so it has no prior and its slider runs from 0 to 5. The location `mu1` of
-`mixture2p` only shifts the density, so that page holds it at 0. Either way the page names the value
-bmm fixes the parameter at. The prior means are the starting values and the dashed reference. If a page uses another range or scale, its Explore section says so and says
+always fixes at 1, so it has no prior and its slider runs from 0 to 5. A parameter that only shifts the
+prediction gets no slider and stays at its fixed value: the location `mu1` of `mixture2p` moves the
+density along the circle without changing its shape, so that page holds it at 0. A page that slides a
+parameter bmm fixes names the value bmm fixes it at. The prior means are the starting values and the dashed reference. If a page uses another range or scale, its Explore section says so and says
 why (the `sdm` page does).
 
 **The design axis.** Every page answers one question: which task settings enter the likelihood? Candidate
@@ -109,9 +113,9 @@ The checks in the next section come after step 8.
    densities in your file. Print `d<model>()` and `r<model>()` in R (`bmm::dsdt_ranking`) to see which
    internal helpers they call; the port follows those, and the fixture script reaches them with `bmm:::`.
    `dsdt_ranking()` and `rsdt_ranking()` both take their probabilities from `.ranking_all_probs_r`. Under
-   normal noise its helper `.ranking_prob_r` integrates by Gauss-Hermite quadrature where `exp(sdratio)`
-   is at most 1 and by Gauss-Legendre quadrature on [-6, 6] above, with node counts that
-   `.ranking_gh_n(m, free_sdratio = TRUE)` and `.ranking_gl_rule(m)` set from each row's `m`; the port
+   normal noise its helper `.ranking_prob_r` integrates by Gauss-Hermite quadrature where the SD ratio,
+   `dsdt_ranking()`'s `sdratio`, is at most 1 (the helper takes its log) and by Gauss-Legendre quadrature
+   on [-6, 6] above, with node counts that `.ranking_gh_n(m, free_sdratio = TRUE)` and `.ranking_gl_rule(m)` set from each row's `m`; the port
    switches rules at the same point and takes the same nodes. Do not copy them from the Stan code:
    `.ranking_fill_quadrature` picks its rules for the data's largest `m` and for whether `sdratio` is
    estimated, so with `sdratio` fixed at `m` = 4 Stan sums over 32 Gauss-Hermite nodes and the R density
@@ -123,13 +127,13 @@ The checks in the next section come after step 8.
    the test pass them in. `js/pages/sdt_mafc.js` shows how: a top-level `await fetch()` of that file
    relative to `import.meta.url`, and if the fetch fails the choices that need the nodes are switched off.
 2. **Write the fixture cells.** In `R/make_fixtures.R` add a section that calls bmm's `d<model>()` on a
-   small literal grid (the existing ones hold from 70 to about 2,000 values per density), covering the
-   slider ranges the page offers and the corners where a port is weakest (`kappa` near 0 and above 100,
+   small literal grid (the existing sections write from tens to a few thousand values per function),
+   covering the slider ranges the page offers and the corners where a port is weakest (`kappa` near 0 and above 100,
    probabilities near 0 and 1, counts of 0). Copy the nearest section of the script (the `dsdt_mafc` cells,
-   for example) and keep its field names: a cell is one call to bmm, often vectorised over a grid of rows,
-   holding `fn`, the arguments in `args` and bmm's results (`logd`, and in the `sdt` section `log_pc`,
-   `logp` and others); `write_fx()` writes the file. If the port needs a quadrature rule, add a cell for it
-   to `node_cells`, as the `m3` section does for `.m3_gauss_rule` and the `sdt` section for `.mafc_gh` and
+   for example) and keep its field names: a cell is one record, with `fn` naming the function or case,
+   `args` holding the inputs (often a grid of rows) and one field per result bmm returned (`logd`; the `sdt`
+   section makes several calls per cell, as `log_p_old`, `log_pc` or `logp`); `write_fx()` writes the
+   file. If the port needs a quadrature rule, add a cell for it to `node_cells`, as the `m3` section does for `.m3_gauss_rule` and the `sdt` section for `.mafc_gh` and
    `.mafc_gl`, before `write_fx("nodes", node_cells)` writes them all. The pages find a rule by its `fn`;
    where bmm's rule depends on a task setting, as the ranking rules depend on `m`, write one cell per rule
    and tell them apart by `args`. Cells for an existing fixture file go
@@ -138,8 +142,8 @@ The checks in the next section come after step 8.
    would write `sdt.json` again. Guard a function that older bmm versions lack with
    `has_since("d<model>", "<version>")`, defined at the top of the script. The version matters only when
    the function is missing: a bmm older than it skips the cells, and one at or above it stops the script.
-   So give a version from which bmm has the function; bmm's NEWS names the first. Check which bmm is
-   installed with `Rscript -e 'packageVersion("bmm")'`, then run
+   So give a version from which bmm has the function; bmm's changelog
+   (<https://venpopov.com/bmm/news/index.html>) names the first. Check which bmm is installed with `Rscript -e 'packageVersion("bmm")'`, then run
    `Rscript R/make_fixtures.R tests/parity/fixtures`. For a model that CRAN does not have yet, read
    "Models that are not on CRAN yet" first; `sdt_ranking` is on CRAN from bmm 1.4.1 and needs none of it.
 3. **Write the parity test.** Add to `tests/parity/<family>.test.mjs` (create it if the family is new). It loads the fixture file, runs your
@@ -168,7 +172,8 @@ The checks in the next section come after step 8.
    reader drag the lines of the first two on a touch screen, and the font sizes of `#sdtmafc-latent` and `#sdtmafc-tiles`. Search the file
    for the prefix of the page you copied and copy each rule under your prefix. Behaviour lives in `js/pages/<model>.js`, loaded as a
    module at the end of the page. The script uses `js/lib/`: `widget.js` for coupled sliders
-   (`bindParams`; scales `LINEAR`, `LOG`, `LOGIT`), `plot.js` for line and bar plots, `circular-plot.js` for
+   (`bindParams`, then each pair's `setBounds({ min, max, step, scale })` with scale `LINEAR`, `LOG` or
+   `LOGIT`, as `js/pages/sdt_yn.js` does), `plot.js` for line and bar plots, `circular-plot.js` for
    densities over a circular error, `sdt-plot.js` for evidence densities and ROC curves, `axis.js` for axes
    that hold their limit and ease to a new one, `info.js` for the (i) notes (call `initInfo()` once at the
    end). At the start of each redraw take `const t0 = performance.now()`, and at its end set
@@ -184,18 +189,25 @@ The checks in the next section come after step 8.
    scores) and `shareBelow` (a share of correct or yes responses). `js/lib/simulate-rt.js` serves the
    response-time pages. All draw from fixed uniforms
    (`js/lib/random.js`, seeded), so the sample stays put while a slider moves. The sampler needs two
-   kinds of fixture, added to the `simulate*` section of `R/make_fixtures.R` for the response:
-   `simulate_counts` for the categorical and SDT pages (it writes `simulate_counts.json`), `simulate` for
-   the circular pages, `simulate_rt` for the response-time pages. A cell's seed is 437 plus its position
-   in the section, so add new cells at the end of the list: a cell inserted earlier shifts the seeds, and
-   with them the samples, of every cell after it. The expected
-   values come from bmm in one of three ways. On the categorical and SDT pages they are the probabilities
-   bmm's `r*()` samples from, computed by the internal helper it calls (`.compute_m3_probability_vector`,
-   `.mpt_probability_vector`, `.sdt_category_probs`; for `rsdt_ranking()`, `.ranking_all_probs_r`). On the circular pages they come from
-   `integrate()` over bmm's `d*()`, and on the DDM and CS-Wald pages from `integrate()` over `dddm()`. On
-   the `ezdm` page they are bmm's EZ moments. A sample of 1e5 trials comes from bmm's `r*()`
-   function for the model (on the `ezdm` page, 1e5 cells of summary statistics from `rezdm()`). The tests, in
-   `tests/parity/simulate*.test.mjs`, draw one seeded sample of the same size from your sampler and check
+   kinds of fixture, both from bmm: the expected values of what the page displays, and a sample of 1e5
+   trials from bmm's `r*()` function for the model (on the `ezdm` page, 1e5 cells of summary statistics
+   from `rezdm()`). Each response type has one section of `R/make_fixtures.R` and one test,
+   `tests/parity/<section>.test.mjs`: `simulate_counts` for the categorical and SDT pages, `simulate` for
+   the circular pages, `simulate_rt` for the response-time pages. On the
+   categorical and SDT pages the expected values are the probabilities bmm's `r*()` samples from,
+   computed by the internal helpers it calls: `.compute_m3_probability_vector` for `rm3()`,
+   `.mpt_probability_vector` for `rmpt()`, `.sdt_resolve_criterion`, `.sdt_eta` and `.sdt_log_p_old` for
+   `rsdt_yn()`, `.mafc_logit_pc_r` for `rsdt_mafc()`, `.sdt_category_probs` for `rsdt_rating()`,
+   `.ranking_all_probs_r` for `rsdt_ranking()`. On the circular pages they come from `integrate()` over
+   bmm's `d*()`, on the DDM and CS-Wald pages from `integrate()` over `dddm()`, and on the `ezdm` page
+   they are bmm's EZ moments. A cell's seed is 437 plus its position in the section, so add new cells at
+   the end of the section, inside its `has_since()` guard if it has one and before its `write_fx()` call
+   (in `simulate_counts`, inside `if (has_since("rsdt_yn", "1.4.1")) { ... }`, before
+   `write_fx("simulate_counts", cells)`): a cell inserted earlier shifts the seeds, and with them the
+   samples, of every cell after it. Each test picks the page's sampler by the cell's `fn`, so add yours:
+   a `case` in the `switch` of `explorer()` in `simulate_counts.test.mjs` (a cell without one fails with
+   "no explorer sampler"), an entry in the map `D` in `simulate.test.mjs`, a branch on `cell.fn` in
+   `simulate_rt.test.mjs`. The test draws one seeded sample of the same size from your sampler and checks
    each share or statistic the page displays. On the circular and response-time pages both samples, the
    page's and bmm's, are held to the expected values within 5 standard errors (`SAMPLE_LIMIT` in
    `tests/parity/helpers.mjs`). On the categorical and SDT pages bmm's sample is held to the probabilities
@@ -227,17 +239,19 @@ The checks in the next section come after step 8.
    ```
 8. **Register the page.** Search for `sdt_mafc` in the first four files below and add the new page beside
    it: the model map and the list of models by family in `index.qmd`, the sidebar in `_quarto.yml`, the page
-   list in the "Verify the render" step of `.github/workflows/ci.yml`, and the status table in `README.md`.
+   list in the "Verify the render" step of `.github/workflows/ci.yml`, and the status table in `README.md`,
+   whose count of live pages above it and "Next:" list below it change too.
    Then add it to the axis table under "Which models have a task-settings axis" in `dev/ROADMAP.md`: a
    new row, or your model in the row of its design axis if one exists (`sdt_ranking` is already in
-   "SDT mAFC, ranking").
+   "SDT mAFC, ranking"). If the page completes a milestone there (`sdt_ranking` is E11a), add it to the
+   "Shipped by" line below the milestone table.
 
 ## Checks before a pull request
 
 Run these and tick them in the pull request, whose template (`.github/PULL_REQUEST_TEMPLATE.md`) lists
 them.
 
-1. **Parity tests.** `node --test` runs every test in the repository in under a minute and must pass.
+1. **Parity tests.** `node --test` runs every test in the repository in about a minute and must pass.
 2. **Fresh fixtures agree.** Regenerate from the CRAN release of bmm into a scratch directory, compare
    with the committed files, and run the tests against the fresh ones (a model that CRAN does not have
    yet follows the section on those models instead):
@@ -298,8 +312,8 @@ them.
    `bmm()` call, replace `my_data` with a few made-up rows in the columns the model's reference page lists, and add `empty = TRUE`: it then builds the model
    without sampling and must not stop with an error.
 
-A pull request that touches `R/`, `tests/parity/` or `js/models/` also runs the oracle workflow on
-GitHub. A failed CRAN job turns the run red, and a pull request with a red CRAN job is not merged.
+A pull request that touches `R/`, `tests/parity/`, `js/models/` or `.github/workflows/oracle.yml` also
+runs the oracle workflow on GitHub. A failed CRAN job turns the run red, and a pull request with a red CRAN job is not merged.
 
 ## The reader pass
 
@@ -317,7 +331,9 @@ stops.
 
 - English, with bmm's terminology. Plain wording; no filler, no claim larger than the page shows.
 - A number in prose comes from a fixture, a table or a figure of the page. Cite only papers that bmm
-  cites in its references.
+  cites: in its articles, whose sources are in
+  [`vignettes/articles/REFERENCES.bib`](https://github.com/popov-lab/bmm/blob/master/vignettes/articles/REFERENCES.bib),
+  or in the References section of a model's reference page.
 - Information never rests on colour alone. Pair colour with a dash pattern, a label, a marker or a
   position, so the page reads in greyscale and for colour-blind readers.
 - Colours are the Okabe-Ito palette, as the `--ex-*` custom properties at the top of `css/explorer.css`.
@@ -337,8 +353,8 @@ the diff. A diff in a file you did not touch means bmm changed; find out why bef
 
 ## Models that are not on CRAN yet
 
-A model gets a deployed page once it is on CRAN: bmm's NEWS lists each model under the release that
-added it, and bmm's CRAN page gives the released version. A port can start earlier, against fixtures written
+A model gets a deployed page once it is on CRAN: bmm's NEWS (<https://venpopov.com/bmm/news/index.html>)
+lists each model under the release that added it, and bmm's CRAN page gives the released version. A port can start earlier, against fixtures written
 with bmm's `develop` branch installed, on a branch that is not
 deployed. It merges when CRAN has the model and the fixtures have been regenerated from the CRAN
 release. Say in the pull request which bmm version the fixtures come from. The tracking issue for the
@@ -347,9 +363,18 @@ models of bmm 1.5.0 and 1.6.0 is [#18](https://github.com/GidonFrischkorn/bmm-ex
 ## When bmm changes or a check finds a drift
 
 The oracle workflow regenerates the fixtures from CRAN bmm and from bmm's `develop` branch every Monday
-at 06:00 UTC, and on pushes to `main` and pull requests that touch `R/`, `tests/parity/` or `js/models/`. A failed
+at 06:00 UTC, when started by hand from the Actions tab, and on pushes to `main` and pull requests that
+touch `R/`, `tests/parity/`, `js/models/` or `.github/workflows/oracle.yml`. A failed
 CRAN job turns the run red; a failed `develop` job does not. A deployment does not wait for the oracle, so a red CRAN run
 means the fix has to land before the next deployment.
+
+A warning in the `develop` fixture run that announces a deprecation, by bmm or a dependency, fails the
+`develop` job. On a scheduled or manual run it also opens the issue "Oracle (develop): a warning in the
+fixture run announces a deprecation", or comments on it while it is open, with the warnings and a link
+to the run. Each warning names a form that a later release removes or turns into an error. Where it is
+a call in the fixture script, move the script, and any page that prints the same call, to the new form
+once CRAN bmm accepts it. Close the issue when the `develop` job passes again; a later deprecation then
+opens a new one.
 
 If the oracle fails, open an issue titled `Oracle: <function> differs from bmm <version>`, with the link
 to the run, the fixture file, the cells that differ and the size of the difference. Say whether the
