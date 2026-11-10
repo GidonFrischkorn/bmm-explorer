@@ -34,7 +34,7 @@ after the first names a model above it and says what it adds to that model or do
     number of candidates?
   - [`mpt`](models/mpt.qmd): an alternative to `m3` for simple-span recall, with discrete states instead
     of activations. Is the cued item in memory, is its position retrieved, or is the response a guess?
-- **A yes/no answer, a choice among m alternatives, or a confidence rating**, such as old/new
+- **A yes/no answer, a choice among m alternatives, a confidence rating or a ranking**, such as old/new
   recognition
   - [`sdt_yn`](models/sdt_yn.qmd): how far apart are the evidence distributions of noise and signal
     trials, and where does the observer put the criterion, the point above which the answer is yes?
@@ -43,6 +43,8 @@ after the first names a model above it and says what it adds to that model or do
   - [`sdt_rating`](models/sdt_rating.qmd): `sdt_yn` with several criteria at once: ratings on `K`
     levels. Where do `K` − 1 thresholds cut the evidence axis, and which points of the ROC (receiver
     operating characteristic) do they give?
+  - [`sdt_ranking`](models/sdt_ranking.qmd): all `m` items put in order instead of one picked. Which
+    rank does the target get, and what do the ranks after the first say about the evidence distribution?
 - **A response time and one of two responses**, such as a lexical decision
   - [`ezdm`](models/ezdm.qmd): what probability of each response and what mean and variance of the
     response times follow from the drift, the boundary, the non-decision time and, in `4par`, the
@@ -89,6 +91,9 @@ The same models by family, with what each page shows.
   distributions apart.
 - [Confidence ratings (`sdt_rating`)](models/sdt_rating.qmd): `K` − 1 thresholds on one evidence axis, the
   category proportions, and the cumulative rates as points on the ROC.
+- [Ranking (`sdt_ranking`)](models/sdt_ranking.qmd): the rank the target receives among `m` items, under
+  `gumbel_min` or `normal` evidence. The number of items is part of the model, and the ranks after the first
+  are what tell the two distributions apart where accuracy does not.
 
 ### Response times
 

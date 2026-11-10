@@ -12,7 +12,7 @@ Site: <https://www.gfrischkorn.org/bmm-explorer/> · Issue that started it: popo
 
 ## Status
 
-Twelve model pages are live. A page for a model is deployed once the model is on CRAN.
+Thirteen model pages are live. A page for a model is deployed once the model is on CRAN.
 
 | Model | Page | Task setting in the likelihood |
 |---|---|---|
@@ -20,14 +20,14 @@ Twelve model pages are live. A page for a model is deployed once the model is on
 | `mpt` (span-task tree) | [models/mpt](models/mpt.qmd) | candidate counts through the guessing rates |
 | `imm` | [models/imm](models/imm.qmd) | non-target positions and distances |
 | `mixture2p`, `mixture3p`, `sdm` | [mixture2p](models/mixture2p.qmd), [mixture3p](models/mixture3p.qmd), [sdm](models/sdm.qmd) | none for `mixture2p` and `sdm`; for `mixture3p` the non-targets' colours and their number (set size) |
-| `sdt_yn`, `sdt_mafc`, `sdt_rating` | [sdt_yn](models/sdt_yn.qmd), [sdt_mafc](models/sdt_mafc.qmd), [sdt_rating](models/sdt_rating.qmd) | none for `sdt_yn`; `m` for `sdt_mafc`; the number of thresholds for `sdt_rating` |
+| `sdt_yn`, `sdt_mafc`, `sdt_rating`, `sdt_ranking` | [sdt_yn](models/sdt_yn.qmd), [sdt_mafc](models/sdt_mafc.qmd), [sdt_rating](models/sdt_rating.qmd), [sdt_ranking](models/sdt_ranking.qmd) | none for `sdt_yn`; `m` for `sdt_mafc` and `sdt_ranking`; the number of thresholds for `sdt_rating` |
 | `ezdm`, `cswald`, `ddm` | [ezdm](models/ezdm.qmd), [cswald](models/cswald.qmd), [ddm](models/ddm.qmd) | trials per cell for `ezdm`; none for `cswald` and `ddm` |
 
 Next: a contributor guide; the parameter lists and slider ranges read from bmm's model specification
 instead of typed by hand; a copyable [bmmtools](https://github.com/GidonFrischkorn/bmmtools) call that
 plans a study from the current values; a link from each page to its validation card; a population
 mode that draws a set of people around the population curve; a comparison view for models that
-mimic each other; more signal detection models (`sdt_ranking`, `sdt_cdp`), the rating versions, a
+mimic each other; another signal detection model (`sdt_cdp`), the rating versions, a
 choice between commonly specified trees on the MPT page, and the models new in bmm 1.5.0 and 1.6.0.
 The order, the waves and the rule for new models are in [`dev/ROADMAP.md`](dev/ROADMAP.md).
 

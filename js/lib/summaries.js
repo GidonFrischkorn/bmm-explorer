@@ -176,6 +176,23 @@ export function sdtMafcSummaries({ p, dist, lg, dRange, maxM }) {
   };
 }
 
+// q: the values drawn ({ d, m, sdratio }); cur: the rank probabilities at q; across: { first, last }, P(rank 1) and
+// P(last rank) at m = 2 to maxM as drawn; matched: { dist, d, last } for the other distribution matched on rank 1 at
+// q.m, or null.
+export function sdtRankingSummaries({ q, dist, cur, across, matched, maxM }) {
+  const sd = dist === "normal" ? `, sdratio ${fmt(q.sdratio)}` : "";
+  return {
+    "sdtrank-tiles": `One trial with ${q.m} items, one of them the target, and one order the observer could give them, with the target second.`,
+    "sdtrank-latent": `Evidence densities under ${dist} noise at d ${fmt(q.d)}${sd}: the target and one lure.`,
+    "sdtrank-bars": `Probability of each rank for the target with ${q.m} items under ${dist} noise at d ${fmt(q.d)}${sd}, chance ${fmt(1 / q.m)}: ` +
+      `${list(cur.map((p, i) => `rank ${i + 1} ${share(p)}`))}.`,
+    "sdtrank-across": `P(rank 1) and P(last rank) across m from 2 to ${maxM} at d ${fmt(q.d)} under ${dist} noise: rank 1 from ` +
+      `${share(across.first[0])} at m = 2 to ${share(across.first.at(-1))} at m = ${maxM}, the last rank from ${share(across.last[0])} to ` +
+      `${share(across.last.at(-1))}.` + (matched ? ` ${matched.dist} at d ${fmt(matched.d)}, matched on rank 1 at m = ${q.m}, gives the ` +
+      `last rank ${share(matched.last)} there, against ${share(cur.at(-1))}.` : "")
+  };
+}
+
 // q: the parameters drawn; s: { pC, rows: [{ name, mean, vrt }] }; bands: ezdmBands(s, q.n_trials), as drawn; cells:
 // { n, rows: [cells with that row's statistics] } of the sample shown, or null. The bands are ±2 SD, not a bound, so
 // the text says so and does not promise a coverage: in 4par a row's mean rt mixes cells of different counts.

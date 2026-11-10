@@ -1319,6 +1319,268 @@
     }
    ]
   },
+  "models/sdt_ranking": {
+   "states": [
+    {
+     "name": "simulate on",
+     "steps": [
+      {
+       "click": "#sdtrank-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrank-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrank-code",
+       "text",
+       "rsdt_ranking(n = 1"
+      ]
+     ]
+    },
+    {
+     "name": "note open: m",
+     "steps": [
+      {
+       "note": "sdtrank-m-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-m-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: dist",
+     "steps": [
+      {
+       "note": "sdtrank-dist-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-dist-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "note open: d",
+     "steps": [
+      {
+       "note": "sdtrank-d-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-d-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "m 2",
+     "//": "Pinned summary: gumbel_min, d 1, m 2: P(rank 1) = .ranking_all_probs_r(1, 2, 'gumbel_min') = 0.7311.",
+     "steps": [
+      {
+       "range": [
+        "#sdtrank-m",
+        "2"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-m",
+       "value",
+       "2"
+      ],
+      [
+       "#sdtrank-code",
+       "text",
+       "m = 2"
+      ],
+      [
+       "#sdtrank-bars > desc",
+       "text",
+       "rank 1 0.73 and rank 2 0.27"
+      ]
+     ]
+    },
+    {
+     "name": "normal",
+     "steps": [
+      {
+       "select": [
+        "#sdtrank-dist",
+        "normal"
+       ]
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-dist",
+       "value",
+       "normal"
+      ],
+      [
+       "#sdtrank-s",
+       "visible",
+       true
+      ],
+      [
+       "#sdtrank-code",
+       "text",
+       "dist = \"normal\""
+      ]
+     ]
+    },
+    {
+     "name": "normal, note open: sdratio",
+     "steps": [
+      {
+       "select": [
+        "#sdtrank-dist",
+        "normal"
+       ]
+      },
+      {
+       "note": "sdtrank-s-info"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-s-info",
+       "hidden",
+       false
+      ]
+     ]
+    },
+    {
+     "name": "normal, sdratio 2, simulate on",
+     "//": "Pinned summary: normal, d 1, m 4, sdratio 2: P(rank) = .ranking_all_probs_r(1, 4, 'normal', log(2)) = 0.6352, 0.1381, 0.0990, 0.1277.",
+     "steps": [
+      {
+       "select": [
+        "#sdtrank-dist",
+        "normal"
+       ]
+      },
+      {
+       "number": [
+        "#sdtrank-s-num",
+        "2"
+       ]
+      },
+      {
+       "click": "#sdtrank-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-sim",
+       "checked",
+       true
+      ],
+      [
+       "#sdtrank-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrank-code",
+       "text",
+       "sdratio ~ 1"
+      ],
+      [
+       "#sdtrank-bars > desc",
+       "text",
+       "rank 1 0.64, rank 2 0.14, rank 3 0.10 and rank 4 0.13"
+      ]
+     ]
+    },
+    {
+     "name": "m 8, simulate on",
+     "steps": [
+      {
+       "range": [
+        "#sdtrank-m",
+        "8"
+       ]
+      },
+      {
+       "click": "#sdtrank-sim"
+      }
+     ],
+     "expect": [
+      [
+       "#sdtrank-m",
+       "value",
+       "8"
+      ],
+      [
+       "#sdtrank-sim-text",
+       "hidden",
+       false
+      ],
+      [
+       "#sdtrank-tiles > desc",
+       "text",
+       "8 items"
+      ]
+     ]
+    },
+    {
+     "name": "out of range: m 9",
+     "steps": [
+      {
+       "number": [
+        "#sdtrank-m-num",
+        "9"
+       ]
+      }
+     ],
+     "expect": [
+      "#sdtrank-m-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    },
+    {
+     "name": "out of range: sdratio 0",
+     "steps": [
+      {
+       "select": [
+        "#sdtrank-dist",
+        "normal"
+       ]
+      },
+      {
+       "number": [
+        "#sdtrank-s-num",
+        "0"
+       ]
+      }
+     ],
+     "expect": [
+      "#sdtrank-s-num.ex-invalid",
+      ".ex-dash.ex-stale"
+     ]
+    }
+   ]
+  },
   "models/ezdm": {
    "states": [
     {

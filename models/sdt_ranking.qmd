@@ -1,0 +1,156 @@
+---
+title: "Signal detection theory, ranking"
+subtitle: "Order m items by how likely each holds the signal: the rank the target receives as a function of sensitivity and m"
+model: sdt_ranking
+page-layout: full
+toc: false
+---
+
+```{=html}
+<div class="ex-dash" id="sdtrank-widget">
+  <section class="ex-panel ex-p-task" aria-label="The task">
+    <div class="ex-panel-title">The task: put the m items in order, most likely target first</div>
+    <div class="sdt-task-pair">
+      <svg id="sdtrank-tiles" role="img" aria-label="One trial: m items, one of them the target, and the order the observer gives them"></svg>
+      <svg id="sdtrank-latent" role="img" aria-label="Evidence densities of the target and of one lure"></svg>
+    </div>
+    <div class="ex-legend">
+      The observer sorts the items by a noisy evidence value: the <span class="orange">target</span> draws it from the
+      orange density, each of the m − 1 <span class="grey">lures</span> from the dashed one. Rank 1: the target ahead of every lure.
+    </div>
+  </section>
+
+  <div class="ex-p-controls">
+  <section class="ex-panel" aria-label="Task settings">
+    <div class="ex-panel-title">Task settings</div>
+    <div class="ex-controls ex-inline">
+      <div class="ex-label"><label for="sdtrank-m">m</label><button type="button" class="ex-info" aria-controls="sdtrank-m-info">i</button></div>
+      <div class="ex-info-pop" id="sdtrank-m-info" hidden>Items ranked on one trial: the target and <code>m</code> − 1 lures. The datum is the rank the target gets, from 1 to <code>m</code>, and chance is 1 / <code>m</code> for every rank. More lures give the target more items to fall behind: at the start (<code>gumbel_min</code>, <code>d</code> = 1), going from <code>m</code> = 4 to <code>m</code> = 8 lowers P(rank 1) from 0.55 to 0.42.</div>
+      <input type="range" id="sdtrank-m" min="2" max="8" step="1">
+      <input type="number" id="sdtrank-m-num" min="2" max="8" step="1" aria-label="m">
+      <div class="ex-hint" id="sdtrank-m-hint"></div>
+    </div>
+  </section>
+
+  <section class="ex-panel" aria-label="Parameters">
+    <div class="ex-panel-title ex-title-row">Parameters
+      <span class="ex-label"><label class="ex-select">dist
+        <select id="sdtrank-dist">
+          <option value="gumbel_min">gumbel_min</option>
+          <option value="normal">normal</option>
+        </select>
+      </label><button type="button" class="ex-info" aria-controls="sdtrank-dist-info" aria-label="About dist">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="sdtrank-dist-info" hidden>Shape of the evidence distributions, the two that <code>sdt_ranking()</code> offers. <code>gumbel_min</code>, bmm's default, is an extreme-value distribution (that of the smallest of many random values): skewed, with a long lower tail, its location the peak rather than the mean; under it the rank probabilities have an exact formula. <code>normal</code> is computed by numerical quadrature (a sum over fixed points) and adds <code>sdratio</code> as a second parameter. In bmm: the <code>dist</code> argument. At the start both give P(rank 1) close to 0.55 (0.550 and 0.552), but the last rank 0.109 under <code>gumbel_min</code> and 0.068 under <code>normal</code>.</div>
+    <div class="ex-controls">
+      <div class="ex-label"><label for="sdtrank-d">d, sensitivity</label><button type="button" class="ex-info" aria-controls="sdtrank-d-info">i</button></div>
+      <div class="ex-info-pop" id="sdtrank-d-info" hidden>Sensitivity: how far the target's evidence distribution lies above the lures'. Rank 1 is the best outcome, the target ahead of every lure. At <code>d</code> = 0 the target is no different from a lure and every rank has probability 1 / <code>m</code>; below 0 it tends to be ranked last. At the start, <code>m</code> = 4 under <code>gumbel_min</code>, raising <code>d</code> from 1 to 2 raises P(rank 1) from 0.55 to 0.79.</div>
+      <input type="range" id="sdtrank-d">
+      <input type="number" id="sdtrank-d-num" aria-label="d">
+      <div class="ex-label sdtrank-normal-only"><label for="sdtrank-s">sdratio, target SD over lure SD</label><button type="button" class="ex-info" aria-controls="sdtrank-s-info">i</button></div>
+      <div class="ex-info-pop" id="sdtrank-s-info" hidden>Under <code>normal</code> only: the SD of the target's evidence over the SD of the lures'. A wider target distribution sends the target more often to the top and to the bottom of the order. At <code>m</code> = 4 and <code>d</code> = 1, <code>sdratio</code> = 2 instead of 1 raises P(rank 1) from 0.55 to 0.64 and P(rank 4) from 0.07 to 0.13, while the middle ranks lose. At <code>m</code> = 2 it changes nothing: P(rank 1) is Φ(<code>d</code>/√2) whatever the ratio. bmm estimates its log.</div>
+      <input type="range" id="sdtrank-s" class="sdtrank-normal-only">
+      <input type="number" id="sdtrank-s-num" class="sdtrank-normal-only" aria-label="sdratio">
+      <div class="ex-hint" id="sdtrank-range-hint"></div>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtrank-reset">Reset</button>
+  </section>
+  </div>
+
+  <section class="ex-panel ex-p-bars" aria-label="Predicted rank of the target">
+    <div class="ex-panel-title ex-title-row">Predicted: P(target at rank r)
+      <span class="ex-label ex-sim"><label><input type="checkbox" id="sdtrank-sim"> simulate</label>
+        <select id="sdtrank-sim-n" aria-label="Trials to simulate"><option>50</option><option>100</option><option selected>200</option><option>500</option><option>1000</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtrank-sim-new">New sample</button><button type="button" class="ex-info" aria-controls="sdtrank-sim-info" aria-label="About simulate">i</button></span>
+    </div>
+    <div class="ex-info-pop" id="sdtrank-sim-info" hidden>Draws N trials at this <code>m</code>, <code>d</code> and <code>dist</code> and marks the share of trials in which the target got each rank (black lines on the bars). Below the panel: each rank's expected share and, in brackets, the sample's. The sample keeps its random numbers while the sliders move, so it changes with the parameters; New sample draws other ones. In bmm: <code>rsdt_ranking()</code>, in the code under In bmm.</div>
+    <svg id="sdtrank-bars" role="img" aria-label="Predicted probability of each rank for the target at the current values, with the prediction at bmm's prior means"></svg>
+    <div class="ex-legend">Dashed outlines: bmm's prior means (d = 1, sdratio = 1). Dotted: chance, 1/m. Black lines,
+      with simulate on: the sample.</div>
+    <div class="ex-legend ex-sim-text" id="sdtrank-sim-text" hidden></div>
+  </section>
+
+  <section class="ex-panel ex-p-across" aria-label="Rank probabilities across m">
+    <div class="ex-panel-title">P(target at rank r) across m, d fixed</div>
+    <svg id="sdtrank-across" role="img" aria-label="Probability of each rank against the number of items, for the chosen distribution and for the other one matched on the first rank at the current m"></svg>
+    <div class="ex-legend" id="sdtrank-across-legend"></div>
+  </section>
+</div>
+```
+
+## What the model says
+
+In a ranking task the observer puts `m` items in order by their evidence, and the datum is the rank the target
+receives ([Meyer-Grant et al., 2026](https://doi.org/10.1037/rev0000615)). The target draws its evidence from a
+distribution located at `d`, each of the `m` − 1 lures from the same distribution located at 0. The target gets
+rank `r` when exactly `r` − 1 lures have more evidence than it, so rank 1 is the target ahead of every lure. There is
+no criterion. With $f_T$ the target's density and $F$ the lures' cumulative distribution function (the chance that
+one lure falls below $x$), the probability that `r` − 1 lures lie above the target's evidence $x$ and `m` − `r` below
+it, added up over every $x$, is
+
+$$
+P(\text{rank } r) = \binom{m - 1}{r - 1} \int f_T(x)\, F(x)^{m - r}\, \bigl(1 - F(x)\bigr)^{r - 1}\, dx ,
+$$
+
+where the binomial coefficient counts which of the lures are the ones above. Rank 1
+is the m-alternative forced-choice event, so with equal SDs P(rank 1) equals P(correct) of the
+[m-AFC model](sdt_mafc.qmd) with the same `d` and `dist`. `sdt_ranking()` offers two distributions. Under `gumbel_min`, bmm's default, the integral
+has a closed form. Under `normal`, bmm sums it over fixed points (numerical quadrature), and this page uses the
+same points, so its numbers are bmm's; `normal` adds `sdratio`, the target's SD over the lures'. Then `d` is
+$d_a$, the distance between the two locations over the root mean square of the two SDs, which keeps P(rank 1) at
+`m` = 2 equal to $\Phi(d/\sqrt{2})$, $\Phi$ the standard normal distribution function, for every `sdratio`. A row of data holds how often the target got each rank,
+which is multinomial with these probabilities.
+
+## The task
+
+One trial shows `m` items, one of them the target, for instance a studied word among `m` − 1 new ones, and the
+participant puts all `m` in order, from the most to the least likely target. bmm fits counts: each row of the data
+holds, in one column per rank, the number of trials in which the target received that rank. The number of items
+`m` is the task setting that enters the likelihood: it sets how many ranks there are and how many lures can push
+the target down. `sdt_ranking()` takes it as a number, or as the name of a data column when it varies between rows;
+a row with fewer items than count columns leaves the surplus columns at 0.
+
+## Explore
+
+In the task panel, the tiles show the `m` items of one trial (the orange one is the target, which the observer
+does not know) and below them one possible order, with the target placed second. Next to them are the evidence
+densities of the target (orange) and of one lure (dashed grey). The panel "Predicted" gives the probability of
+each rank for the target at the current values: with `d` above 0 the first ranks gain, and the last rank is the
+target falling behind every lure. Under `normal`, `sdratio` above 1 widens the target's distribution, so it lands
+more often at either end of the order.
+
+The `d` slider spans bmm's default prior for `d`, normal(1, 1) (mean 1, SD 1), from mean − 3 SD to mean + 3 SD (−2
+to 4), and starts at the prior mean, 1 (dashed outlines). The `sdratio` slider spans bmm's prior for its log,
+normal(0, 0.3), over the same ± 3 SD (a ratio from 0.41 to 2.46), on a log scale; the box shows the ratio. bmm
+holds it at 1 unless the formula names it. `m` runs from 2 to 8.
+
+## Across task settings
+
+`m` is the design variable of this model. With `d` fixed, the target is less often first as `m` grows, because more
+lures can beat it, and the probability spreads over more ranks. The panel "Across m" draws P(rank 1) and P(rank
+`m`), the last rank, at every `m`, with the ranks in between as grey dots and chance, 1/`m`, dotted. The other
+distribution is drawn dashed at its own `d`: the one that gives it the same P(rank 1) as the solid line at the
+current `m` (the circle), found by the page and named in the legend. P(rank 1)
+is all that an m-AFC task records, and at one `m` either distribution can match it. The other ranks are where they
+part: at the start, both at `d` = 1, `gumbel_min` and `normal` give the same first rank to two decimals (0.550
+and 0.552), but the last rank 0.109 and 0.068. This is why ranking data say more about the shape of the
+evidence distribution than forced-choice accuracy does
+([Meyer-Grant et al., 2026](https://doi.org/10.1037/rev0000615)), even at a single `m`.
+<span id="sdtrank-across-now"></span>
+
+## In bmm
+
+```{=html}
+<div class="ex-widget">
+  <pre class="ex-code" id="sdtrank-code"></pre>
+  <button type="button" class="btn btn-sm btn-outline-secondary" id="sdtrank-copy">Copy</button>
+</div>
+<script type="module" src="../js/pages/sdt_ranking.js"></script>
+```
+
+The code updates with the controls. `sdt_ranking()` names the count columns, the number of items and the evidence
+distribution, `dsdt_ranking()` returns the log likelihood of a row of rank counts, and `bmm()` estimates `d` (and,
+under `normal`, `sdratio` when the formula names it) from data; `my_data` stands for your own data, and fitting runs
+Stan through brms. See the [signal detection article](https://venpopov.com/bmm/articles/bmm_sdt.html) and the
+reference pages for [`sdt_ranking()`](https://venpopov.com/bmm/reference/sdt_ranking.html) and
+[`dsdt_ranking()`](https://venpopov.com/bmm/reference/sdt_ranking_dist.html).

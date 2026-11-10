@@ -4,7 +4,7 @@ import { mafcLogitPc, mafcPc, dsdtMafc, mafcMatchD, maxCompetitorPdf, DISTS } fr
 import { bindParams, readParams, setParams, fmt } from "../lib/widget.js";
 import { linePlot, el, clear } from "../lib/plot.js";
 import { linspace } from "../lib/math.js";
-import { latentPlot, pointLabel, SIGNAL, DIST_COLOR, DIST_TEXT, DIST_DASH, DIST_NAMES } from "../lib/sdt-plot.js";
+import { latentPlot, pointLabel, distSwatch, SIGNAL, DIST_COLOR, DIST_DASH, DIST_NAMES } from "../lib/sdt-plot.js";
 import { initInfo } from "../lib/info.js";
 import { describePlot, initA11y } from "../lib/a11y.js";
 import { sdtMafcSummaries, pcText } from "../lib/summaries.js";
@@ -122,7 +122,7 @@ function drawAcross(p, cur) {
   others.forEach((o, i) => paths[i + 1].setAttribute("stroke-dasharray", DIST_DASH[o.n]));
   el("circle", { cx: sx(p.m), cy: sy(cur), r: 7, fill: "#fff", stroke: "#222", "stroke-width": 2.5 }, svg);
   // The name carries a sample of its line: colour, then dash pattern.
-  const name = n => `<span style="color:${DIST_TEXT[n]};font-weight:600"><svg width="30" height="8" viewBox="0 0 30 8" aria-hidden="true" style="width:30px;height:8px;display:inline-block;vertical-align:middle;margin-right:3px"><line x1="0" x2="30" y1="4" y2="4" stroke="${DIST_COLOR[n]}" stroke-width="3" ${n === dist() ? "" : `stroke-dasharray="${DIST_DASH[n]}"`}/></svg>${n}</span>`;
+  const name = n => distSwatch(n, n === dist() ? "" : DIST_DASH[n]);
   // The legend leaves the current d to the Parameters panel: with three matched values beside it, a long d wraps
   // it to a fourth line and the dashboard past one screen. A typed d far outside the slider can match d in the
   // hundreds or thousands, where decimals add width and nothing else.

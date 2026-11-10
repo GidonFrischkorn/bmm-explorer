@@ -62,6 +62,7 @@ website:
           - models/sdt_yn.qmd
           - models/sdt_mafc.qmd
           - models/sdt_rating.qmd
+          - models/sdt_ranking.qmd
       - section: "Response times"
         contents:
           - models/ezdm.qmd

@@ -14,6 +14,9 @@ export const DIST_COLOR = { normal: "#0072B2", logistic: "#CC79A7", gumbel_min: 
 export const DIST_TEXT = { normal: "#0072B2", logistic: "#9b4475", gumbel_min: "#007353", gumbel_max: "#222222" };
 export const DIST_DASH = { normal: "2 5", logistic: "10 5", gumbel_min: "10 4 2 4", gumbel_max: "18 6" };
 export const DIST_NAMES = ["normal", "logistic", "gumbel_min", "gumbel_max"];
+// A distribution's name for a legend, in its text colour, after a sample of its line: solid, or with the dash pattern
+// given (the m-AFC and ranking legends).
+export const distSwatch = (n, dash = "") => `<span style="color:${DIST_TEXT[n]};font-weight:600"><svg width="30" height="8" viewBox="0 0 30 8" aria-hidden="true" style="width:30px;height:8px;display:inline-block;vertical-align:middle;margin-right:3px"><line x1="0" x2="30" y1="4" y2="4" stroke="${DIST_COLOR[n]}" stroke-width="3" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>${n}</span>`;
 
 // spec: { W, H, xlim, xticks, xlab, ymax, curves: [{ f, color, dashed, width, shade: [from, to] }],
 //         lines: [{ x, label, color, drag, aria, value, min, max, text }], notes: [{ x, y, text, color, anchor }] }

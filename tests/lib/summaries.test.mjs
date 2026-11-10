@@ -77,6 +77,21 @@ test("mixture2p and SDM", () => {
     "Response-error density with c 7.39 and kappa 5.75: 0.40 of responses within 20 degrees of the target.");
 });
 
+test("ranking: every rank is read out; the matched distribution only when it exists", () => {
+  // gumbel_min, d = 1, m = 4: P(rank) = 0.550, 0.202, 0.138, 0.109 (dsdt_ranking() in bmm 1.4.1, sdt.json); normal at
+  // d 0.99 gives the same rank 1 and the last rank 0.068.
+  const q = { d: 1, m: 4, sdratio: 1 }, cur = [0.550, 0.202, 0.138, 0.109];
+  const across = { first: [0.731, 0.6, 0.55, 0.5, 0.47, 0.44, 0.42], last: [0.269, 0.15, 0.109, 0.08, 0.07, 0.06, 0.05] };
+  const s = S.sdtRankingSummaries({ q, dist: "gumbel_min", cur, across, matched: { dist: "normal", d: 0.9937, last: 0.068 }, maxM: 8 });
+  assert.equal(s["sdtrank-bars"], "Probability of each rank for the target with 4 items under gumbel_min noise at d 1.00, chance 0.25: rank 1 0.55, rank 2 0.20, rank 3 0.14 and rank 4 0.11.");
+  assert.equal(s["sdtrank-latent"], "Evidence densities under gumbel_min noise at d 1.00: the target and one lure.");
+  assert.equal(s["sdtrank-across"], "P(rank 1) and P(last rank) across m from 2 to 8 at d 1.00 under gumbel_min noise: rank 1 from 0.73 at m = 2 to 0.42 at m = 8, the last rank from 0.27 to 0.05. normal at d 0.99, matched on rank 1 at m = 4, gives the last rank 0.07 there, against 0.11.");
+  const n = S.sdtRankingSummaries({ q: { d: 1, m: 2, sdratio: 2 }, dist: "normal", cur: [0.76, 0.24], across, matched: null, maxM: 8 });
+  assert.equal(n["sdtrank-latent"], "Evidence densities under normal noise at d 1.00, sdratio 2.00: the target and one lure.");
+  assert.equal(n["sdtrank-bars"], "Probability of each rank for the target with 2 items under normal noise at d 1.00, sdratio 2.00, chance 0.50: rank 1 0.76 and rank 2 0.24.");
+  assert.doesNotMatch(n["sdtrank-across"], /matched/);
+});
+
 test("m-AFC: m = 2 has one distractor; far tails are a bound, not superscripts", () => {
   // Normal noise, m = 2: P(correct) = pnorm(d / sqrt(2)) = 0.7602 at d = 1.
   const lg = (d, m) => (m === 2 ? logit(0.7602) : m === 10 ? logit(0.3) : NaN);
