@@ -1,6 +1,6 @@
 ---
 name: Companion package change
-about: Announce a change to bmm's model contract (filed by bmm's maintainers)
+about: Announce a change to the model contract to a companion package (maintainers)
 title: "[companion-change]"
 labels: ''
 assignees: ''

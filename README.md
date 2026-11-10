@@ -51,7 +51,7 @@ node --test                             # parity tests against the committed fix
 Rscript R/make_fixtures.R tests/parity/fixtures   # regenerate fixtures from the installed bmm
 ```
 
-There are no npm dependencies. Node 20 or newer and Quarto 1.5 or newer are enough; R with bmm is
+There are no npm dependencies. Node 22 or newer and Quarto 1.5 or newer are enough; R with bmm is
 needed only to regenerate fixtures. CI runs the node tests and renders the site on pull requests and
 on pushes to `main`, deploys `main` to GitHub Pages, and once a week regenerates the fixtures from the
 CRAN bmm (and, non-blocking, from bmm's `develop` branch) so a changed density in bmm shows up here.

@@ -3,7 +3,7 @@
 // marks, and a tablet pass.
 //   node tests/a11y/run-axe.mjs [--site _site] [--page m3] [--out report.json]
 // Fails (exit 1) on a serious or critical violation, on a failed check, on a rendered page that states.json does
-// not list, on a state step that finds nothing to act on or a state whose `expect` does not hold, and on a script
+// not list, on a --page that matches none it lists, on a state step that finds nothing to act on or a state whose `expect` does not hold, and on a script
 // error. Moderate and minor violations and axe's "incomplete" results are printed, not failed on. axe.min.js comes
 // from fetch-axe.mjs, checked against its pin.
 import fs from "node:fs";
@@ -30,6 +30,10 @@ const rendered = htmlUnder("");
 const unlisted = rendered.filter(p => !(p in spec.pages));
 if (unlisted.length) { console.error(`::error::pages without an entry in tests/a11y/states.json: ${unlisted.join(", ")}`); process.exit(1); }
 
+// --page takes the exact name or its last part (m3 for models/m3). A misspelt one would select nothing and pass.
+const selected = name => !only || name === only || name.endsWith(`/${only}`);
+if (only && !Object.keys(spec.pages).some(selected)) { console.error(`::error::--page ${only} matches no page in tests/a11y/states.json`); process.exit(1); }
+
 // One step of a state, run in the page. Each throws when its target is missing or cannot take the value (a select
 // without that option, a range outside its limits), so a renamed id fails the run instead of silently checking the
 // default state.
@@ -54,7 +58,6 @@ let failed = 0, tabletStates = 0;
 // Dashboard pages, and those that were taken into a stale state and back: each dashboard page needs one.
 const dashboards = new Set(), recovered = new Set();
 const flag = (where, problems) => { for (const p of problems) { console.error(`::error::${where} ${p}`); failed++; } return problems.length; };
-const selected = name => !only || name === only || name.endsWith(`/${only}`);
 const states = entry => [{ name: "default", steps: [] }, ...(entry.states ?? [])];
 
 // Load a page and bring it into a state: its steps, then its expectations. Returns the inputs' values at load.
