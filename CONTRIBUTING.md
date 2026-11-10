@@ -22,9 +22,10 @@ scale, 1e-9 where the copy integrates on other points than bmm, as the copy of `
 over 1024 points where bmm calls `integrate()`. A copy that sums over bmm's own quadrature nodes, as the
 m-AFC density and the gaussian rule of `m3` do, stays at 1e-10. Each test states its tolerance; start at
 1e-10 and loosen it only where the copy integrates on other points than bmm, with the reason written in
-the test. The samplers (step 5) are not densities: the expected statistics of a simulated sample are sums
-on the page's grid and stay within 2e-8 of `integrate()` over bmm's density, as the sampler tests state
-and explain. A GitHub workflow, the oracle, regenerates the fixtures from bmm every week (see "When bmm changes or a check finds a drift").
+the test. The samplers (step 5) are not densities. On the circular, DDM and CS-Wald pages the expected
+statistics are sums on the page's grid and stay within 2e-8 of `integrate()` over bmm's density; on the
+categorical, SDT and `ezdm` pages they are held at 1e-10 to the probabilities and EZ moments bmm
+computes. Each sampler test states its tolerance. A GitHub workflow, the oracle, regenerates the fixtures from bmm every week (see "When bmm changes or a check finds a drift").
 
 Three conventions follow from it. Names and defaults are bmm's, as its reference pages
 (<https://venpopov.com/bmm/reference/>) list them. A density takes the arguments of its `d*()` function
@@ -68,7 +69,9 @@ slider is on the log scale and the number field in natural units. A page may sli
 `p_mem` from 0 to 1 rather than `thetat`. A parameter that bmm fixes unless the formula names it gets a
 slider too if it changes the shape of the prediction, starting at the fixed value: `sdratio` of `sdt_yn`
 and of `sdt_ranking` with normal noise (0 on the log scale, a ratio of 1), and `b` of `imm`, which bmm 1.4
-always fixes at 1, so it has no prior and its slider runs from 0 to 5. A parameter that only shifts the
+always fixes at 1, so it has no prior and its slider runs from 0 to 5. For such a parameter the recipe prints
+the fixed value (`constant(0)` for `sdratio` in the `sdt_ranking` call with `dist = "normal"`); name it in
+the formula, `bmf(d ~ 1, sdratio ~ 1)`, and it prints the prior instead (`normal(0, 0.3)`). A parameter that only shifts the
 prediction gets no slider and stays at its fixed value: the location `mu1` of `mixture2p` moves the
 density along the circle without changing its shape, so that page holds it at 0. A page that slides a
 parameter bmm fixes names the value bmm fixes it at. The prior means are the starting values and the dashed reference. If a page uses another range or scale, its Explore section says so and says
@@ -114,8 +117,8 @@ The checks in the next section come after step 8.
    internal helpers they call; the port follows those, and the fixture script reaches them with `bmm:::`.
    `dsdt_ranking()` and `rsdt_ranking()` both take their probabilities from `.ranking_all_probs_r`. Under
    normal noise its helper `.ranking_prob_r` integrates by Gauss-Hermite quadrature where the SD ratio,
-   `dsdt_ranking()`'s `sdratio`, is at most 1 (the helper takes its log) and by Gauss-Legendre quadrature
-   on [-6, 6] above, with node counts that `.ranking_gh_n(m, free_sdratio = TRUE)` and `.ranking_gl_rule(m)` set from each row's `m`; the port
+   `dsdt_ranking()`'s `sdratio`, is at most 1 and by Gauss-Legendre quadrature
+   on [-6, 6] above 1 (the helper takes the log of the ratio, so it switches at a log ratio of 0), with node counts that `.ranking_gh_n(m, free_sdratio = TRUE)` and `.ranking_gl_rule(m)` set from each row's `m`; the port
    switches rules at the same point and takes the same nodes. Do not copy them from the Stan code:
    `.ranking_fill_quadrature` picks its rules for the data's largest `m` and for whether `sdratio` is
    estimated, so with `sdratio` fixed at `m` = 4 Stan sums over 32 Gauss-Hermite nodes and the R density
@@ -133,8 +136,9 @@ The checks in the next section come after step 8.
    for example) and keep its field names: a cell is one record, with `fn` naming the function or case,
    `args` holding the inputs (often a grid of rows) and one field per result bmm returned (`logd`; the `sdt`
    section makes several calls per cell, as `log_p_old`, `log_pc` or `logp`); `write_fx()` writes the
-   file. If the port needs a quadrature rule, add a cell for it to `node_cells`, as the `m3` section does for `.m3_gauss_rule` and the `sdt` section for `.mafc_gh` and
-   `.mafc_gl`, before `write_fx("nodes", node_cells)` writes them all. The pages find a rule by its `fn`;
+   file. If the port needs a quadrature rule, add a cell for it to `node_cells`, as the `m3` section does with the cell `.m3_gauss_rule` and the `sdt` section with the cells
+   `.mafc_gh` and `.mafc_gl` (named for the rules; bmm stores their nodes in `.mafc_gh_nodes` and
+   `.mafc_gl_nodes`), before `write_fx("nodes", node_cells)` writes them all. The pages find a rule by its `fn`;
    where bmm's rule depends on a task setting, as the ranking rules depend on `m`, write one cell per rule
    and tell them apart by `args`. Cells for an existing fixture file go
    inside its section, before its `write_fx()` call: `sdt_ranking` cells go into the block
@@ -157,7 +161,8 @@ The checks in the next section come after step 8.
    relative once the magnitude of the log density exceeds 1e3: use `assertCloseRel` from `tests/parity/helpers.mjs`. Run the test alone with
    `node --test tests/parity/<family>.test.mjs`.
 4. **Write the page.** `models/<model>.qmd` starts with front matter like this one, from
-   `models/sdt_mafc.qmd` (`subtitle` is one line: task and response type):
+   `models/sdt_mafc.qmd` (`subtitle` is one line: task and response type; `model` is the name of the bmm
+   constructor, and nothing in the site reads it):
    ```yaml
    title: "Signal detection theory, m-alternative forced choice"
    subtitle: "Pick the one of m alternatives that holds the signal: accuracy as a function of sensitivity and m"
@@ -179,7 +184,10 @@ The checks in the next section come after step 8.
    end). At the start of each redraw take `const t0 = performance.now()`, and at its end set
    `dashboard.dataset.redrawMs = (performance.now() - t0).toFixed(2)` (`dashboard` is the `.ex-dash`
    element), as the other pages do; the redraw
-   check below reads it.
+   check below reads it. Copy the handling of a typed value outside the range, which step 7 tests, from
+   `draw()` in `js/pages/sdt_mafc.js`: `problems()` lists what the page cannot draw, `draw()` marks those
+   fields `ex-invalid`, sets `ex-stale` on the dashboard and returns before redrawing, and `initA11y()`
+   announces it.
 5. **Add the simulate switch.** Every page has a "simulate N trials" switch that draws a sample from the
    predicted distribution. `js/lib/sim-panel.js` has the controls (`simControls`). The sampler depends on
    the response. The circular pages call `circularSimulation` from `js/lib/sim-panel.js`, which uses
@@ -200,13 +208,15 @@ The checks in the next section come after step 8.
    `rsdt_yn()`, `.mafc_logit_pc_r` for `rsdt_mafc()`, `.sdt_category_probs` for `rsdt_rating()`,
    `.ranking_all_probs_r` for `rsdt_ranking()`. On the circular pages they come from `integrate()` over
    bmm's `d*()`, on the DDM and CS-Wald pages from `integrate()` over `dddm()`, and on the `ezdm` page
-   they are bmm's EZ moments. A cell's seed is 437 plus its position in the section, so add new cells at
+   they are bmm's EZ moments. A cell's seed is 437 plus its position in the section (in `simulate_counts`,
+   `count_cell()` sets it, draws bmm's sample and writes its shares `p` and their `se`), so add new cells at
    the end of the section, inside its `has_since()` guard if it has one and before its `write_fx()` call
    (in `simulate_counts`, inside `if (has_since("rsdt_yn", "1.4.1")) { ... }`, before
    `write_fx("simulate_counts", cells)`): a cell inserted earlier shifts the seeds, and with them the
    samples, of every cell after it. Each test picks the page's sampler by the cell's `fn`, so add yours:
    a `case` in the `switch` of `explorer()` in `simulate_counts.test.mjs` (a cell without one fails with
-   "no explorer sampler"), an entry in the map `D` in `simulate.test.mjs`, a branch on `cell.fn` in
+   "no explorer sampler"; a sampler that needs bmm's nodes also extends `needsNodes` and the `rules`
+   object at the top of that file), an entry in the map `D` in `simulate.test.mjs`, a branch on `cell.fn` in
    `simulate_rt.test.mjs`. The test draws one seeded sample of the same size from your sampler and checks
    each share or statistic the page displays. On the circular and response-time pages both samples, the
    page's and bmm's, are held to the expected values within 5 standard errors (`SAMPLE_LIMIT` in
@@ -232,7 +242,10 @@ The checks in the next section come after step 8.
    page announces it. For an SDT page the `models/sdt_mafc` entry is the nearest template; its states
    are "simulate on", "note open: m", "m 10, simulate on", "gumbel_max", "logistic, simulate on" and
    "out of range: m 11". Here is the first state of the `models/m3` entry in full; the `"//"` key at the
-   top of the file defines the syntax. The run fails for a rendered page without an entry.
+   top of the file defines the syntax. The run fails for a rendered page without an entry. The tablet pass
+   picks states by name (`tablet.states`): the "default" state the run adds itself, and "simulate on", so
+   give the simulate state that name. A page with draggable SVG items adds a `focus` key with their
+   selectors, as `models/sdt_yn` does with `"focus": { "marks": ["#sdtyn-latent .sdt-drag"] }`.
    ```json
    { "name": "simulate on", "steps": [{ "click": "#m3-sim" }],
      "expect": [["#m3-sim", "checked", true], ["#m3-sim-text", "hidden", false]] }
@@ -240,7 +253,8 @@ The checks in the next section come after step 8.
 8. **Register the page.** Search for `sdt_mafc` in the first four files below and add the new page beside
    it: the model map and the list of models by family in `index.qmd`, the sidebar in `_quarto.yml`, the page
    list in the "Verify the render" step of `.github/workflows/ci.yml`, and the status table in `README.md`,
-   whose count of live pages above it and "Next:" list below it change too.
+   whose count of live pages above it and "Next:" sentence below it change too. The paragraph on the
+   simulate switch in `about.qmd` says, page by page, how a sample is shown; add yours there.
    Then add it to the axis table under "Which models have a task-settings axis" in `dev/ROADMAP.md`: a
    new row, or your model in the row of its design axis if one exists (`sdt_ranking` is already in
    "SDT mAFC, ranking"). If the page completes a milestone there (`sdt_ranking` is E11a), add it to the
@@ -347,8 +361,8 @@ stops.
 
 Fixture files are what bmm computed. A hand edit would make them say what the port computes, and the test
 would pass for the wrong reason. Change `R/make_fixtures.R` and regenerate:
-`Rscript R/make_fixtures.R tests/parity/fixtures`. Each file records the bmm version and the call
-behind every cell. Commit the regenerated file with the change that needs it, so the pull request shows
+`Rscript R/make_fixtures.R tests/parity/fixtures`. Each file records the bmm version, and every cell the
+function or case behind it and its arguments. Commit the regenerated file with the change that needs it, so the pull request shows
 the diff. A diff in a file you did not touch means bmm changed; find out why before you commit it.
 
 ## Models that are not on CRAN yet

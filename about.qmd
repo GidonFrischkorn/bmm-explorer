@@ -41,7 +41,7 @@ copy is tested against values produced by bmm itself; the test and the fixtures 
 
 ## Adding a page
 
-A page for another bmm model, or a fix to one, goes through a pull request that carries a test against
-values bmm produced. The
+A page for another bmm model, or a fix to one, goes through a pull request. A new or changed density or
+sampler comes with a test against values bmm produced. The
 [contributor guide](https://github.com/GidonFrischkorn/bmm-explorer/blob/main/CONTRIBUTING.md) lists the
 steps and the checks, and the repository has issue templates for a new page, a bug and a change in bmm.

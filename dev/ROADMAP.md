@@ -124,8 +124,9 @@ the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabu
   their names are final only with the release. The affected pages then need a version switch, with
   bmm 1.4's parameters as the default.
 
-What the workflows do today: the oracle runs weekly (Monday 06:00 UTC) and on pushes to `main` and
-pull requests that touch `R/`, `tests/parity/` or `js/models/`; its CRAN job blocks that workflow,
+What the workflows do today: the oracle (`.github/workflows/oracle.yml`) runs weekly (Monday 06:00
+UTC), when started by hand (`workflow_dispatch`), and on pushes to `main` and pull requests that touch
+`R/`, `tests/parity/`, `js/models/` or the workflow file itself; its CRAN job blocks that workflow,
 its develop job reports only. The Pages deployment in `ci.yml` does not wait for it, so a red weekly
 oracle does not stop a deployment, and a push to `main` that touches none of those paths does not
 run the oracle at all. The "fix lands before the next deployment" rule is held by hand until gating

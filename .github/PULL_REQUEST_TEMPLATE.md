@@ -12,5 +12,5 @@
 - [ ] every control works with the keyboard alone, and the focus ring shows at every step
 - [ ] someone who had not seen the page read it, and what confused them is fixed in the page
 - [ ] the R code printed on the page runs on CRAN bmm and returns the value the page gives, where it gives one
-- [ ] a new page is in `tests/a11y/states.json` and in every place step 8 of "Adding a page" in CONTRIBUTING.md lists (`index.qmd`, `_quarto.yml`, `ci.yml`, `README.md`, `dev/ROADMAP.md`)
+- [ ] a new page is in `tests/a11y/states.json` and in every place step 8 of "Adding a page" in CONTRIBUTING.md lists (`index.qmd`, `_quarto.yml`, `ci.yml`, `README.md`, `about.qmd`, `dev/ROADMAP.md`)
 - [ ] no local information in this text (paths, unpushed branches, commit hashes, notes about who or what produced a change)
