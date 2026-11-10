@@ -12,7 +12,7 @@ ships pages that pass the parity test, render, and read well to someone who has 
 | Oracle version | CRAN bmm blocks, bmm `develop` reports | Pages should match what users have installed; drift in develop should be visible early. |
 | Hosting | This repo, GitHub Pages via Actions | Independent of bmm's pkgdown build; pkgdown links here. |
 | Page template | A one-screen dashboard, then five fixed sections (below) | Everything that moves is visible at once; a reader learns the layout once. |
-| Simulated data (E9, E10) | Draws by inverting the parity-tested density on a fine grid, from fixed uniforms; expected statistics have quadrature fixtures from bmm's `d*()`, sample statistics, the explorer's and those of bmm's `r*()`, lie within 5 Monte Carlo SE of the expected ones | bmm's `rimm()` and `rsdm()` are rejection samplers from `dimm()` and `dsdm()`, so drawing from the tested density is drawing from bmm's model; fixed uniforms let the sample follow a slider. `rddm()` and `rcswald()` both draw from the Wiener diffusion model (`rtdists::rdiffusion()`), `rcswald()` in either version with `bound` as the separation, so the cswald page samples the diffusion model of its comparison panel; `rezdm()` draws from the sampling distributions `dezdm()` scores, and the page does so by quantile functions. |
+| Simulated data (E9, E10) | Draws by inverting the parity-tested density on a fine grid, from fixed uniforms; expected statistics have quadrature fixtures from bmm's `d*()`, sample statistics, the explorer's and those of bmm's `r*()`, lie within 5 Monte Carlo SE of the expected ones. The count samplers (E10a) draw from the probabilities bmm's `r*()` samples from, held to bmm's helpers at 1e-10; bmm's sample lies within 4 SE of them and the explorer's within 4 sqrt(2) SE of bmm's | bmm's `rimm()` and `rsdm()` are rejection samplers from `dimm()` and `dsdm()`, so drawing from the tested density is drawing from bmm's model; fixed uniforms let the sample follow a slider. `rddm()` and `rcswald()` both draw from the Wiener diffusion model (`rtdists::rdiffusion()`), `rcswald()` in either version with `bound` as the separation, so the cswald page samples the diffusion model of its comparison panel; `rezdm()` draws from the sampling distributions `dezdm()` scores, and the page does so by quantile functions. |
 | First models | M3 simple span, then IMM | The two models with the richest task-settings axis; they fix the categorical and the circular template. |
 
 ## Contract with bmm and bmmtools
@@ -78,7 +78,7 @@ Then the five sections:
 | E9 | Simulated data, circular | a "simulate N trials" overlay on imm, mixture2p, mixture3p, sdm: histogram of draws, expected vs sample statistics, the `r*()` call | expected statistics by `integrate()` over bmm's `d*()`; `r*()` sample statistics |
 | E10a | Simulated data, categorical and SDT | the switch on m3, mpt, sdt_yn, sdt_mafc, sdt_rating: sample shares marked on the bars, sample points on the ROC, the `r*()` call | `r*()` samples of 1e5 trials (`simulate_counts.json`) |
 | E10b | Simulated data, response times | the switch on ddm, cswald, ezdm: rt histograms behind the densities, sampled summary statistics on the ezdm bands | as E9, `r*()` for rt and choice |
-| E11a | Ranking | `sdt_ranking` page (#13): Gauss-Hermite and Gauss-Laguerre rule switch inside the integral | sdt_ranking, bmm's ranking nodes |
+| E11a | Ranking | `sdt_ranking` page (#13): Gauss-Hermite and Gauss-Legendre rule switch inside the integral | sdt_ranking, bmm's ranking nodes |
 | E11b | Dual process | `sdt_cdp` page (#13): bivariate evidence with a correlation, Remember/Know and confidence | sdt_cdp |
 | E12 | Rating versions | `dpsdt` and `metad` versions on the rating page (#14) | sdt_rating versions |
 | E13a | MPT preset trees | a tree switch on the MPT page between commonly specified trees: the two-high-threshold recognition model and a source-monitoring model. Each tree is data for the existing evaluator and the page shows its `mpt_tree()` code | `dmpt()` for every preset |
@@ -124,8 +124,9 @@ the new page, a redraw under 16 ms measured in the browser, no AI-pattern vocabu
   their names are final only with the release. The affected pages then need a version switch, with
   bmm 1.4's parameters as the default.
 
-What the workflows do today: the oracle runs weekly (Monday 06:00 UTC) and on pushes to `main` and
-pull requests that touch `R/`, `tests/parity/` or `js/models/`; its CRAN job blocks that workflow,
+What the workflows do today: the oracle (`.github/workflows/oracle.yml`) runs weekly (Monday 06:00
+UTC), when started by hand (`workflow_dispatch`), and on pushes to `main` and pull requests that touch
+`R/`, `tests/parity/`, `js/models/` or the workflow file itself; its CRAN job blocks that workflow,
 its develop job reports only. The Pages deployment in `ci.yml` does not wait for it, so a red weekly
 oracle does not stop a deployment, and a push to `main` that touches none of those paths does not
 run the oracle at all. The "fix lands before the next deployment" rule is held by hand until gating

@@ -18,7 +18,9 @@ const MU1 = /(?<![A-Za-z0-9])mu1(?![A-Za-z0-9])/;
 const SITES = [
   ["js/pages/mixture2p.js", "# density over the response error (radians); bmm fixes mu1, the location, at 0 unless the formula includes mu1"],
   ["models/mixture2p.qmd", "component, `mu1` in its formulas, at 0 by default; a systematic bias in the responses can be"],
-  ["models/mixture2p.qmd", "estimated by adding `mu1 ~ 1` to the formula."]
+  ["models/mixture2p.qmd", "estimated by adding `mu1 ~ 1` to the formula."],
+  ["CONTRIBUTING.md", "lists, which can differ from the density's: `mixture2p()` lists `mu1`, `kappa` and `thetat`, the logit of"],
+  ["CONTRIBUTING.md", "prediction gets no slider and stays at its fixed value: the location `mu1` of `mixture2p` moves the"]
 ];
 
 // Tracked files only, as CI sees them: untracked artefacts and scratch files cannot fail the test, so a new file is

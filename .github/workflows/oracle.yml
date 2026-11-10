@@ -1,5 +1,5 @@
 # Regenerates the parity fixtures from bmm and compares them with the committed ones, so a density
-# that changes in bmm shows up here. The CRAN job blocks; the develop job reports only.
+# that changes in bmm shows up here. A failed CRAN job fails the run; the develop job reports only.
 name: Oracle
 
 on:
