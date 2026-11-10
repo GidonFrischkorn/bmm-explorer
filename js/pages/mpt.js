@@ -185,7 +185,7 @@ rates <- c(${Object.entries(rate).map(([k, v]) => `${k} = ${v}`).join(", ")})
 
 # log likelihood of response counts per category; here 100 trials split as predicted.
 # pars are probabilities; bmm() estimates logit(Pi) and logit(Pb).
-dmpt(x = c(${expectedCounts(pr).join(", ")}), pars = c(Pi = ${p.Pi}, Pb = ${p.Pb}), mpt_model = model, covariates = rates)
+dmpt(x = c(${expectedCounts(pr).join(", ")}), pars = c(Pi = ${p.Pi}, Pb = ${p.Pb}), mpt_model = model, covariates = rates, log = TRUE)
 ${sim.on ? `
 # simulate ${sim.n} trials: the response counts per category
 rmpt(n = 1, size = ${sim.n}, pars = c(Pi = ${p.Pi}, Pb = ${p.Pb}), mpt_model = model, covariates = rates)

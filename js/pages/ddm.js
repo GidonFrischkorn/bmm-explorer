@@ -92,7 +92,7 @@ model <- ddm(rt = "rt", response = "response")
 
 # log density of an upper (1) and a lower (0) response, each at its predicted mean rt
 dddm(rt = c(${rts.join(", ")}), response = c(1, 0),
-     drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr})
+     drift = ${q.drift}, bound = ${q.bound}, ndt = ${q.ndt}, zr = ${q.zr}, log = TRUE)
 # ${ll.map(v => v.toFixed(4)).join("  ")}
 
 ${sim.on ? `# simulate ${sim.n} trials: P(upper), and the mean and SD of rt for each response, upper first (NA where none)
