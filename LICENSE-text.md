@@ -5,8 +5,8 @@ are licensed under the Creative Commons Attribution 4.0 International licence (C
 
 In short: you may copy, redistribute and adapt the material in any medium and for any purpose,
 including commercially, if you credit the bmm model explorer, link to the licence and say whether you
-changed anything. You may not apply legal terms or technological measures that
-restrict others from doing anything the licence permits.
+changed anything. You may not apply legal terms or technological measures that legally restrict others
+from doing anything the licence permits.
 
 Full licence text: <https://creativecommons.org/licenses/by/4.0/legalcode>
 Human-readable summary: <https://creativecommons.org/licenses/by/4.0/>

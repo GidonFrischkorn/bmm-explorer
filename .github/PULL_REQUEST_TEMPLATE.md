@@ -5,7 +5,7 @@
 **Checks** (tick each one you ran; leave a line unticked and say why if you could not)
 
 - [ ] `node --test` passes
-- [ ] fixtures regenerated from CRAN bmm (version: ) (`Rscript R/make_fixtures.R`) agree with the committed ones at 1e-10 (`compare-fixtures.mjs`), and `node --test` passes against them
+- [ ] fixtures regenerated from CRAN bmm (version: ) into a scratch directory (`Rscript R/make_fixtures.R "$fresh"`, check 2) agree with the committed ones at 1e-10 (`compare-fixtures.mjs`), and `node --test` passes against them
 - [ ] `quarto render` finishes without a warning
 - [ ] in a 1280 x 713 viewport (a 1280 x 800 screen), with the simulate switch on and off, the dashboard fits, nothing scrolls sideways, and a redraw takes under 16 ms
 - [ ] after `node tests/a11y/fetch-axe.mjs`, `node tests/a11y/run-axe.mjs` passes in every state listed in `tests/a11y/states.json` (no serious or critical violation, no failed check)
