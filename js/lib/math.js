@@ -25,6 +25,16 @@ export function logSumExp(v) {
   return m + Math.log(v.reduce((s, a) => s + Math.exp(a - m), 0));
 }
 
+// 100 trials split as predicted, rounded so the counts sum to 100 (largest remainders first; R/make_fixtures.R's
+// split100() for the fixtures' counts).
+export function split100(pr) {
+  const raw = pr.map(p => p * 100), k = raw.map(Math.floor);
+  const order = raw.map((x, i) => [x - k[i], i]).sort((a, b) => b[0] - a[0]);
+  const short = 100 - k.reduce((s, x) => s + x, 0);
+  for (let j = 0; j < short; j++) k[order[j][1]]++;
+  return k;
+}
+
 export const linspace = (from, to, n) => Array.from({ length: n }, (_, i) => from + (to - from) * i / (n - 1));
 
 export const mapX = (x, f) => (Array.isArray(x) ? x.map(f) : f(x));

@@ -1,6 +1,6 @@
 // Ports of bmm's signal detection models (R/distributions.R): yes/no (dsdt_yn), m-AFC (dsdt_mafc) and
-// confidence rating (dsdt_rating), under its four evidence distributions, plus sdt_d(), sdt_criterion() and
-// sdt_bias(). Parameters as bmm takes them in the d*() functions: d, criterion, sdratio on the natural scale.
+// confidence rating (dsdt_rating), under its four evidence distributions, ranking (dsdt_ranking) under its two, plus
+// sdt_d(), sdt_criterion() and sdt_bias(). Parameters as bmm takes them in the d*() functions: d, criterion, sdratio on the natural scale.
 // Held to bmm by tests/parity/sdt.test.mjs.
 import { logPnorm, qnorm, log1pExp, log1mExp, logDiffExp, logFactorial, logSumExp } from "../lib/math.js";
 
@@ -133,6 +133,120 @@ export function mafcMatchD(logitTarget, m, dist, rules) {
 // to beat, as bmm's latent_sdt(show_competitors = TRUE) draws it.
 export const maxCompetitorPdf = (x, m, dist) =>
   (m - 1) * DISTS[dist].pdf(x) * Math.exp((m - 2) * DISTS[dist].lcdf(x));
+
+// Ranking: the observer orders m items by evidence, and the datum is the rank the target receives (rank 1: the
+// strongest evidence). bmm's ranking quadrature rules for normal noise, read from nodes.json's cells: per m, the
+// Gauss-Hermite rule ({ nodes, weights }) and the Gauss-Legendre rule on [-6, 6] ({ nodes, weights, cdf, half_width }).
+// null when the file holds none.
+export function rankingRules(cells) {
+  const sizes = cells?.find(c => c.fn === ".ranking_rule_sizes");
+  if (!sizes) return null;
+  // The Hermite rule's log weights once per rule: the page's matched comparison evaluates the rule many times a frame.
+  const rule = (fn, n) => {
+    const c = cells.find(x => x.fn === fn && x.args.n === n);
+    return c && fn === ".ranking_gh" ? { ...c, logWeights: c.weights.map(Math.log) } : c;
+  };
+  return new Map(sizes.args.m.map((m, i) => [m, { gh: rule(".ranking_gh", sizes.gh_n[i]), gl: rule(".ranking_gl", sizes.gl_n[i]) }]));
+}
+
+// bmm's Legendre branch scales by choose(), an exact integer here, where its Hermite branch adds lchoose().
+const choose = (n, k) => { let c = 1; for (let i = 1; i <= k; i++) c = c * (n - k + i) / i; return c; };
+
+// P(target at rank r), unnormalised, as bmm's .ranking_prob_r(). gumbel_min: closed form, the gamma ratio telescoped
+// into a sum of log(j + exp(-d)), each taken off its larger term so that it survives d < -709.78, where exp(-d)
+// overflows.
+function rankingProbGumbel(d, r, m) {
+  let lp = logFactorial(m - 1) - logFactorial(r - 1) - (r > 1 ? d : 0);
+  for (let j = Math.max(r - 1, 1); j < m; j++) lp -= Math.max(Math.log(j), -d) + Math.log1p(Math.exp(-Math.abs(Math.log(j) + d)));
+  return Math.exp(lp);
+}
+
+// Normal noise: target evidence N(delta, sigma), lures N(0, 1), delta = d times the RMS of the two SDs (d is d_a).
+// C(m - 1, r - 1) E[Phi(x)^(m - r) Phi(-x)^(r - 1)] over the target's evidence x. sigma <= 1: Gauss-Hermite over the
+// target's distribution, summed on the log scale. The log Phi values at the nodes are the same for every rank, so
+// they are computed once; each rank's terms are then bmm's, in its order.
+function rankingProbsGh(delta, sigma, m, { nodes, weights, logWeights }) {
+  const lw = logWeights ?? weights.map(Math.log), lp = [], lq = [];
+  nodes.forEach(z => { const eta = z * sigma + delta; lp.push(logPnorm(eta)); lq.push(logPnorm(-eta)); });
+  return Array.from({ length: m }, (_, i) => {
+    const r = i + 1;
+    return Math.exp(lchoose(m - 1, r - 1) + logSumExp(lw.map((w, j) => w + (m - r) * lp[j] + (r - 1) * lq[j])));
+  });
+}
+
+// sigma > 1: Gauss-Legendre on the noise axis, x in [-6, 6], with the target density at each node (the weights carry
+// 6 / sqrt(2 pi)); a node's mirror is its negative, so Phi(-x) is the cdf read backwards. Beyond +-6 the lure terms
+// are 1 for rank 1 (above) and rank m (below) and 0 otherwise, so the target's mass out there goes to those two ranks.
+function rankingProbsGl(delta, sigma, m, { nodes, weights, cdf, half_width: hw }) {
+  const n = nodes.length, kern = nodes.map(x => { const z = (x - delta) / sigma; return Math.exp(-0.5 * z * z); });
+  const up = Math.exp(logPnorm((delta - hw) / sigma)), down = Math.exp(logPnorm((-hw - delta) / sigma));
+  return Array.from({ length: m }, (_, i) => {
+    const r = i + 1;
+    let body = 0;
+    for (let j = 0; j < n; j++) body += weights[j] * (cdf[j] ** (m - r) * cdf[n - 1 - j] ** (r - 1)) * kern[j];
+    return choose(m - 1, r - 1) * (body / sigma) + (r === 1 ? up : 0) + (r === m ? down : 0);
+  });
+}
+
+// P(target at rank r) for r = 1..m, normalised over the ranks, as bmm's .ranking_all_probs_r(). sdratio on the
+// natural scale, as dsdt_ranking() takes it; bmm passes its log and exponentiates it again, which the rule switch at 1
+// sees, so the port does the same. gumbel_min ignores sdratio and needs no rules.
+export function rankingProbs(d, m, sdratio = 1, dist = "gumbel_min", rules = null) {
+  let p;
+  if (dist === "gumbel_min") p = Array.from({ length: m }, (_, i) => rankingProbGumbel(d, i + 1, m));
+  else if (dist === "normal") {
+    const rule = rules?.get(m);
+    if (!rule?.gh || !rule?.gl) throw new Error(`ranking with normal noise at m = ${m} needs bmm's quadrature rules (nodes.json)`);
+    const sigma = Math.exp(Math.log(sdratio)), delta = d * Math.sqrt((1 + sigma ** 2) / 2);
+    p = sigma <= 1 ? rankingProbsGh(delta, sigma, m, rule.gh) : rankingProbsGl(delta, sigma, m, rule.gl);
+  } else throw new Error(`dsdt_ranking() has no dist "${dist}"`);
+  const total = p.reduce((s, v) => s + v, 0);
+  return p.map(v => v / total);
+}
+
+// logit P(rank 1), with 1 - P(rank 1) summed over the other ranks, so that it stays resolved where P(rank 1) rounds to 1.
+export function rankingLogitFirst(d, m, sdratio, dist, rules) {
+  const p = rankingProbs(d, m, sdratio, dist, rules);
+  return Math.log(p[0]) - Math.log(p.slice(1).reduce((a, b) => a + b, 0));
+}
+
+// The d at which dist gives a target logit P(rank 1) with m items, for the ranking page's matched comparison: it
+// increases with d. The bracket doubles outward from [-1, 1] as in mafcMatchD; inside it, regula falsi with the
+// Illinois step, as each evaluation under normal noise costs m quadratures and a slider drag repeats the search on
+// every frame. NaN where no d reaches the target: an infinite one, or one past the logits the distribution resolves.
+export function rankingMatchD(logitTarget, m, sdratio, dist, rules) {
+  if (!Number.isFinite(logitTarget)) return NaN;
+  const f = d => rankingLogitFirst(d, m, sdratio, dist, rules) - logitTarget;
+  let lo = -1, hi = 1, flo = f(lo), fhi = f(hi);
+  while (flo > 0 && lo > -1e6) { hi = lo; fhi = flo; lo *= 2; flo = f(lo); }
+  while (fhi < 0 && hi < 1e6) { lo = hi; flo = fhi; hi *= 2; fhi = f(hi); }
+  if (!(flo <= 0 && fhi >= 0)) return NaN;
+  // An end whose logit is -Inf or Inf (past what the distribution resolves) takes a bisection step instead of the
+  // secant, which cannot use it; the bracket closes on the target from inside as with mafcMatchD.
+  for (let i = 0, side = 0; i < 200 && hi - lo > 1e-12 * Math.max(1, Math.abs(lo)); i++) {
+    const mid = Number.isFinite(flo) && Number.isFinite(fhi) ? (lo * fhi - hi * flo) / (fhi - flo) : (lo + hi) / 2, fm = f(mid);
+    if (Number.isNaN(fm)) return NaN;
+    if (Math.abs(fm) <= 1e-12 * Math.max(1, Math.abs(logitTarget))) return mid;
+    if (fm < 0) { lo = mid; flo = fm; if (side === -1) fhi /= 2; side = -1; }
+    else { hi = mid; fhi = fm; if (side === 1) flo /= 2; side = 1; }
+  }
+  const d = (lo + hi) / 2;
+  return Math.abs(f(d)) <= 1e-8 * Math.max(1, Math.abs(logitTarget)) ? d : NaN;
+}
+
+// dsdt_ranking(counts, m, d, sdratio, dist, log = TRUE) for one row: the multinomial over the m ranks. As in bmm, a
+// zero count of a rank whose probability underflowed to 0 gives NaN (0 * log(0)), not a dropped term.
+export function dsdtRanking(counts, m, d, sdratio = 1, dist = "gumbel_min", rules = null) {
+  // bmm's checks on one row (dsdt_ranking()'s stopif() calls)
+  if (!(Number.isInteger(m) && m >= 2)) throw new Error("m must be an integer >= 2");
+  if (m > counts.length) throw new Error("m must not exceed the number of count columns");
+  if (counts.some(k => !(k >= 0))) throw new Error("counts must be non-negative");
+  if (!(sdratio > 0)) throw new Error("sdratio must be positive");
+  if (counts.slice(m).some(k => k !== 0)) throw new Error("count columns beyond the row's set size (m) must be 0");
+  const lp = rankingProbs(d, m, sdratio, dist, rules).map(Math.log), cnt = counts.slice(0, m);
+  return logFactorial(cnt.reduce((s, k) => s + k, 0)) - cnt.reduce((s, k) => s + logFactorial(k), 0) +
+    cnt.reduce((s, k, j) => s + k * lp[j], 0);
+}
 
 // Rating: log probabilities of the K categories between K - 1 ordered thresholds, measured from the noise
 // location, .sdt_category_log_probs(). An interval above 0 is the difference of two upper tails, one below it

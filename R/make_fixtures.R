@@ -384,6 +384,45 @@ if (has_since("dsdt_yn", "1.4.1")) {
     cells[[length(cells) + 1]] <- list(fn = "thresholds_log_distance", args = list(n_ratings = K, thresholds = thr),
       criterion = criterion, deltas = I(deltas), rebuilt = rebuilt, parsimonious_start = start_thr(K))
   }
+  # Ranking: log P(target at rank r) for r = 1..m and the log density of 100 trials at the predicted counts. gumbel_min has a closed form; normal integrates on bmm's quadrature rules, Gauss-
+  # Hermite while exp(log(sdratio)) <= 1 and Gauss-Legendre on [-6, 6] of the noise axis above, with the rule sizes
+  # set by m (nodes.json below). Per m from 2 to 8, the page's range: d over its slider (-2 to 4) and to 5, sdratio
+  # from 0.05 to 8, the range bmm's comments give for its rules (6e-10 below 1, 2.4e-10 above through m = 8), with the
+  # switch at 1 from both sides, at 1 itself and at the next double above it. Then m 10, 16 and 20 (the larger rules),
+  # |d| out to 10, where the dropped tail of the Legendre rule moves log p by up to 0.06 (bmm's comment; the port
+  # repeats it), and the closed form out to d = +-800, past exp(-d)'s overflow at -709.78. Where a probability
+  # underflows to 0, bmm's log density at a zero count of it is NaN (0 * log(0)); those rows are kept.
+  if (has_since("dsdt_ranking", "1.4.1")) {
+    # log P per rank as dsdt_ranking() takes it, log() of .ranking_all_probs_r() on log(sdratio): a one-hot count
+    # through dsdt_ranking() itself would be NaN wherever another rank's probability underflows.
+    ranking_cell <- function(m, g, dist) {
+      lp <- log(rbind(bmm:::.ranking_all_probs_r(g$d, m, dist, log(g$sdratio))))
+      # where no rank underflows, the one-hot count through the exported function gives the same values
+      ok <- rowSums(is.finite(lp)) == m
+      for (r in seq_len(m)) {
+        cnt <- matrix(0, sum(ok), m); cnt[, r] <- 1
+        stopifnot(identical(dsdt_ranking(cnt, m, g$d[ok], sdratio = g$sdratio[ok], dist = dist, log = TRUE), lp[ok, r]))
+      }
+      counts <- t(apply(exp(lp), 1, split100))
+      list(fn = "dsdt_ranking", args = c(list(m = m, dist = dist), as.list(g),
+                                         list(counts = lapply(seq_len(nrow(g)), function(i) counts[i, ]))),
+           logp = as.vector(t(lp)), logd = dsdt_ranking(counts, m, g$d, sdratio = g$sdratio, dist = dist, log = TRUE))
+    }
+    s_rank <- c(.05, .2, .407, .7, .999999, 1, 1 + 2^-52, 1.000001, 1.43, 2.46, 4, 8)
+    d_rank <- c(-2, -1, 0, .5, 1, 2.5, 4, 5)
+    for (m in 2:8) {
+      cells[[length(cells) + 1]] <- ranking_cell(m, expand.grid(d = d_rank, sdratio = s_rank), "normal")
+      cells[[length(cells) + 1]] <- ranking_cell(m, expand.grid(d = c(-40, -5, d_rank, 10, 40), sdratio = 1), "gumbel_min")
+    }
+    for (m in c(10, 16, 20)) {
+      cells[[length(cells) + 1]] <- ranking_cell(m, expand.grid(d = c(-1, 1, 4), sdratio = c(.05, 1, 1.000001, 8)), "normal")
+      cells[[length(cells) + 1]] <- ranking_cell(m, expand.grid(d = c(-5, 1, 5), sdratio = 1), "gumbel_min")
+    }
+    for (m in c(4, 8)) {
+      cells[[length(cells) + 1]] <- ranking_cell(m, expand.grid(d = c(-10, -6, -5.5, 5.5, 6, 10, -40, 40), sdratio = c(.407, 1, 1.000001, 2.46)), "normal")
+      cells[[length(cells) + 1]] <- ranking_cell(m, expand.grid(d = c(-800, -710, -700, 700, 710, 800), sdratio = 1), "gumbel_min")
+    }
+  }
   write_fx("sdt", cells)
   # bmm's m-AFC quadrature: 40-point Gauss-Hermite for normal noise, 64-point Gauss-Legendre on [0, 1] for
   # logistic noise (the two Gumbel distributions have closed forms)
@@ -391,6 +430,26 @@ if (has_since("dsdt_yn", "1.4.1")) {
     nodes = bmm:::.mafc_gh_nodes, weights = bmm:::.mafc_gh_weights)
   node_cells[[length(node_cells) + 1]] <- list(fn = ".mafc_gl", args = list(n = 64L),
     nodes = bmm:::.mafc_gl_nodes, weights = bmm:::.mafc_gl_weights)
+  # bmm's ranking rules under normal noise, which are not the m-AFC ones: per m from 2 to 20 the size of the Gauss-
+  # Hermite rule (.ranking_gh_n(m, free_sdratio = TRUE), the ladder bmm's d*() and r*() functions always use) and of
+  # the Gauss-Legendre rule (.ranking_gl_rule(m)), then each rule once, as bmm builds it (Golub-Welsch, symmetrised;
+  # the Legendre rule already scaled to [-6, 6], its weights carrying 6 / sqrt(2 pi), cdf = pnorm(nodes)).
+  if (has_since("dsdt_ranking", "1.4.1")) {
+    rank_m <- 2:20
+    gl_rules <- lapply(rank_m, bmm:::.ranking_gl_rule)
+    gl_n <- vapply(gl_rules, function(r) length(r$nodes), 0L)
+    gh_n <- bmm:::.ranking_gh_n(rank_m, free_sdratio = TRUE)
+    node_cells[[length(node_cells) + 1]] <- list(fn = ".ranking_rule_sizes", args = list(m = rank_m), gh_n = gh_n, gl_n = gl_n)
+    for (n in unique(gh_n)) {
+      gh <- bmm:::.gh_rule(n)
+      node_cells[[length(node_cells) + 1]] <- list(fn = ".ranking_gh", args = list(n = n), nodes = gh$nodes, weights = gh$weights)
+    }
+    for (n in unique(gl_n)) {
+      gl <- gl_rules[[match(n, gl_n)]]
+      node_cells[[length(node_cells) + 1]] <- list(fn = ".ranking_gl", args = list(n = n, max_m = rank_m[match(n, gl_n)]),
+        nodes = gl$nodes, weights = gl$weights, cdf = gl$cdf, half_width = gl$half_width)
+    }
+  }
 } else cat("sdt        skipped: this bmm has no dsdt_yn()\n")
 if (length(node_cells)) write_fx("nodes", node_cells)
 
@@ -538,6 +597,15 @@ if (has_since("rsdt_yn", "1.4.1")) {
                  list(d = .7, thresholds = c(0, 1), sdratio = 1.2, dist = "gumbel_min")))
     count_cell("sdt_rating", g, bmm:::.sdt_category_probs(rbind(g$thresholds), rep(g$d, 2), rep(g$sdratio, 2), c(0, 1), g$dist),
       function() do.call(rsdt_rating, c(list(n = 2, n_trials = cnt_n, stimulus = c(0, 1)), g)))
+}
+# rsdt_ranking(): .ranking_all_probs_r() on log(sdratio), the rank probabilities of the target. The page's start (gumbel_min,
+# m 4, d 1), normal on both quadrature rules (sdratio 0.7 on Gauss-Hermite, 2 on Gauss-Legendre), and m 8, where the last
+# ranks are rare. Appended after the other cells, which keep their seeds.
+if (has_since("rsdt_ranking", "1.4.1")) {
+  for (g in list(list(m = 4, d = 1, sdratio = 1, dist = "gumbel_min"), list(m = 5, d = 1.5, sdratio = .7, dist = "normal"),
+                 list(m = 4, d = 1, sdratio = 2, dist = "normal"), list(m = 8, d = 2.5, sdratio = 1, dist = "gumbel_min")))
+    count_cell("sdt_ranking", g, bmm:::.ranking_all_probs_r(g$d, as.integer(g$m), g$dist, log(g$sdratio)),
+      function() do.call(rsdt_ranking, c(list(n = 1, n_trials = cnt_n), g)))
 }
 write_fx("simulate_counts", cells)
 

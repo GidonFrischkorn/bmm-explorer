@@ -1,13 +1,14 @@
 // Simulated data on the categorical and signal detection pages against bmm. Per cell: the probabilities the page
 // computes against those bmm's r*() samples from, bmm's sample of 1e5 trials against those probabilities, and the
-// sample the page's own sampling function draws from the cell's seed against bmm's sample.
+// sample the page's own sampling function draws from the cell's seed against bmm's sample. Cells added from the
+// ranking page on hold the page's sample against the probabilities, one sample each (ONE_SAMPLE).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadFixture, loadFixtureSince, assertCloseRel } from "./helpers.mjs";
 import { m3Probs, ssActs, csActs, defaultB } from "../../js/models/m3.js";
 import { mptProbs, mptCovariates } from "../../js/models/mpt.js";
 import { SPAN_TREE } from "../../js/models/mpt-span-tree.js";
-import { ynLogPOld, biasToCriterion, mafcPc, ratingLogProbs } from "../../js/models/sdt.js";
+import { ynLogPOld, biasToCriterion, mafcPc, ratingLogProbs, rankingProbs, rankingRules } from "../../js/models/sdt.js";
 import { categoricalShares, ynSample, ratingSample, mafcSample } from "../../js/lib/simulate.js";
 import { uniforms } from "../../js/lib/random.js";
 
@@ -15,6 +16,7 @@ const fx = loadFixture("simulate_counts");
 const nodes = loadFixtureSince("nodes");
 const gh = nodes?.cells.find(c => c.fn === ".m3_gauss_rule");
 const rules = nodes && { gh: nodes.cells.find(c => c.fn === ".mafc_gh"), gl: nodes.cells.find(c => c.fn === ".mafc_gl") };
+const rankRules = nodes && rankingRules(nodes.cells);
 // Log probabilities as sdt.test.mjs and m3.test.mjs hold them: 1e-10 absolute (the quadratures run on bmm's nodes).
 const TOL = 1e-10;
 // bmm's sample against fixed probabilities: one random side, 4 SE. The page's sample against bmm's: two independent
@@ -24,7 +26,10 @@ const TOL = 1e-10;
 // by the first check, and the samples only confirm that both sides draw a multinomial on it.
 const Z = 4, Z2 = 4 * Math.SQRT2;
 // Cells that need bmm's quadrature nodes (the gaussian M3 rule; m-AFC under normal or logistic noise at m > 2).
-const needsNodes = cell => cell.args.choice_rule === "gaussian" || cell.fn === "sdt_mafc";
+const needsNodes = cell => cell.args.choice_rule === "gaussian" || cell.fn === "sdt_mafc" ||
+  (cell.fn === "sdt_ranking" && cell.args.dist === "normal");
+// Cells whose page sample is held to the page's probabilities (Z SE, one random side), not to bmm's sample.
+const ONE_SAMPLE = new Set(["sdt_ranking"]);
 
 // The page's probabilities, flat in the fixture's order (yes/no: false alarms, hits; rating: noise, then signal
 // categories), and the sample its sampling function draws from uniforms(trials, seed), in the same order.
@@ -52,6 +57,10 @@ function explorer(cell) {
       const pc = mafcPc(a.d, a.m, a.dist, rules);
       return { probs: [pc], sample: [mafcSample(pc, us(1))] };
     }
+    case "sdt_ranking": {
+      const probs = rankingProbs(a.d, a.m, a.sdratio, a.dist, rankRules);
+      return { probs, sample: categoricalShares(probs, us(1)) };
+    }
     case "sdt_rating": {
       const probs = [0, 1].map(stim => ratingLogProbs(a.thresholds, a, stim).map(Math.exp));
       return { probs: probs.flat(), sample: ratingSample(probs, us(2)).flat() };
@@ -74,7 +83,7 @@ function assertShares(got, ref, probs, n, z, label) {
 }
 
 for (const cell of fx.cells) {
-  const skip = needsNodes(cell) && !nodes ? "needs bmm's quadrature nodes (nodes.json)" : false;
+  const skip = needsNodes(cell) && !(cell.fn === "sdt_ranking" ? rankRules : nodes) ? "needs bmm's quadrature nodes (nodes.json)" : false;
   const label = `${cell.fn}(${JSON.stringify(cell.args)})`;
   test(`${label}: the page's probabilities are those bmm ${fx.bmm_version}'s r*() samples from`, { skip }, () => {
     assertCloseRel(explorer(cell).probs.map(Math.log), bmm(cell).probs.map(Math.log), TOL, "log probabilities");
@@ -83,7 +92,11 @@ for (const cell of fx.cells) {
     const { probs } = explorer(cell);
     assertShares(bmm(cell).p, probs, probs, cell.n, Z, "bmm's sample");
   });
-  test(`${label}: the page's sample of 1e5 trials (seed ${cell.seed}) matches bmm's within ${Z2.toFixed(2)} SE`, { skip }, () => {
+  if (ONE_SAMPLE.has(cell.fn)) test(`${label}: the page's sample of 1e5 trials (seed ${cell.seed}) lies within ${Z} SE of its probabilities`, { skip }, () => {
+    const { probs, sample } = explorer(cell);
+    assertShares(sample, probs, probs, cell.n, Z, "page's sample");
+  });
+  else test(`${label}: the page's sample of 1e5 trials (seed ${cell.seed}) matches bmm's within ${Z2.toFixed(2)} SE`, { skip }, () => {
     const { probs, sample } = explorer(cell);
     assertShares(sample, bmm(cell).p, probs, cell.n, Z2, "page's sample");
   });
